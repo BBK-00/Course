@@ -721,7 +721,7 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
     <div class="sec-head"><span class="sec-num">9</span><h2>Бақылау жұмысы</h2></div>
     <p class="learn">Бұл бөлімде үйренгеніңді өз бетіңше қолданып, жұмысыңды оқытушыға тапсырасың.</p>
     <div class="phase" data-phase="do">
-      <h3 class="phase-h"><span class="phase-tag do">БАҚЫЛАУ ЖҰМЫСЫ</span> 40 минут · 3 тапсырма · 60 балл + қатысым 40 балл</h3>
+      <h3 class="phase-h"><span class="phase-tag do">БАҚЫЛАУ ЖҰМЫСЫ</span> Нұсқаңды таңдап, тапсырмаларды орында.</h3>
       <div id="s9Tasks"></div>
     </div>
     <div class="remember"><h4>Есте сақта</h4>
@@ -2838,22 +2838,6 @@ function updateLock(){
   let W = fresh(), timer = 0;
   try{ W = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); }catch(e){}
   W.sig.f = W.sig.f || {};
-  const SAMPLE = [
-    '[A|b]:',
-    ' 2  1  1 |  7',
-    ' 4  3  3 | 19',
-    ' 2  2 -1 |  3',
-    'R2 = R2 - 2*R1  ->  0  1  1 |  5',
-    'R3 = R3 - 1*R1  ->  0  1 -2 | -4',
-    'R3 = R3 - 1*R2  ->  0  0 -3 | -9',
-    'Баспалдақ матрица:',
-    ' 2  1  1 |  7',
-    ' 0  1  1 |  5',
-    ' 0  0 -3 | -9',
-    'z = -9 / (-3) = 3',
-    'y = 5 - 3 = 2',
-    'x = (7 - 2 - 3) / 2 = 1'
-  ].join('\n');
   const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(W)); }catch(e){} };
   document.addEventListener('visibilitychange', () => { if (document.hidden && W.start && !W.sent){ W.sig.away++; save(); } });
   /* Өріс: мәнді W-ға сақтайды, көшіру мен теруді санайды */
@@ -2881,7 +2865,7 @@ function updateLock(){
     }
     /* Бастау */
     const head = el('div', { class:'task' }, el('h4', { text:'Жұмысты бастау' }));
-    head.append(el('p', { text:'Аты-жөніңді, тобыңды және нұсқаңды таңда. «Бастау» батырмасын басқанда ' + LIMIT + ' минуттық уақыт басталады. Тапсырмалар — 60 балл, сабаққа қатысу — 40 балл.' }));
+    head.append(el('p', { text:'Аты-жөніңді, тобыңды және нұсқаңды таңда. «Бастау» батырмасын басқанда ' + LIMIT + ' минуттық уақыт басталады.' }));
     const nm = field('input', 'name', { type:'text', class:'cf-input wide', id:'wName' });
     const gr = field('input', 'group', { type:'text', class:'cf-input wide', id:'wGroup' });
     const vs = el('select', { id:'wVar', class:'cf-input wide' });
@@ -2911,7 +2895,7 @@ function updateLock(){
     const [A, b] = VARIANTS[W.variant - 1];
 
     /* 1-тапсырма: тест */
-    const t1 = el('div', { class:'task' }, el('h4', { text:'1-тапсырма. Тест (12 балл)' }));
+    const t1 = el('div', { class:'task' }, el('h4', { text:'1-тапсырма. Тест' }));
     QUIZ.forEach(([q, opts], i) => {
       const fs = el('fieldset', { class:'wq' }, el('legend', { text:(i + 1) + '. ' + q }));
       opts.forEach((o, k) => {
@@ -2924,29 +2908,29 @@ function updateLock(){
     host.append(t1);
 
     /* 2-тапсырма: қолмен есептеу */
-    const t2 = el('div', { class:'task' }, el('h4', { text:'2-тапсырма. Гаусс әдісімен қолмен есептеу (24 балл)' }));
+    const t2 = el('div', { class:'task' }, el('h4', { text:'2-тапсырма. Жүйені қолмен шешу' }));
     const sys = el('div', { class:'addviz var-sys' });
     A.forEach((r, i) => sys.append(el('div', { class:'eqline', html:eqHTML(r, b[i], i, 3) })));
     t2.append(el('p', { html:'<b>№' + W.variant + ' нұсқа:</b>' }), sys,
-      el('p', { text:'Жүйені Гаусс әдісімен шеш. Шешу барысын төмендегі өріске жаз: кеңейтілген матрица, әр түрлендіру (мысалы, R₂ ← R₂ − 2·R₁) және одан кейінгі жолдар, баспалдақ матрица, кері жүріс. Тек соңғы жауапты жазу жеткіліксіз.' }));
-    t2.append(el('div', { class:'sample' }, [el('b', { text:'Үлгі' }), el('span', { class:'muted', text:' — басқа жүйе үшін: 2x + y + z = 7;  4x + 3y + 3z = 19;  2x + 2y − z = 3' }), el('pre', { text:SAMPLE })]),
-      el('p', { class:'notice', text:'Шешу барысын үлгідегідей өзің тер: * — көбейту, -> — нәтиже. Басқа жерден көшіріп қойылған мәтін бағаны төмендетеді.' }));
-    t2.append(field('textarea', 'steps', { class:'work-area mono', rows:'14', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында үлгідегідей жаз...' }));
+      el('p', { text:'Жүйені Гаусс әдісімен немесе өзің білетін тәсілмен шеш. Шешу барысын төмендегі өріске өз сөзіңмен жаз: негізгі түрлендірулер мен аралық нәтижелер. Тек соңғы жауапты жазу жеткіліксіз.' }));
+    t2.append(field('textarea', 'steps', { class:'work-area mono', rows:'14', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында жаз...' }));
     const xyz = el('div', { class:'submit-grid' });
     ['x', 'y', 'z'].forEach(v => xyz.append(el('label', { for:'w' + v, text:v + ' =' }), field('input', v, { type:'text', class:'cf-input', id:'w' + v })));
     t2.append(el('p', { text:'Жауабың:' }), xyz);
     host.append(t2);
 
     /* 3-тапсырма: Python */
-    const t3 = el('div', { class:'task' }, el('h4', { text:'3-тапсырма. Python арқылы шешу (24 балл)' }));
-    t3.append(el('p', { text:'2-тапсырмадағы сол жүйені Python көмегімен шеш. Үлгідегі A мен b орнына өз жүйеңнің деректерін қой, жетекші элементті тексеретін бөлікті өзің толықтыр. Содан кейін кодыңды және бағдарлама шығарған нәтижені төменге қой.' }));
+    const t3 = el('div', { class:'task' }, el('h4', { text:'3-тапсырма. Бағдарлама арқылы шешу' }));
+    t3.append(el('p', { text:'2-тапсырмадағы сол жүйені бағдарлама жазып шеш. Python немесе өзің білетін басқа тілді қолдануға болады. Кодыңды және бағдарлама шығарған нәтижені төменге қой.' }));
+    const tpl = el('details', null, el('summary', { text:'Python үлгісі (қажет болса)' }));
     const head3 = el('div', { class:'code-head' }), cmsg = el('span', { class:'muted', role:'status' });
     const cb = el('button', { type:'button', class:'btn small', text:'📋 Үлгіні көшіру' });
     cb.addEventListener('click', () => copyText(PY_TASK, cmsg));
-    head3.append(el('b', { text:'Код үлгісі' }), el('span', null, [cmsg, ' ', cb]));
-    t3.append(head3);
-    new CodeView(t3, { code:PY_TASK, label:'Код үлгісі' });
-    t3.append(el('p', { text:'Сенің кодың:' }), field('textarea', 'code', { class:'work-area mono', rows:'14', 'aria-label':'Python коды' }));
+    head3.append(el('span'), el('span', null, [cmsg, ' ', cb]));
+    tpl.append(head3);
+    new CodeView(tpl, { code:PY_TASK, label:'Python үлгісі' });
+    t3.append(tpl);
+    t3.append(el('p', { text:'Сенің кодың:' }), field('textarea', 'code', { class:'work-area mono', rows:'14', 'aria-label':'Бағдарлама коды' }));
     t3.append(el('div', { class:'submit-grid' }, [el('label', { for:'wout', text:'Нәтиже' }), field('input', 'out', { type:'text', class:'cf-input wide', id:'wout', placeholder:'[x, y, z]' })]));
     host.append(t3);
 
@@ -2975,7 +2959,7 @@ function updateLock(){
       const txt = ['Аты-жөні: ' + d.name, 'Тобы: ' + d.group, 'Нұсқа: №' + d.variant, 'Уақыты: ' + d.minutes + ' мин', '',
         '1-тапсырма (тест): ' + d.quiz.map((a, i) => (i + 1) + ') ' + (a === null ? '—' : QUIZ[i][1][a])).join('; '), '',
         '2-тапсырма (шешу барысы):', d.steps || '—', 'Жауабы: x = ' + (d.x || '—') + ', y = ' + (d.y || '—') + ', z = ' + (d.z || '—'), '',
-        '3-тапсырма (Python коды):', d.code || '—', 'Нәтиже: ' + (d.out || '—')].join('\n');
+        '3-тапсырма (бағдарлама коды):', d.code || '—', 'Нәтиже: ' + (d.out || '—')].join('\n');
       const a = el('a', { href:URL.createObjectURL(new Blob([txt], { type:'text/plain;charset=utf-8' })), download:'Gauss_' + d.name.replace(/\s+/g, '_') + '.txt' });
       document.body.append(a); a.click(); a.remove();
       out.innerHTML = '<p class="success">Файл сақталды. Оны оқытушыға жібер.</p>';
