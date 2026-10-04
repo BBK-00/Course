@@ -719,7 +719,7 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
     <div class="sec-head"><span class="sec-num">9</span><h2>Бақылау жұмысы</h2></div>
     <p class="learn">Бұл бөлімде үйренгеніңді өз бетіңше қолданып, жұмысыңды оқытушыға тапсырасың.</p>
     <div class="phase" data-phase="do">
-      <h3 class="phase-h"><span class="phase-tag do">БАҚЫЛАУ ЖҰМЫСЫ</span> 40 минут · 3 тапсырма · 100 балл</h3>
+      <h3 class="phase-h"><span class="phase-tag do">БАҚЫЛАУ ЖҰМЫСЫ</span> 40 минут · 3 тапсырма · 60 балл + қатысым 40 балл</h3>
       <div id="s9Tasks"></div>
     </div>
     <div class="remember"><h4>Есте сақта</h4>
@@ -2860,7 +2860,7 @@ function updateLock(){
     }
     /* Бастау */
     const head = el('div', { class:'task' }, el('h4', { text:'Жұмысты бастау' }));
-    head.append(el('p', { text:'Аты-жөніңді, тобыңды және нұсқаңды таңда. «Бастау» батырмасын басқанда ' + LIMIT + ' минуттық уақыт басталады. Жұмыс 3 тапсырмадан тұрады және 100 баллмен бағаланады.' }));
+    head.append(el('p', { text:'Аты-жөніңді, тобыңды және нұсқаңды таңда. «Бастау» батырмасын басқанда ' + LIMIT + ' минуттық уақыт басталады. Тапсырмалар — 60 балл, сабаққа қатысу — 40 балл.' }));
     const nm = field('input', 'name', { type:'text', class:'cf-input wide', id:'wName' });
     const gr = field('input', 'group', { type:'text', class:'cf-input wide', id:'wGroup' });
     const vs = el('select', { id:'wVar', class:'cf-input wide' });
@@ -2890,7 +2890,7 @@ function updateLock(){
     const [A, b] = VARIANTS[W.variant - 1];
 
     /* 1-тапсырма: тест */
-    const t1 = el('div', { class:'task' }, el('h4', { text:'1-тапсырма. Тест (20 балл)' }));
+    const t1 = el('div', { class:'task' }, el('h4', { text:'1-тапсырма. Тест (12 балл)' }));
     QUIZ.forEach(([q, opts], i) => {
       const fs = el('fieldset', { class:'wq' }, el('legend', { text:(i + 1) + '. ' + q }));
       opts.forEach((o, k) => {
@@ -2903,7 +2903,7 @@ function updateLock(){
     host.append(t1);
 
     /* 2-тапсырма: қолмен есептеу */
-    const t2 = el('div', { class:'task' }, el('h4', { text:'2-тапсырма. Гаусс әдісімен қолмен есептеу (40 балл)' }));
+    const t2 = el('div', { class:'task' }, el('h4', { text:'2-тапсырма. Гаусс әдісімен қолмен есептеу (24 балл)' }));
     const sys = el('div', { class:'addviz var-sys' });
     A.forEach((r, i) => sys.append(el('div', { class:'eqline', html:eqHTML(r, b[i], i, 3) })));
     t2.append(el('p', { html:'<b>№' + W.variant + ' нұсқа:</b>' }), sys,
@@ -2915,7 +2915,7 @@ function updateLock(){
     host.append(t2);
 
     /* 3-тапсырма: Python */
-    const t3 = el('div', { class:'task' }, el('h4', { text:'3-тапсырма. Python арқылы шешу (40 балл)' }));
+    const t3 = el('div', { class:'task' }, el('h4', { text:'3-тапсырма. Python арқылы шешу (24 балл)' }));
     t3.append(el('p', { text:'2-тапсырмадағы сол жүйені Python көмегімен шеш. Үлгідегі A мен b орнына өз жүйеңнің деректерін қой, жетекші элементті тексеретін бөлікті өзің толықтыр. Содан кейін кодыңды және бағдарлама шығарған нәтижені төменге қой.' }));
     const head3 = el('div', { class:'code-head' }), cmsg = el('span', { class:'muted', role:'status' });
     const cb = el('button', { type:'button', class:'btn small', text:'📋 Үлгіні көшіру' });
