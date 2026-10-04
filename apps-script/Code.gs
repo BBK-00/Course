@@ -18,7 +18,7 @@ const VARIANTS = [
   [[[-1,-4,0],[-3,-3,0],[0,-2,2]],[-12,-18,6]], [[[3,-2,5],[4,-4,2],[-1,1,-3]],[22,10,-10]]
 ];
 const HEAD = ['Уақыты', 'Аты-жөні', 'Тобы', 'Нұсқа', 'ЖАЛПЫ БАЛЛ /100', 'Қатысым /40', 'Тест /12', 'x, y, z /9', 'Шешу барысы /15',
-  'Python нәтижесі /6', 'Код /18', 'ЖИ айыппұлы', 'ЖИ күдігі, %', 'Түсініктеме', 'Уақыт, мин', 'Көшіру / теру / беттен шығу',
+  'Python нәтижесі /6', 'Код /18', 'ЖИ айыппұлы', 'ЖИ күдігі, %', 'ЖИ белгілері', 'Түсініктеме', 'Уақыт, мин', 'Көшіру / теру / беттен шығу',
   'Шешу барысы', 'Python коды', 'Нәтиже', 'x', 'y', 'z', 'Деректер (JSON)'];
 
 const SCHEMA_ = {
@@ -80,16 +80,35 @@ function score_(d) {
   const code = ai ? clamp_(ai.code_score, 0, 18) : '';
   const pen = ai ? clamp_(ai.penalty, 0, 50) : '';
   const sus = ai ? clamp_(ai.ai_suspicion, 0, 100) : '';
-  /* Қатысым 40 + тапсырма 60; айыппұлдан кейін де тапсырма балы 10-нан төмен түспейді (жалпы ≥ 50) */
-  const total = ai ? 40 + Math.max(10, quiz + xyzOk * 3 + steps + (outOk ? 6 : 0) + code - pen) : '';
+  /* Қатысым 40 + тапсырма 60. ЖИ белгісі қатты (🔴) болса — тапсырма 10 (жалпы 50), орташа (🟠) болса — тапсырма ең көбі 35.
+     Қандай жағдайда да тапсырма балы 10-нан төмен түспейді (жалпы ≥ 50). */
+  const fl = flags_(d, sus);
+  let task = quiz + xyzOk * 3 + steps + (outOk ? 6 : 0) + code - pen;
+  if (fl.lv === 2) task = 10; else if (fl.lv === 1) task = Math.min(task, 35);
+  const total = ai ? 40 + Math.max(10, task) : '';
   const s = d.sig || {};
   return [new Date(), d.name, d.group, d.variant, total, 40, quiz, xyzOk * 3, steps, outOk ? 6 : 0, code, pen, sus,
-    ai ? ai.comment : note, d.minutes, (s.paste || 0) + ' рет (' + (s.pasted || 0) + ' таңба) / ' + (s.typed || 0) + ' / ' + (s.away || 0) + ' рет',
+    (fl.lv === 2 ? '🔴 ' : fl.lv === 1 ? '🟠 ' : '') + fl.why.join('; '), ai ? ai.comment : note, d.minutes, (s.paste || 0) + ' рет (' + (s.pasted || 0) + ' таңба) / ' + (s.typed || 0) + ' / ' + (s.away || 0) + ' рет',
     d.steps, d.code, d.out, d.x, d.y, d.z, JSON.stringify(d)];
 }
+/* ЖИ белгілері: нақты ережелер (уақыт, көшіру, теру) + Gemini бағасы. lv: 0 — жоқ, 1 — орташа, 2 — қатты */
+function flags_(d, sus) {
+  const s = d.sig || {}, st = (s.f || {}).steps || {}, why = [];
+  const len = String(d.steps || '').trim().length, codeLen = String(d.code || '').trim().length;
+  let lv = 0;
+  const hard = t => { lv = 2; why.push(t); }, soft = t => { lv = Math.max(lv, 1); why.push(t); };
+  if (len >= 100 && (st.pasted || 0) >= len * 0.5) hard('шешу барысының көбі көшіріліп қойылған');
+  const act = ((st.last || 0) - (st.first || 0)) / 60000;
+  if (len >= 100 && act < 1.5 && (st.typed || 0) < len * 0.5) hard('шешу барысы ' + act.toFixed(1) + ' минутта, терілмей жазылған');
+  if (len >= 100 && codeLen >= 100 && Number(d.minutes) < 12) hard('бүкіл жұмыс ' + d.minutes + ' минутта бітті');
+  if (sus !== '' && sus >= 70) hard('ЖИ стилі анық (' + sus + '%)');
+  else if (sus !== '' && sus >= 45) soft('ЖИ стилі байқалады (' + sus + '%)');
+  if ((s.away || 0) >= 10) soft('беттен ' + s.away + ' рет шыққан');
+  return { lv, why };
+}
 function mark_(sh, r, row) {
-  const sus = row[12];
-  sh.getRange(r, 1, 1, HEAD.length).setBackground(sus !== '' && sus >= 60 ? '#fde2e2' : row[4] === '' ? '#fff3cd' : null);
+  const f = String(row[13]);
+  sh.getRange(r, 1, 1, HEAD.length).setBackground(f.indexOf('🔴') === 0 ? '#fde2e2' : f.indexOf('🟠') === 0 ? '#ffe8cc' : row[4] === '' ? '#fff3cd' : null);
 }
 
 function buildPrompt_(d, vi, sol, xyzOk, outOk) {

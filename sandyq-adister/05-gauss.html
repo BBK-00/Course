@@ -110,6 +110,8 @@ b,strong{font-weight:650}
 .submit-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;max-width:520px;margin:8px 0}
 .cf-input.wide{width:100%}
 .work-area{width:100%;font-size:1rem;line-height:1.5}
+.sample{background:var(--surface);border:1px dashed var(--primary-2);border-radius:10px;padding:8px 12px;margin:8px 0}
+.sample pre{margin:6px 0 0;font-family:var(--mono);font-size:.92rem;overflow-x:auto}
 .work-area.mono{font-family:var(--mono);font-size:.92rem;white-space:pre;overflow-x:auto}
 .wq{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0;background:var(--surface)}
 .wq legend{font-weight:600;padding:0 4px}
@@ -2832,18 +2834,37 @@ function updateLock(){
     '',
     'print(x)'
   ].join('\n');
-  const fresh = () => ({ name:'', group:'', variant:1, start:0, sent:0, quiz:[null, null, null, null, null, null], steps:'', x:'', y:'', z:'', code:'', out:'', sig:{ paste:0, pasted:0, typed:0, away:0 } });
+  const fresh = () => ({ name:'', group:'', variant:1, start:0, sent:0, quiz:[null, null, null, null, null, null], steps:'', x:'', y:'', z:'', code:'', out:'', sig:{ paste:0, pasted:0, typed:0, away:0, f:{} } });
   let W = fresh(), timer = 0;
   try{ W = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); }catch(e){}
+  W.sig.f = W.sig.f || {};
+  const SAMPLE = [
+    '[A|b]:',
+    ' 2  1  1 |  7',
+    ' 4  3  3 | 19',
+    ' 2  2 -1 |  3',
+    'R2 = R2 - 2*R1  ->  0  1  1 |  5',
+    'R3 = R3 - 1*R1  ->  0  1 -2 | -4',
+    'R3 = R3 - 1*R2  ->  0  0 -3 | -9',
+    'Баспалдақ матрица:',
+    ' 2  1  1 |  7',
+    ' 0  1  1 |  5',
+    ' 0  0 -3 | -9',
+    'z = -9 / (-3) = 3',
+    'y = 5 - 3 = 2',
+    'x = (7 - 2 - 3) / 2 = 1'
+  ].join('\n');
   const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(W)); }catch(e){} };
   document.addEventListener('visibilitychange', () => { if (document.hidden && W.start && !W.sent){ W.sig.away++; save(); } });
   /* Өріс: мәнді W-ға сақтайды, көшіру мен теруді санайды */
   function field(tag, key, attrs){
     const f = el(tag, Object.assign({ autocomplete:'off', spellcheck:'false' }, attrs));
     f.value = W[key] || '';
-    f.addEventListener('input', () => { W[key] = f.value; save(); });
-    f.addEventListener('keydown', e => { if (e.key.length === 1){ W.sig.typed++; } });
-    f.addEventListener('paste', e => { const t = (e.clipboardData && e.clipboardData.getData('text')) || ''; W.sig.paste++; W.sig.pasted += t.length; save(); });
+    /* әр өріс бойынша: көшіру, теру, алғашқы және соңғы енгізу уақыты (басталғаннан бері, мс) */
+    const st = () => (W.sig.f[key] = W.sig.f[key] || { paste:0, pasted:0, typed:0, first:0, last:0 });
+    f.addEventListener('input', () => { W[key] = f.value; const s = st(), t = Date.now() - W.start; if (!s.first) s.first = t; s.last = t; save(); });
+    f.addEventListener('keydown', e => { if (e.key.length === 1){ W.sig.typed++; st().typed++; } });
+    f.addEventListener('paste', e => { const n = ((e.clipboardData && e.clipboardData.getData('text')) || '').length; W.sig.paste++; W.sig.pasted += n; st().paste++; st().pasted += n; save(); });
     return f;
   }
   const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -2908,7 +2929,9 @@ function updateLock(){
     A.forEach((r, i) => sys.append(el('div', { class:'eqline', html:eqHTML(r, b[i], i, 3) })));
     t2.append(el('p', { html:'<b>№' + W.variant + ' нұсқа:</b>' }), sys,
       el('p', { text:'Жүйені Гаусс әдісімен шеш. Шешу барысын төмендегі өріске жаз: кеңейтілген матрица, әр түрлендіру (мысалы, R₂ ← R₂ − 2·R₁) және одан кейінгі жолдар, баспалдақ матрица, кері жүріс. Тек соңғы жауапты жазу жеткіліксіз.' }));
-    t2.append(field('textarea', 'steps', { class:'work-area', rows:'12', 'aria-label':'Шешу барысы', placeholder:'[A | b] =\n[ 2  1  1 |  7 ]\n...\nR₂ ← R₂ − 2·R₁\n...' }));
+    t2.append(el('div', { class:'sample' }, [el('b', { text:'Үлгі' }), el('span', { class:'muted', text:' — басқа жүйе үшін: 2x + y + z = 7;  4x + 3y + 3z = 19;  2x + 2y − z = 3' }), el('pre', { text:SAMPLE })]),
+      el('p', { class:'notice', text:'Шешу барысын үлгідегідей өзің тер: * — көбейту, -> — нәтиже. Басқа жерден көшіріп қойылған мәтін бағаны төмендетеді.' }));
+    t2.append(field('textarea', 'steps', { class:'work-area mono', rows:'14', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында үлгідегідей жаз...' }));
     const xyz = el('div', { class:'submit-grid' });
     ['x', 'y', 'z'].forEach(v => xyz.append(el('label', { for:'w' + v, text:v + ' =' }), field('input', v, { type:'text', class:'cf-input', id:'w' + v })));
     t2.append(el('p', { text:'Жауабың:' }), xyz);
