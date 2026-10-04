@@ -2808,32 +2808,6 @@ function updateLock(){
     ['Тура жүрістен кейін 0 = 5 жолы шықса не болады?', ['Шешім шексіз көп', 'Шешім жоқ', 'Жалғыз шешім бар', 'x = 5']],
     ['Кері жүріс қай жолдан басталады?', ['Ең жоғарғы жолдан', 'Ортаңғы жолдан', 'Ең төменгі жолдан, онда бір ғана белгісіз бар', 'Кез келген жолдан']]
   ];
-  const PY_TASK = [
-    'A = [[..., ..., ...],                 # өз жүйеңнің коэффициенттері',
-    '     [..., ..., ...],',
-    '     [..., ..., ...]]',
-    'b = [..., ..., ...]                   # оң жақтағы сандар',
-    'n = len(A)',
-    '',
-    'M = [A[i][:] + [b[i]] for i in range(n)]',
-    '',
-    'for k in range(n):',
-    '    # жетекші элементті тексеру',
-    '    # қажет болса жолдарды ауыстыру',
-    '',
-    '    for i in range(k + 1, n):',
-    '        m = M[i][k] / M[k][k]',
-    '        for j in range(k, n + 1):',
-    '            M[i][j] -= m * M[k][j]',
-    '',
-    '# кері жүріс',
-    'x = [0.0] * n',
-    'for i in range(n - 1, -1, -1):',
-    '    s = sum(M[i][j] * x[j] for j in range(i + 1, n))',
-    '    x[i] = (M[i][n] - s) / M[i][i]',
-    '',
-    'print(x)'
-  ].join('\n');
   const fresh = () => ({ name:'', group:'', variant:1, start:0, sent:0, quiz:[null, null, null, null, null, null], steps:'', x:'', y:'', z:'', code:'', out:'', sig:{ paste:0, pasted:0, typed:0, away:0, f:{} } });
   let W = fresh(), timer = 0;
   try{ W = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); }catch(e){}
@@ -2913,9 +2887,9 @@ function updateLock(){
     A.forEach((r, i) => sys.append(el('div', { class:'eqline', html:eqHTML(r, b[i], i, 3) })));
     t2.append(el('p', { html:'<b>№' + W.variant + ' нұсқа:</b>' }), sys,
       el('p', { text:'Жүйені Гаусс әдісімен немесе өзің білетін тәсілмен шеш. Шешу барысын төмендегі өріске өз сөзіңмен жаз: негізгі түрлендірулер мен аралық нәтижелер. Тек соңғы жауапты жазу жеткіліксіз.' }));
-    t2.append(el('details', null, [el('summary', { text:'Жазу үлгісі (қажет болса)' }),
-      el('p', { class:'muted', text:'Басқа жүйе үшін мысал: 2x + y + z = 7;  4x + 3y + 3z = 19;  2x + 2y − z = 3. Өз тәсіліңмен жазуға болады.' }),
-      el('pre', { class:'pyout', text:'[A|b]:\n 2  1  1 |  7\n 4  3  3 | 19\n 2  2 -1 |  3\nR2 = R2 - 2*R1  ->  0  1  1 |  5\nR3 = R3 - 1*R1  ->  0  1 -2 | -4\nR3 = R3 - 1*R2  ->  0  0 -3 | -9\nz = -9 / (-3) = 3\ny = 5 - 3 = 2\nx = (7 - 2 - 3) / 2 = 1' })]));
+    t2.append(el('div', { class:'sample' }, [el('b', { text:'Үлгі' }),
+      el('span', { class:'muted', text:' — басқа жүйе үшін: 2x + y + z = 7;  4x + 3y + 3z = 19;  2x + 2y − z = 3' }),
+      el('pre', { text:'[A|b]:\n 2  1  1 |  7\n 4  3  3 | 19\n 2  2 -1 |  3\nR2 = R2 - 2*R1  ->  0  1  1 |  5\nR3 = R3 - 1*R1  ->  0  1 -2 | -4\nR3 = R3 - 1*R2  ->  0  0 -3 | -9\nz = -9 / (-3) = 3\ny = 5 - 3 = 2\nx = (7 - 2 - 3) / 2 = 1' })]));
     t2.append(field('textarea', 'steps',{ class:'work-area mono', rows:'14', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында жаз...' }));
     const xyz = el('div', { class:'submit-grid' });
     ['x', 'y', 'z'].forEach(v => xyz.append(el('label', { for:'w' + v, text:v + ' =' }), field('input', v, { type:'text', class:'cf-input', id:'w' + v })));
@@ -2925,14 +2899,6 @@ function updateLock(){
     /* 3-тапсырма: Python */
     const t3 = el('div', { class:'task' }, el('h4', { text:'3-тапсырма. Бағдарлама арқылы шешу' }));
     t3.append(el('p', { text:'2-тапсырмадағы сол жүйені бағдарлама жазып шеш. Python немесе өзің білетін басқа тілді қолдануға болады. Кодыңды және бағдарлама шығарған нәтижені төменге қой.' }));
-    const tpl = el('details', null, el('summary', { text:'Python үлгісі (қажет болса)' }));
-    const head3 = el('div', { class:'code-head' }), cmsg = el('span', { class:'muted', role:'status' });
-    const cb = el('button', { type:'button', class:'btn small', text:'📋 Үлгіні көшіру' });
-    cb.addEventListener('click', () => copyText(PY_TASK, cmsg));
-    head3.append(el('span'), el('span', null, [cmsg, ' ', cb]));
-    tpl.append(head3);
-    new CodeView(tpl, { code:PY_TASK, label:'Python үлгісі' });
-    t3.append(tpl);
     t3.append(el('p', { text:'Сенің кодың:' }), field('textarea', 'code', { class:'work-area mono', rows:'14', 'aria-label':'Бағдарлама коды' }));
     t3.append(el('div', { class:'submit-grid' }, [el('label', { for:'wout', text:'Нәтиже' }), field('input', 'out', { type:'text', class:'cf-input wide', id:'wout', placeholder:'[x, y, z]' })]));
     host.append(t3);
