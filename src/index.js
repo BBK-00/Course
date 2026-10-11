@@ -89,12 +89,13 @@ async function route(request, env, ctx, url) {
 
   /* ---------------- Оқытушы ---------------- */
   if (path === 'teacher/login' && method === 'POST') {
-    if (!env.TEACHER_PASSWORD) return err('no_password', 500);
+    const secretPw = String(env.TEACHER_PASSWORD || '').trim();
+    if (!secretPw) return err('no_password', 500);
     /* Құпиясөзді таңдап алудан қорғау: бір IP-ден 10 минутта 6 қате болса, уақытша тоқтатылады */
     const ip = request.headers.get('CF-Connecting-IP') || 'local';
     const bad = await DB.prepare('SELECT COUNT(*) AS n FROM login_fails WHERE ip=? AND at>?').bind(ip, now() - 600).first();
     if (bad.n >= 6) return err('wait', 429);
-    if (!safeEqual(b.password || '', env.TEACHER_PASSWORD)) { await DB.prepare('INSERT INTO login_fails (ip, at) VALUES (?, ?)').bind(ip, now()).run(); await new Promise(r => setTimeout(r, 900)); return err('bad_password', 401); }
+    if (!safeEqual(String(b.password || '').trim(), secretPw)) { await DB.prepare('INSERT INTO login_fails (ip, at) VALUES (?, ?)').bind(ip, now()).run(); await new Promise(r => setTimeout(r, 900)); return err('bad_password', 401); }
     await DB.prepare('DELETE FROM login_fails WHERE ip=?').bind(ip).run();
     return json({ ok: true, token: await sign(env, { r: 't' }, 12 * 3600) });
   }

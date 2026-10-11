@@ -4,7 +4,7 @@ const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+
 const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
 
 async function key(env) {
-  const secret = env.TEACHER_PASSWORD;
+  const secret = String(env.TEACHER_PASSWORD || '').trim();
   if (!secret) throw new Error('no_password');
   return crypto.subtle.importKey('raw', enc.encode('bbk-courses|' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }

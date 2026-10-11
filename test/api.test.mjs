@@ -12,7 +12,7 @@ let TT = '', w0; const GN = 'ИС-' + (Date.now() % 100000);
 console.log('Оқытушы кіруі');
 let r = await call('teacher/login', { body: { password: 'qate' } }); ok(r.s === 401 && r.j.error === 'bad_password', 'қате құпиясөз қабылданбайды');
 r = await call('teacher/live'); ok(r.s === 401, 'токенсіз тізімге кіру жоқ');
-r = await call('teacher/login', { body: { password: 'test123' } }); TT = r.j.token; ok(!!TT, 'дұрыс құпиясөз → токен');
+r = await call('teacher/login', { body: { password: process.env.PASS || 'test123' } }); TT = r.j.token; ok(!!TT, 'дұрыс құпиясөз → токен');
 
 await T('session/close', { body: {} });
 console.log('Топ және студенттер');
@@ -74,5 +74,6 @@ r = await T('session/stopwork', { body: {} }); await new Promise(res => setTimeo
 r = await call('submit', { body: { task: 1, payload: { quiz: [] } } }, tok2); ok(r.s === 403, 'уақыт біткен соң тапсыру жоқ (' + r.j.error + ')');
 r = await T('session/close', { body: {} }); r = await call('public/roster'); ok(r.j.open === false, 'сабақ жабылған: кіру тізімі жабық');
 
+if (process.env.CLEAN) { await T('groups/' + g.id, { method: 'DELETE' }); console.log('  (сынақ тобы өшірілді)'); }
 console.log(fails ? '\nҚАТЕ: ' + fails : '\nБәрі дұрыс ✓');
 process.exit(fails ? 1 : 0);
