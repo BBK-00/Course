@@ -4,6 +4,6 @@
   "compatibility_date": "2025-06-01",
   "assets": { "directory": ".", "binding": "ASSETS" },
   "d1_databases": [
-    { "binding": "DB", "database_name": "bbk-courses-db", "database_id": "REPLACE_WITH_D1_DATABASE_ID" }
+    { "binding": "DB", "database_name": "bbk-courses-db", "database_id": "6483d0d5-f133-452a-a8f7-5b0b82154961" }
   ]
 }
