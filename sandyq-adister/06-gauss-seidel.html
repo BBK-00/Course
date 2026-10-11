@@ -38,6 +38,17 @@
 .tl li.loop{background:var(--info-bg)}.tl li.loop::before{background:var(--info)}
 .tl b{display:block}
 .f.gs3 .rows{text-align:left}
+.expr{display:grid;gap:10px;margin-top:8px}
+.expr .row3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:center;background:var(--surface-2);border-radius:14px;padding:12px 16px}
+.expr .eq,.expr .res{font-family:var(--math);font-size:1.3rem}
+.expr .res{background:var(--surface);border:1.5px solid #BFDBFE;border-radius:12px;padding:8px 14px}
+.expr .ar{font-size:1.7rem;color:var(--primary);text-align:center}
+.expr .dg{color:var(--pivot);background:var(--pivot-bg);border-radius:6px;padding:0 6px;font-weight:700}
+.expr-head{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 16px}
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chain .cs{padding:8px 14px;border-radius:12px;font-family:var(--math);background:var(--info-bg);color:var(--primary-2);font-weight:600}
+.chain i{font-style:normal;color:var(--muted);font-size:1.4rem}
+@media (max-width:700px){.expr .row3,.expr-head{grid-template-columns:1fr}.expr .ar{transform:rotate(90deg);justify-self:center}.expr-head span:nth-child(2){display:none}}
 .goal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px}
 .goal-grid>div{background:var(--surface-2);border-radius:14px;padding:16px 18px}
 .goal-grid h4{margin:0 0 6px;color:var(--primary)}.goal-grid ul{margin:0;padding-left:1.1em}.goal-grid li{margin:3px 0}.goal-grid p{margin:0}
@@ -84,11 +95,14 @@
   <div class="sec-head"><span class="sec-num">1</span><h2>Әдістің мәні</h2></div>
   <p class="learn">Бұл бөлімде Гаусс–Зейдель әдісінің идеясын және есептеу формуласын үйренесің.</p>
   <p>Сызықтық теңдеулер жүйесі <b>Ax = b</b> түрінде жазылады. <dfn>Итерациялық әдіс</dfn> шешімді бірден емес, жуық мәннен бастап қадам сайын дәлдеп табады. Әр қадам — <dfn>итерация</dfn>.</p>
-  <div class="blk"><h3 class="blk-h"><span class="ic">💡</span>Әдіс екі әрекеттен тұрады</h3>
-    <div class="steps2">
-      <div><span class="n">1</span><h4>Белгісізді өрнектейміз</h4><p>Әр теңдеуден диагональдағы белгісізді өрнектейміз.</p><div class="mini">10x₁ − x₂ + 2x₃ = 6 &nbsp;⇒&nbsp; x₁ = (6 + x₂ − 2x₃) / 10</div></div>
-      <div><span class="n">2</span><h4>Ретімен есептейміз</h4><p>Жаңа табылған мәнді келесі белгісізді есептегенде бірден қолданамыз.</p><div class="mini">x₁⁽¹⁾ табылды &nbsp;⇒&nbsp; x₂⁽¹⁾ формуласына бірден қоямыз</div></div>
-    </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">1</span>Белгісізді өрнектейміз</h3>
+    <p style="margin:0 0 6px">Әр теңдеуден <b>диагональдағы</b> белгісізді (сары түспен белгіленген) жалғыз қалдырамыз: бірінші теңдеуден x₁, екіншісінен x₂, үшіншісінен x₃.</p>
+    <div class="expr-head"><span>Берілген жүйе</span><span></span><span>Белгісізді өрнектеу</span></div>
+    <div class="expr" id="exprBox"></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Ретімен есептейміз</h3>
+    <p style="margin:0 0 8px">Жаңа табылған мәнді келесі белгісізді есептегенде <b>бірден</b> қолданамыз.</p>
+    <div class="chain"><span class="cs">x₁⁽¹⁾ есептеледі</span><i>→</i><span class="cs">x₂⁽¹⁾ есептегенде x₁⁽¹⁾ қолданылады</span><i>→</i><span class="cs">x₃⁽¹⁾ есептегенде x₁⁽¹⁾ және x₂⁽¹⁾ қолданылады</span></div>
   </div>
   <div class="blk"><h3 class="blk-h"><span class="ic">ƒ</span>Есептеу формуласы</h3>
     <div class="f box gs3"><span class="sys"><span class="brace">{</span><span class="rows">
@@ -237,6 +251,16 @@ const sysEl = (A, b) => {
   return el('div', { class:'sys' }, [el('span', { class:'brace', text:'{' }), rows]);
 };
 const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
+
+/* ===== 1. Белгісізді өрнектеу: жүйе → өрнектер ===== */
+(function(){
+  const box = $('#exprBox'), sgn = (a, j) => a < 0 ? (j ? ' − ' : '−') : (j ? ' + ' : '');
+  EX_A.forEach((r, i) => {
+    const eq = r.map((a, j) => sgn(a, j) + (j === i ? '<span class="dg">' + (Math.abs(a) === 1 ? '' : Math.abs(a)) + VARS[j] + '</span>' : (Math.abs(a) === 1 ? '' : Math.abs(a)) + VARS[j])).join('') + ' = ' + fmt(EX_b[i]);
+    const num = fmt(EX_b[i]) + r.map((a, j) => (j === i || a === 0) ? '' : (-a < 0 ? ' − ' : ' + ') + (Math.abs(a) === 1 ? '' : fmt(Math.abs(a))) + VARS[j]).join('');
+    box.append(el('div', { class:'row3' }, [el('div', { class:'eq', html:eq }), el('div', { class:'ar', text:'⇒' }), el('div', { class:'res', html:'<span class="dg">' + VARS[i] + '</span> = <span class="frac"><span>' + num + '</span><span>' + fmt(r[i]) + '</span></span>' })]));
+  });
+})();
 
 /* ===== 2. Мысал: берілгенінен жауабына дейін ===== */
 (function(){
