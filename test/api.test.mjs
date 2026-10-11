@@ -38,6 +38,12 @@ let me = (await call('me', {}, tok1)).j; ok(me.ok && me.variant === 1 && me.atte
 me = (await call('me', {}, tok2)).j; ok(me.variant === 2, 'келесі студентке басқа нұсқа: ' + me.variant);
 r = await T('release', { body: { session_id: live.session.id, student_id: s1.id } }); r = await call('join', { body: { student_id: s1.id, code, device: 'devB' } }); const tok1b = r.j.token; ok(!!tok1b, 'оқытушы босатқан соң басқа құрылғыдан кіруге болады');
 
+console.log('Қонақ мұғалім');
+r = await call('join_guest', { body: { name: 'Қонақ Мұғалім', code: code === '0000' ? '1111' : '0000' } }); ok(r.j.error === 'bad_code', 'қонаққа қате код қабылданбайды');
+r = await call('join_guest', { body: { name: 'Қонақ Мұғалім', code } }); const gtok = r.j.token; ok(!!gtok, 'мұғалім аты-жөнін жазып, кодпен кірді');
+r = await call('me', {}, gtok); ok(r.j.guest === true && r.j.student.group === 'Мұғалім', 'қонақ күйі: ' + (r.j.student && r.j.student.name));
+r = await call('submit', { body: { task: 3, payload: { quiz: [] } } }, gtok); ok(r.s === 401, 'қонақ тапсырма жібере алмайды');
+live = (await T('live')).j; ok(live.guests.some(x => x.name === 'Қонақ Мұғалім'), 'оқытушы панелінде қонақ мұғалім көрінеді');
 console.log('Тапсырмалар (әрқайсысының өз таймері)');
 r = await call('run', { body: { language: 'python', code: 'print(2+2)' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '4', 'сервер кодты нақты орындайды (' + (r.j.run && r.j.run.backend) + ')');
 r = await call('run', { body: { language: 'cpp', code: '#include <iostream>\nint main(){std::cout<<6*7;}' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '42', 'C++ компиляторы жұмыс істейді (' + (r.j.run && r.j.run.backend) + ')');

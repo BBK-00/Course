@@ -64,9 +64,29 @@ async function route(request, env, ctx, url) {
     return json({ ok: true, token });
   }
 
+  if (path === 'join_guest' && method === 'POST') {
+    const ses = await DB.prepare("SELECT * FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
+    if (!ses) return err('no_session');
+    const ip = 'g:' + (request.headers.get('CF-Connecting-IP') || 'local');
+    const bad = await DB.prepare('SELECT COUNT(*) AS n FROM login_fails WHERE ip=? AND at>?').bind(ip, now() - 60).first();
+    if (bad.n >= 8) return err('wait', 429);
+    const name = String(b.name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (name.length < 3) return err('bad_request');
+    const codes = [await liveCode(env, ses.id, 0), await liveCode(env, ses.id, -1)];
+    if (!codes.includes(String(b.code || '').trim())) { await DB.prepare('INSERT INTO login_fails (ip, at) VALUES (?, ?)').bind(ip, now()).run(); return err('bad_code'); }
+    await DB.prepare('INSERT OR IGNORE INTO guests (session_id, name, at) VALUES (?,?,?)').bind(ses.id, name, now()).run();
+    return json({ ok: true, token: await sign(env, { r: 'g', ses: ses.id, name }, 12 * 3600) });
+  }
+
   if (path === 'me' && method === 'GET') {
     const p = await verify(env, bearer(request));
-    if (!p || p.r !== 's') return err('auth', 401);
+    if (!p) return err('auth', 401);
+    if (p.r === 'g') {
+      const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+      if (!ses) return err('auth', 401);
+      return json({ ok: true, guest: true, student: { name: p.name, group: 'Мұғалім' }, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now() });
+    }
+    if (p.r !== 's') return err('auth', 401);
     return json(await studentState(env, p.ses, p.st));
   }
 
@@ -287,6 +307,7 @@ async function teacher(path, method, b, env, ctx, url) {
       all(DB.prepare('SELECT * FROM results WHERE session_id=?').bind(ses.id)),
       all(DB.prepare('SELECT student_id, SUM(points) AS n FROM bonus WHERE session_id=? GROUP BY student_id').bind(ses.id))
     ]);
+    const guests = await all(DB.prepare('SELECT name, at FROM guests WHERE session_id=? ORDER BY at').bind(ses.id));
     const A = new Map(atts.map(a => [a.student_id, a])), R = new Map(ress.map(r => [r.student_id, r])), BN = new Map(bns.map(r => [r.student_id, r.n]));
     const S = {}; subs.forEach(s => { (S[s.student_id] = S[s.student_id] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
@@ -296,7 +317,7 @@ async function teacher(path, method, b, env, ctx, url) {
       s.bonus = c.bonus; s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 60 - (Math.floor(Date.now() / 1000) % 60), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups });
+    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 60 - (Math.floor(Date.now() / 1000) % 60), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups, guests });
   }
 
   /* Бір студенттің толық жұмысы */

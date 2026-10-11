@@ -56,6 +56,7 @@ window.CourseWork = { mount(host, cfg){
       const b = el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру' }); b.addEventListener('click', () => window.Join.open());
       head.append(el('div', { class:'stepbar' }, b)); return;
     }
+    if (me.guest){ head.append(el('h4', { text:me.student.name + ' · қонақ мұғалім' }), el('p', { text:'Сіз мұғалім ретінде кірдіңіз: сабақ материалын көре аласыз. Бақылау жұмысын студенттер орындайды.' })); built = 'g:' + me.student.name; return; }
     D = load(me); D.k = dkey(me); D.photo = ''; try { D.photo = localStorage.getItem(D.k + ':photo') || ''; } catch (e) {}
     const [A, B] = cfg.variants[me.variant - 1];
     const status = el('p', { role:'status' }), sum = el('div', { role:'status' });
@@ -152,7 +153,7 @@ window.CourseWork = { mount(host, cfg){
   }
 
   function update(me){
-    if (!ui || !me) return;
+    if (!ui || !me || me.guest) return;
     const s = me.session, nowS = window.Join.serverNow() / 1000, open = s.status === 'open' && !!s.work_until && nowS < s.work_until + 90;
     ui.status.innerHTML = '';
     if (s.status !== 'open') ui.status.append(el('p', { class:'notice', text:'Сабақ жабылған.' }));
@@ -175,7 +176,7 @@ window.CourseWork = { mount(host, cfg){
     if ([1, 2, 3].some(n => me.tasks[n].sent)) ui.sum.append(el('div', { class:'score-box' }, [el('div', { text:me.complete ? 'Жұмыс аяқталды. Жалпы балл (қатысым 40 + тапсырмалар):' : 'Алдын ала жалпы балл (барлық тапсырма жіберілгенде нақтыланады):' }), el('div', { class:'big', text:me.total + ' / 100' })]));
   }
 
-  window.Join.on(me => { const k = me ? dkey(me) : ''; if (k !== built) build(me); update(me); });
+  window.Join.on(me => { const k = me ? (me.guest ? 'g:' + me.student.name : dkey(me)) : ''; if (k !== built) build(me); update(me); });
   setInterval(() => update(window.Join.get()), 1000);
   build(window.Join.get());
   Course.register(cfg.sectionId || 'work', { reset(){ build(window.Join.get()); update(window.Join.get()); } });

@@ -54,7 +54,7 @@
 @media (max-width:600px){.f.gs3{padding-left:6px;padding-right:6px}.f.gs3 .sys{font-size:.8rem;gap:4px}.f.gs3 .brace{font-size:2.6rem}.steps2>div{padding-left:56px}}
 </style>
 </head>
-<body>
+<body class="locked">
 <main id="main">
 
 <!-- ================= ТАҚЫРЫП ================= -->
@@ -349,6 +349,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
   const HARD = ['Формула', 'Жинақталу шарты', 'Қолмен есептеу', 'Бағдарлама', 'Қиын болмады'];
   function render(me){
     host.innerHTML = '';
+    if (me && me.guest){ host.append(el('p', { class:'notice', text:'Кері байланысты студенттер толтырады.' })); return; }
     if (!me){ host.append(el('p', { class:'notice', text:'Кері байланыс жіберу үшін сабаққа кір.' }), el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру', onclick:() => window.Join.open() })); return; }
     if (me.feedback){ host.append(el('div', { class:'score-box' }, [el('div', { class:'big', text:'✓' }), el('p', { text:'Кері байланысың жіберілді. Рахмет!' })])); return; }
     let level = 0; const learned = new Set(); let hard = '';
@@ -363,7 +364,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
     });
     host.append(el('p', { html:'<b>1. Сабақты қаншалықты түсіндің?</b>' }), lv, el('p', { html:'<b>2. Нені түсіндің?</b>', style:'margin-top:16px' }), l1, el('p', { html:'<b>3. Не қиын болды?</b>', style:'margin-top:16px' }), l2, el('p', { html:'<b>4. Пікір</b>', style:'margin-top:16px' }), cm, el('div', { class:'stepbar' }, go), msg);
   }
-  window.Join.on(me => { const k = me ? me.student.name + (me.feedback ? '1' : '0') : ''; if (k !== key){ key = k; render(me); } });
+  window.Join.on(me => { const k = me ? me.student.name + (me.guest ? 'g' : '') + (me.feedback ? '1' : '0') : ''; if (k !== key){ key = k; render(me); } });
   render(null);
 })();
 
@@ -371,7 +372,7 @@ Course.init({ back:{ href:'index.html', text:'← Сандық әдістер' }
   { id:'aim', n:'★', title:'Мақсаты' }, { id:'idea', n:1, title:'Әдістің мәні' }, { id:'example', n:2, title:'Мысал' }, { id:'conv', n:3, title:'Жинақталу' },
   { id:'algo', n:4, title:'Алгоритм және код' }, { id:'work', n:5, title:'Бақылау жұмысы' }, { id:'fb', n:6, title:'Қорытынды' }
 ] });
-window.Join.mount();
+window.Join.mount({ gate:true });
 })();
 </script>
 </body>
