@@ -280,3 +280,12 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
 }
+
+/* сабаққа кіру */
+.join-chip{margin-left:auto;font:inherit;font-weight:600;font-size:.95rem;min-height:42px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+.join-chip.go{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.3)}
+.join-chip.on{background:var(--ok-bg);border-color:var(--ok-ring);color:var(--ok)}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.5);display:grid;place-items:center;padding:16px}
+.modal-box{background:var(--surface);border-radius:20px;padding:26px;width:min(520px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(15,23,42,.35)}
+.modal-box h3{margin:0 0 10px;font-size:1.4rem}
+.modal-box .submit-grid{max-width:none}

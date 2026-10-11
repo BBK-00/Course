@@ -1,0 +1,14 @@
+node_modules
+.git
+.wrangler
+src
+migrations
+apps-script
+test
+*.md
+package.json
+package-lock.json
+wrangler.jsonc
+.dev.vars
+.assetsignore
+.gitignore

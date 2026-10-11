@@ -1,3 +1,8 @@
 # Ішкі құжаттар
 gauss-matinder.md
 apps-script/Code.local.gs
+
+node_modules/
+.wrangler/
+.dev.vars
+.dev-site/

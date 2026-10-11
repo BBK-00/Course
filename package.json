@@ -1,0 +1,7 @@
+{
+  "name": "bbk-courses",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "wrangler dev" },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}
