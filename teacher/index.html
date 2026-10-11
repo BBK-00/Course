@@ -101,7 +101,7 @@ async function api(path, body, method){
 /* ---------- Кіру ---------- */
 async function login(pw){
   let j; try { j = await (await fetch('/api/teacher/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) })).json(); } catch (e) { j = { error: 'network' }; }
-  if (!j.ok) { $('#eLogin').textContent = j.error === 'bad_password' ? 'Құпиясөз дұрыс емес.' : j.error === 'no_password' ? 'Құпиясөз бапталмаған: Cloudflare-де TEACHER_PASSWORD қосыңыз.' : 'Серверге қосыла алмады.'; return false; }
+  if (!j.ok) { $('#eLogin').textContent = j.error === 'bad_password' ? 'Құпиясөз дұрыс емес.' : j.error === 'no_password' ? 'Құпиясөз бапталмаған: Cloudflare-де TEACHER_PASSWORD қосыңыз.' : j.error === 'wait' ? 'Қате көп болды. 10 минуттан кейін қайта көріңіз.' : 'Серверге қосыла алмады.'; return false; }
   TOK = j.token; try { sessionStorage.setItem('ttok', TOK); } catch (e) {} start(); return true;
 }
 function out(){ TOK = ''; try { sessionStorage.removeItem('ttok'); } catch (e) {} $('#app').hidden = true; $('#topnav').hidden = true; $('#login').hidden = false; $('#pw').value = ''; closeDetail(); }
