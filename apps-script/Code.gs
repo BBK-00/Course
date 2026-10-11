@@ -1,12 +1,15 @@
 /**
  * Сандық әдістер — бақылау жұмыстарын қабылдау, ЖИ арқылы бағалау және журнал (Google Apps Script).
  * Парақтар: «Журнал» — тек балл (студент × тақырып), «Талдау» — толық мәлімет.
- * Script Properties: GEMINI_API_KEY (міндетті), GEMINI_MODEL (міндетті емес, әдепкісі gemini-flash-latest).
+ * Script Properties: GEMINI_API_KEY (міндетті), TEACHER_PASSWORD (оқытушы панеліне кіру), GEMINI_MODEL (міндетті емес, әдепкісі gemini-flash-latest).
  */
 const SHEET_J = 'Журнал', SHEET_LOG = 'Талдау';
 const HEAD = ['Уақыты', 'Тақырып', 'Аты-жөні', 'Тобы', 'Нұсқа', 'ЖАЛПЫ БАЛЛ /100', 'Қатысым /40', 'Тест /12', 'Жауаптар /9',
   'Шешу барысы /15', 'Бағдарлама нәтижесі /6', 'Код /18', 'Тапсырма сапасы /60', 'ЖИ үлесі, %', 'ЖИ белгілері', 'Түсініктеме',
-  'Уақыт, мин', 'Көшіру / теру / беттен шығу', 'Шешу барысы', 'Код', 'Нәтиже', 'Жауаптар', 'ID', 'Деректер (JSON)'];
+  'Уақыт, мин', 'Көшіру / теру / беттен шығу', 'Шешу барысы', 'Код', 'Нәтиже', 'Жауаптар', 'ID', 'Деректер (JSON)',
+  'Мұғалім баллы', 'Мұғалім пікірі', 'ҚОРЫТЫНДЫ БАЛЛ /100'];
+const TOT = 'ЖАЛПЫ БАЛЛ /100', FIN = 'ҚОРЫТЫНДЫ БАЛЛ /100', TSC = 'Мұғалім баллы', TCM = 'Мұғалім пікірі';
+const fin_ = (t, ai) => (t !== '' && t !== null && t !== undefined && !isNaN(Number(t))) ? Number(t) : ai;
 const COL = {}; HEAD.forEach((h, i) => { COL[h] = i; });
 
 /* ----- 5-тақырып: Гаусс әдісі ----- */
@@ -54,6 +57,7 @@ function doGet() { return ContentService.createTextOutput('Жұмыс қабыл
 
 function doPost(e) {
   const d = JSON.parse(e.postData.contents);
+  if (d.action) { try { return json_(teacher_(d)); } catch (err) { return json_({ ok:false, error:String(err.message || err) }); } }
   const book = SpreadsheetApp.getActiveSpreadsheet();
   const prev = d.id ? findById_(book, d.id) : null;
   if (prev) return json_({ ok:true, total:prev.total, duplicate:true });
@@ -71,6 +75,55 @@ function doPost(e) {
   return json_({ ok:true, total:g.total });
 }
 
+/* ----- Оқытушы панелі: тізім, баллды түзету, қайта бағалау ----- */
+function rec_(r, rowNum) {
+  const g = h => r[COL[h]], key = Object.keys(TOPICS).find(k => TOPICS[k].title === g('Тақырып')), t = key ? TOPICS[key] : null;
+  let sys = '', note = '';
+  if (t) {
+    const vi = Math.min(t.variants.length, Math.max(1, parseInt(g('Нұсқа'), 10) || 1)) - 1, A = t.variants[vi][0], b = t.variants[vi][1], v = ['x1', 'x2', 'x3'];
+    sys = A.map((q, i) => q.map((a, j) => (a < 0 ? ' - ' : ' + ') + Math.abs(a) + v[j]).join('').replace(/^ \+ /, '') + ' = ' + b[i]).join('\n');
+    note = t.expected(A, b).note;
+  }
+  return { row:rowNum, id:g('ID'), time:g('Уақыты'), topic:g('Тақырып'), name:g('Аты-жөні'), group:g('Тобы'), variant:g('Нұсқа'),
+    ai_total:g(TOT), quiz:g('Тест /12'), ans:g('Жауаптар /9'), steps:g('Шешу барысы /15'), outp:g('Бағдарлама нәтижесі /6'), code:g('Код /18'),
+    quality:g('Тапсырма сапасы /60'), ai_pct:g('ЖИ үлесі, %'), flags:g('ЖИ белгілері'), comment:g('Түсініктеме'), minutes:g('Уақыт, мин'),
+    signals:g('Көшіру / теру / беттен шығу'), steps_text:g('Шешу барысы'), code_text:g('Код'), out_text:g('Нәтиже'), ans_text:g('Жауаптар'),
+    teacher_score:g(TSC), teacher_comment:g(TCM), final:g(FIN) === '' ? fin_(g(TSC), g(TOT)) : g(FIN), sys, note };
+}
+function teacher_(d) {
+  const pw = PropertiesService.getScriptProperties().getProperty('TEACHER_PASSWORD');
+  if (!pw) return { ok:false, error:'no_password' };
+  if (String(d.pw || '') !== pw) { Utilities.sleep(1500); return { ok:false, error:'bad_password' }; }
+  const book = SpreadsheetApp.getActiveSpreadsheet(), sh = book.getSheetByName(SHEET_LOG);
+  if (d.action === 'ping') return { ok:true };
+  if (!sh || sh.getLastRow() < 2) return { ok:true, rows:[] };
+  if (d.action === 'list') {
+    logSheet_(book);
+    return { ok:true, rows:sh.getRange(2, 1, sh.getLastRow() - 1, HEAD.length).getValues().map((r, i) => rec_(r, i + 2)) };
+  }
+  const lock = LockService.getScriptLock(); lock.waitLock(25000);
+  try {
+    logSheet_(book);
+    const n = Number(d.row), r = sh.getRange(n, 1, 1, HEAD.length).getValues()[0];
+    if (!(n >= 2) || String(r[COL['ID']]) !== String(d.id || '')) return { ok:false, error:'row_changed' };
+    const title = r[COL['Тақырып']], who = { name:r[COL['Аты-жөні']], group:r[COL['Тобы']] };
+    if (d.action === 'set') {
+      const score = (d.score === '' || d.score === null || d.score === undefined) ? '' : clamp_(d.score, 0, 100);
+      r[COL[TSC]] = score; r[COL[TCM]] = String(d.comment || '').slice(0, 1000); r[COL[FIN]] = fin_(score, r[COL[TOT]]);
+    } else if (d.action === 'regrade') {
+      if (!r[COL['Деректер (JSON)']]) return { ok:false, error:'no_data' };
+      const g = grade_(JSON.parse(r[COL['Деректер (JSON)']]));
+      g.row[0] = r[0]; g.row[COL[TSC]] = r[COL[TSC]]; g.row[COL[TCM]] = r[COL[TCM]]; g.row[COL[FIN]] = fin_(r[COL[TSC]], g.total);
+      for (let c = 0; c < HEAD.length; c++) r[c] = g.row[c];
+    } else return { ok:false, error:'bad_action' };
+    sh.getRange(n, 1, 1, HEAD.length).setValues([r]);
+    markLog_(sh, n, r);
+    sh.getRange(n, COL[TSC] + 1, 1, 2).setBackground(r[COL[TSC]] === '' ? null : '#d9f2e3');
+    journal_(book, who, r[COL[FIN]], title);
+    return { ok:true, rec:rec_(r, n) };
+  } finally { lock.releaseLock(); }
+}
+
 /* Кестеде «Бағалау» мәзірі */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Бағалау')
@@ -85,10 +138,11 @@ function regradeEmpty() {
   data.forEach((r, i) => {
     if (r[COL['ЖАЛПЫ БАЛЛ /100']] !== '' || !r[COL['Деректер (JSON)']]) return;
     const d = JSON.parse(r[COL['Деректер (JSON)']]), g = grade_(d);
-    g.row[0] = r[0];
+    g.row[0] = r[0]; g.row[COL[TSC]] = r[COL[TSC]]; g.row[COL[TCM]] = r[COL[TCM]];
+    g.row[COL[FIN]] = fin_(r[COL[TSC]], g.total);
     sh.getRange(i + 2, 1, 1, HEAD.length).setValues([g.row]);
     markLog_(sh, i + 2, g.row);
-    journal_(book, d, g.total, g.title);
+    journal_(book, d, g.row[COL[FIN]], g.title);
   });
 }
 function rebuildJournal() {
@@ -96,7 +150,7 @@ function rebuildJournal() {
   if (old) book.deleteSheet(old);
   if (!sh || sh.getLastRow() < 2) return;
   sh.getRange(2, 1, sh.getLastRow() - 1, HEAD.length).getValues().forEach(r => {
-    journal_(book, { name:r[COL['Аты-жөні']], group:r[COL['Тобы']] }, r[COL['ЖАЛПЫ БАЛЛ /100']], r[COL['Тақырып']]);
+    journal_(book, { name:r[COL['Аты-жөні']], group:r[COL['Тобы']] }, r[COL[FIN]] === '' ? fin_(r[COL[TSC]], r[COL[TOT]]) : r[COL[FIN]], r[COL['Тақырып']]);
   });
 }
 
@@ -124,7 +178,7 @@ function grade_(d) {
   const row = [new Date(), t.title, d.name, d.group, d.variant, total, 40, quiz, ansOk * 3, steps, outOk ? 6 : 0, code, quality, ai ? fl.ai : '',
     (fl.ai >= 70 ? '🔴 ' : fl.ai >= 45 ? '🟠 ' : '') + fl.why.join('; '), ai ? ai.comment : note, d.minutes,
     (s.paste || 0) + ' рет (' + (s.pasted || 0) + ' таңба) / ' + (s.typed || 0) + ' / ' + (s.away || 0) + ' рет',
-    d.steps, d.code, d.out, (d.ans || [d.x, d.y, d.z]).join('; '), d.id || '', JSON.stringify(d)];
+    d.steps, d.code, d.out, (d.ans || [d.x, d.y, d.z]).join('; '), d.id || '', JSON.stringify(d), '', '', total];
   return { row, total, title:t.title };
 }
 /* ЖИ үлесі (0–100): Gemini бағасы мен нақты белгілердің ең үлкені */
@@ -190,11 +244,14 @@ function styleHead_(rng) { rng.setBackground(BLUE).setFontColor('#ffffff').setFo
 function band_(v) { return v === '' || v === 'тексерілуде' ? '#fff3cd' : v >= 90 ? '#b7e1c1' : v >= 75 ? '#dcefc8' : v >= 60 ? '#fff1b8' : '#ffd6cc'; }
 function logSheet_(book) {
   let sh = book.getSheetByName(SHEET_LOG);
-  if (sh) return sh;
+  if (sh) {
+    for (let c = sh.getLastColumn(); c < HEAD.length; c++) { sh.getRange(1, c + 1).setValue(HEAD[c]); styleHead_(sh.getRange(1, c + 1)); sh.setColumnWidth(c + 1, c === COL[TCM] ? 260 : 110); }
+    return sh;
+  }
   sh = book.insertSheet(SHEET_LOG);
   sh.appendRow(HEAD); styleHead_(sh.getRange(1, 1, 1, HEAD.length));
   sh.setFrozenRows(1); sh.setFrozenColumns(3); sh.setRowHeight(1, 42);
-  const w = { 'Уақыты':130, 'Тақырып':95, 'Аты-жөні':200, 'Тобы':80, 'Нұсқа':60, 'ЖИ белгілері':240, 'Түсініктеме':360, 'Шешу барысы':260, 'Код':260, 'Нәтиже':160, 'Деректер (JSON)':120, 'ID':90 };
+  const w = { 'Уақыты':130, 'Тақырып':95, 'Аты-жөні':200, 'Тобы':80, 'Нұсқа':60, 'ЖИ белгілері':240, 'Түсініктеме':360, 'Шешу барысы':260, 'Код':260, 'Нәтиже':160, 'Деректер (JSON)':120, 'ID':90, 'Мұғалім пікірі':260, 'Мұғалім баллы':110, 'ҚОРЫТЫНДЫ БАЛЛ /100':120 };
   HEAD.forEach((h, i) => sh.setColumnWidth(i + 1, w[h] || 90));
   return sh;
 }
@@ -203,7 +260,8 @@ function markLog_(sh, r, row) {
   const rng = sh.getRange(r, 1, 1, HEAD.length);
   rng.setBackground(f.indexOf('🔴') === 0 ? '#fde2e2' : f.indexOf('🟠') === 0 ? '#ffe8cc' : total === '' ? '#fff3cd' : (r % 2 ? '#f7f9fb' : null)).setVerticalAlignment('top');
   sh.getRange(r, COL['ЖАЛПЫ БАЛЛ /100'] + 1).setFontWeight('bold').setHorizontalAlignment('center').setBackground(band_(total));
-  [COL['ЖИ белгілері'], COL['Түсініктеме']].forEach(c => sh.getRange(r, c + 1).setWrap(true));
+  sh.getRange(r, COL[FIN] + 1).setFontWeight('bold').setHorizontalAlignment('center').setBackground(band_(row[COL[FIN]]));
+  [COL['ЖИ белгілері'], COL['Түсініктеме'], COL[TCM]].forEach(c => sh.getRange(r, c + 1).setWrap(true));
   sh.setRowHeight(r, 60);
 }
 const norm_ = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();

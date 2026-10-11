@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Оқытушы панелі</title>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/config.js"></script>
+<style>
+.t-main{padding:28px 0 60px}
+.login{max-width:460px;margin:60px auto;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:34px;box-shadow:var(--shadow)}
+.login h1{font-size:1.9rem;margin:0 0 6px}
+.login p{color:var(--muted);margin:0 0 20px}
+.field{width:100%;min-height:50px;padding:8px 14px;border-radius:12px;border:2px solid var(--line);font:inherit;background:var(--surface);color:var(--text)}
+.field:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.btn{font:inherit;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 20px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer}
+.btn:hover{border-color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-2)}
+.btn.danger{color:#b91c1c}
+.btn:disabled{opacity:.5;cursor:wait}
+.err{color:#b91c1c;margin:12px 0 0;min-height:1.4em}
+.stats4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.stat4{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat4 b{display:block;font-size:2rem;line-height:1.1;color:var(--primary-2)}
+.stat4 span{color:var(--muted);font-size:.95rem}
+.stat4.warn b{color:#b45309}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.bar .field{width:auto;min-height:44px;flex:0 1 190px}
+.bar .grow{flex:1 1 220px}
+.bar .sp{flex:1}
+.tw{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:auto}
+table.t{border-collapse:collapse;width:100%;font-size:.95rem}
+.t th{position:sticky;top:0;background:#0f3a73;color:#fff;font-weight:600;padding:12px 12px;text-align:center;white-space:nowrap}
+.t td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.t td.l,.t th.l{text-align:left}
+.t tr.row{cursor:pointer}
+.t tr.row:hover td{filter:brightness(.97)}
+.t tr.red td{background:#fde2e2}.t tr.org td{background:#ffe8cc}.t tr.yel td{background:#fff3cd}
+.pill{display:inline-block;min-width:3.2em;padding:3px 10px;border-radius:999px;font-weight:700}
+.pill.fin{font-size:1.05rem;min-width:3.6em}
+.sub{display:block;color:var(--muted);font-size:.85rem}
+.mark{color:#15803d;font-weight:700}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+/* толық ақпарат */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.45);display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:24px 12px}
+.overlay[hidden]{display:none}
+.panel{background:var(--bg);border-radius:22px;width:min(1280px,100%);box-shadow:0 20px 60px rgba(15,23,42,.35)}
+.p-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:18px 24px;background:var(--surface);border-radius:22px 22px 0 0;border-bottom:1px solid var(--line)}
+.p-head h2{margin:0;font-size:1.4rem}
+.p-head .sp{flex:1}
+.p-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;padding:20px 24px 26px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.box h3{margin:0 0 8px;font-size:1.02rem;color:var(--primary-2)}
+.box pre{margin:0;white-space:pre-wrap;word-break:break-word;font:.92rem/1.5 ui-monospace,Consolas,monospace;max-height:340px;overflow:auto;background:#F1F5F9;border-radius:10px;padding:10px 12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600}
+.sc{width:100%;border-collapse:collapse;font-size:.95rem}
+.sc td{padding:5px 0;border-bottom:1px dashed var(--line)}
+.sc td:last-child{text-align:right;font-weight:700}
+.edit{border:2px solid var(--primary);background:#F8FBFF}
+.edit label{display:block;font-weight:600;margin:10px 0 6px}
+.edit .big{font-size:1.6rem;font-weight:800;text-align:center;max-width:9em}
+.edit .row2{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.msg{min-height:1.5em;margin-top:10px;font-weight:600}
+.ok{color:#15803d}.bad{color:#b91c1c}
+.aibox{border-left:4px solid var(--primary);background:var(--primary-soft);border-radius:10px;padding:10px 14px;margin-top:10px}
+.nav2{display:flex;gap:8px}
+@media (max-width:900px){.p-body{grid-template-columns:1fr}.p-head{padding:14px 16px}.p-body{padding:14px 12px 20px}}
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap head-in"><span class="logo"><span class="logo-mark">ББ</span><span>Оқытушы панелі</span></span>
+    <nav class="head-nav" id="topnav" hidden><a href="#" id="bRefresh">↻ Жаңарту</a><a href="#" id="bOut">Шығу</a></nav></div>
+</header>
+
+<main class="wrap t-main">
+  <section id="login" class="login">
+    <h1>Оқытушы панелі</h1>
+    <p>Студенттердің жұмыстарын көру және баллды түзету үшін құпиясөзді енгізіңіз.</p>
+    <form id="fLogin"><input class="field" id="pw" type="password" placeholder="Құпиясөз" autocomplete="current-password" required>
+      <div class="err" id="eLogin" role="alert"></div>
+      <button class="btn primary" id="bLogin" type="submit" style="width:100%;margin-top:6px">Кіру</button></form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="stats4" id="stats"></div>
+    <div class="bar">
+      <select class="field" id="fTopic" aria-label="Тақырып"></select>
+      <select class="field" id="fGroup" aria-label="Топ"></select>
+      <select class="field" id="fState" aria-label="Мәртебе"><option value="">Барлық жұмыс</option><option value="review">Тексеру керек</option><option value="edited">Өзгертілгендер</option></select>
+      <input class="field grow" id="fSearch" type="search" placeholder="Аты-жөні бойынша іздеу">
+      <span class="sp"></span>
+      <button class="btn" id="bCopy" type="button">📋 Журналға көшіру</button>
+      <button class="btn" id="bCsv" type="button">⬇ CSV</button>
+    </div>
+    <div class="tw" id="tw"></div>
+    <p class="sub" id="note" style="margin-top:12px"></p>
+  </section>
+</main>
+
+<div class="overlay" id="ov" hidden><div class="panel" id="panel"></div></div>
+
+<script>
+(function(){
+'use strict';
+const URL_ = (window.COURSE_CONFIG || {}).submitUrl;
+const $ = s => document.querySelector(s);
+const h = (tag, a, kids) => { const e = document.createElement(tag); for (const k in (a || {})) { if (k === 'text') e.textContent = a[k]; else if (k === 'class') e.className = a[k]; else e.setAttribute(k, a[k]); } [].concat(kids || []).forEach(c => e.append(c)); return e; };
+let PW = '', ROWS = [], CUR = null, busy = false;
+try { PW = sessionStorage.getItem('tpw') || ''; } catch (e) {}
+
+async function api(o, ms){
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms || 90000);
+  try {
+    const res = await fetch(URL_, { method:'POST', body:JSON.stringify(Object.assign({ pw:PW }, o)), signal:ctl.signal });
+    return await res.json();
+  } catch (e) { return { ok:false, error:'network' }; }
+  finally { clearTimeout(tm); }
+}
+const errText = e => e === 'bad_password' ? 'Құпиясөз дұрыс емес.' : e === 'no_password' ? 'Құпиясөз бапталмаған: Apps Script-те TEACHER_PASSWORD орнатыңыз.' : e === 'network' ? 'Серверге қосыла алмады. Қайта көріңіз.' : e === 'row_changed' ? 'Кесте өзгеріпті. Тізімді жаңартыңыз.' : 'Қате: ' + e;
+
+/* ---- түстер ---- */
+const band = v => v === '' || v === null || v === undefined ? '#fff3cd' : v >= 90 ? '#b7e1c1' : v >= 75 ? '#dcefc8' : v >= 60 ? '#fff1b8' : '#ffd6cc';
+const aiCol = p => p === '' ? '#e2e8f0' : p >= 70 ? '#fecaca' : p >= 45 ? '#fed7aa' : '#bbf7d0';
+const has = v => v !== '' && v !== null && v !== undefined;
+const fmtT = t => { const d = new Date(t); if (isNaN(d)) return String(t || ''); const p = n => String(n).padStart(2, '0'); return p(d.getDate()) + '.' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+const norm = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+const needs = r => (has(r.ai_pct) && r.ai_pct >= 45) || !has(r.ai_total);
+
+/* ---- кіру ---- */
+async function enter(){
+  const r = await api({ action:'list' });
+  if (!r.ok){ $('#eLogin').textContent = errText(r.error); PW = ''; try { sessionStorage.removeItem('tpw'); } catch (e) {} return false; }
+  try { sessionStorage.setItem('tpw', PW); } catch (e) {}
+  ROWS = r.rows; $('#login').hidden = true; $('#app').hidden = false; $('#topnav').hidden = false; fill(); render(); return true;
+}
+$('#fLogin').addEventListener('submit', async e => {
+  e.preventDefault(); $('#eLogin').textContent = ''; PW = $('#pw').value; const b = $('#bLogin'); b.disabled = true; b.textContent = 'Тексеріп жатыр…';
+  await enter(); b.disabled = false; b.textContent = 'Кіру';
+});
+$('#bOut').addEventListener('click', e => { e.preventDefault(); try { sessionStorage.removeItem('tpw'); } catch (x) {} PW = ''; ROWS = []; $('#app').hidden = true; $('#topnav').hidden = true; $('#login').hidden = false; $('#pw').value = ''; });
+async function reload(){ if (busy) return; busy = true; $('#bRefresh').textContent = '↻ Жаңартып жатыр…'; const r = await api({ action:'list' }); busy = false; $('#bRefresh').textContent = '↻ Жаңарту'; if (r.ok){ ROWS = r.rows; fill(); render(); } else $('#note').textContent = errText(r.error); }
+$('#bRefresh').addEventListener('click', e => { e.preventDefault(); reload(); });
+setInterval(() => { if (!$('#app').hidden && $('#ov').hidden && !document.hidden) reload(); }, 60000);
+
+/* ---- сүзгілер ---- */
+function fill(){
+  const keep = { t:$('#fTopic').value, g:$('#fGroup').value };
+  const uniq = k => [...new Set(ROWS.map(r => String(r[k] || '')).filter(Boolean))].sort();
+  const mk = (sel, all, vals, v) => { sel.innerHTML = ''; sel.append(h('option', { value:'', text:all })); vals.forEach(x => sel.append(h('option', { value:x, text:x }))); sel.value = vals.includes(v) ? v : ''; };
+  mk($('#fTopic'), 'Барлық тақырып', uniq('topic'), keep.t); mk($('#fGroup'), 'Барлық топ', uniq('group'), keep.g);
+}
+['#fTopic', '#fGroup', '#fState'].forEach(s => $(s).addEventListener('change', render)); $('#fSearch').addEventListener('input', render);
+const filtered = () => {
+  const t = $('#fTopic').value, g = $('#fGroup').value, st = $('#fState').value, q = norm($('#fSearch').value);
+  return ROWS.filter(r => (!t || r.topic === t) && (!g || String(r.group) === g) && (!q || norm(r.name).includes(q)) && (st !== 'review' || needs(r)) && (st !== 'edited' || has(r.teacher_score)))
+    .sort((a, b) => new Date(b.time) - new Date(a.time));
+};
+
+/* ---- кесте ---- */
+function render(){
+  const list = filtered(), fins = list.map(r => r.final).filter(v => has(v) && !isNaN(+v)).map(Number);
+  const st = $('#stats'); st.innerHTML = '';
+  [['Жұмыс саны', list.length, ''], ['Орташа балл', fins.length ? Math.round(fins.reduce((a, b) => a + b, 0) / fins.length) : '—', ''], ['Тексеруді қажет етеді', list.filter(needs).length, 'warn'], ['Өзіңіз өзгерткен', list.filter(r => has(r.teacher_score)).length, '']]
+    .forEach(([l, v, c]) => st.append(h('div', { class:'stat4 ' + c }, [h('b', { text:String(v) }), h('span', { text:l })])));
+  const w = $('#tw'); w.innerHTML = '';
+  if (!list.length){ w.append(h('div', { class:'empty', text:ROWS.length ? 'Сүзгіге сәйкес жұмыс жоқ.' : 'Әзірге жұмыс түскен жоқ.' })); return; }
+  const cols = ['Уақыты', 'Студент', 'Тақырып', 'Тест', 'Жауап', 'Шешу', 'Код', 'ЖИ үлесі', 'ЖИ балы', 'Қорытынды', ''];
+  const tb = h('tbody');
+  list.forEach(r => {
+    const cls = !has(r.ai_total) ? 'yel' : has(r.ai_pct) && r.ai_pct >= 70 ? 'red' : has(r.ai_pct) && r.ai_pct >= 45 ? 'org' : '';
+    const tr = h('tr', { class:'row ' + cls }, [
+      h('td', { text:fmtT(r.time) }),
+      h('td', { class:'l' }, [h('b', { text:String(r.name) }), h('span', { class:'sub', text:String(r.group) + ' · нұсқа ' + r.variant })]),
+      h('td', { text:String(r.topic) }),
+      h('td', { text:has(r.quiz) ? r.quiz + '/12' : '—' }), h('td', { text:has(r.ans) ? r.ans + '/9' : '—' }), h('td', { text:has(r.steps) ? r.steps + '/15' : '—' }), h('td', { text:has(r.code) ? r.code + '/18' : '—' }),
+      h('td', {}, h('span', { class:'pill', style:'background:' + aiCol(r.ai_pct), text:has(r.ai_pct) ? r.ai_pct + '%' : '—' })),
+      h('td', { text:has(r.ai_total) ? String(r.ai_total) : 'тексерілмеді' }),
+      h('td', {}, [h('span', { class:'pill fin', style:'background:' + band(r.final), text:has(r.final) ? String(r.final) : '—' }), has(r.teacher_score) ? h('span', { class:'sub mark', text:'✎ сіз қойдыңыз' }) : '']),
+      h('td', {}, h('button', { class:'btn', type:'button', text:'Ашу' }))
+    ]);
+    tr.addEventListener('click', () => open(r.row));
+    tb.append(tr);
+  });
+  w.append(h('table', { class:'t' }, [h('thead', {}, h('tr', {}, cols.map((c, i) => h('th', { class:i === 1 ? 'l' : '', text:c })))), tb]));
+  $('#note').textContent = 'Қызыл жол — ЖИ үлесі жоғары (70%+), сарғыш — күмәнді (45%+), сары — ЖИ әлі бағаламаған. Жолды басып, толық жұмысты көріңіз.';
+}
+
+/* ---- журналға көшіру ---- */
+function journal(){
+  const rows = filtered(), topics = [...new Set(rows.map(r => r.topic))].sort(), best = {};
+  rows.forEach(r => { const k = norm(r.name) + '|' + norm(r.group), o = best[k] = best[k] || { name:r.name, group:r.group, v:{} }; if (!o.v[r.topic] || new Date(r.time) > new Date(o.v[r.topic].t)) o.v[r.topic] = { t:r.time, s:r.final }; });
+  const out = [['Аты-жөні', 'Тобы'].concat(topics)];
+  Object.values(best).sort((a, b) => String(a.name).localeCompare(String(b.name), 'kk')).forEach(o => out.push([o.name, o.group].concat(topics.map(t => o.v[t] ? o.v[t].s : ''))));
+  return out;
+}
+$('#bCopy').addEventListener('click', async () => {
+  const txt = journal().map(r => r.join('\t')).join('\n');
+  try { await navigator.clipboard.writeText(txt); $('#note').textContent = 'Журнал көшірілді ✓ Excel немесе Google Sheets ішіне қойыңыз.'; } catch (e) { $('#note').textContent = 'Көшіру мүмкін болмады. CSV жүктеп алыңыз.'; }
+});
+$('#bCsv').addEventListener('click', () => {
+  const csv = '﻿' + journal().map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+  const a = h('a', { href:URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })), download:'журнал.csv' }); document.body.append(a); a.click(); a.remove();
+});
+
+/* ---- жұмысты толық ашу ---- */
+function open(rowNum){
+  CUR = ROWS.find(r => r.row === rowNum); if (!CUR) return;
+  const r = CUR, list = filtered(), i = list.findIndex(x => x.row === r.row), P = $('#panel'); P.innerHTML = '';
+  const go = d => { const n = list[i + d]; if (n) open(n.row); };
+  P.append(h('div', { class:'p-head' }, [h('h2', { text:String(r.name) }), h('span', { class:'sub', text:r.group + ' · ' + r.topic + ' · нұсқа ' + r.variant + ' · ' + fmtT(r.time) }), h('span', { class:'sp' }),
+    h('div', { class:'nav2' }, [h('button', { class:'btn', type:'button', text:'←', 'aria-label':'Алдыңғы' }), h('button', { class:'btn', type:'button', text:'→', 'aria-label':'Келесі' }), h('button', { class:'btn', type:'button', text:'✕ Жабу' })])]));
+  const nb = P.querySelectorAll('.nav2 button'); nb[0].disabled = i <= 0; nb[1].disabled = i < 0 || i >= list.length - 1;
+  nb[0].addEventListener('click', () => go(-1)); nb[1].addEventListener('click', () => go(1)); nb[2].addEventListener('click', close);
+  const pre = (t, v) => h('div', { class:'box' }, [h('h3', { text:t }), h('pre', { text:String(v === '' || v === undefined ? '—' : v) })]);
+  const left = h('div', {}, [pre('Студентке берілген жүйе', r.sys), pre('Дұрыс жауап (тек сізге)', r.note), pre('Студент жауаптары (қолмен есептеу)', r.ans_text), pre('Шешу барысы', r.steps_text), pre('Бағдарлама коды', r.code_text), pre('Бағдарлама шығарғаны', r.out_text)]);
+  const sc = h('table', { class:'sc' }); [['Қатысым', '40'], ['Тест', (r.quiz === '' ? '—' : r.quiz) + ' / 12'], ['Қолмен жауаптар', (r.ans === '' ? '—' : r.ans) + ' / 9'], ['Шешу барысы (ЖИ)', (r.steps === '' ? '—' : r.steps) + ' / 15'], ['Бағдарлама нәтижесі', (r.outp === '' ? '—' : r.outp) + ' / 6'], ['Код (ЖИ)', (r.code === '' ? '—' : r.code) + ' / 18'], ['Тапсырма сапасы', (r.quality === '' ? '—' : r.quality) + ' / 60'], ['ЖИ үлесі', has(r.ai_pct) ? r.ai_pct + '%' : '—'], ['ЖИ қойған жалпы балл', has(r.ai_total) ? String(r.ai_total) : 'бағаланбаған']].forEach(([a, b]) => sc.append(h('tr', {}, [h('td', { text:a }), h('td', { text:b })])));
+  const sig = h('dl', { class:'kv' }, [h('dt', { text:'Уақыт' }), h('dd', { text:r.minutes + ' мин' }), h('dt', { text:'Көшіру / теру / шығу' }), h('dd', { text:String(r.signals) })]);
+  const score = h('input', { class:'field big', id:'tScore', type:'number', min:'0', max:'100', placeholder:has(r.ai_total) ? String(r.ai_total) : '—', value:has(r.teacher_score) ? String(r.teacher_score) : '' });
+  const cmt = h('textarea', { class:'field', id:'tCmt', rows:'3', placeholder:'Студентке немесе өзіңізге пікір (міндетті емес)' }); cmt.value = r.teacher_comment || '';
+  const msg = h('div', { class:'msg', role:'status' });
+  const bSave = h('button', { class:'btn primary', type:'button', text:'Сақтау' }), bClear = h('button', { class:'btn', type:'button', text:'ЖИ баллына қайту' }), bRe = h('button', { class:'btn', type:'button', text:'ЖИ-мен қайта бағалау' });
+  const send = async (action, extra, ok) => { [bSave, bClear, bRe].forEach(b => b.disabled = true); msg.className = 'msg'; msg.textContent = 'Жіберіп жатыр…'; const res = await api(Object.assign({ action, row:r.row, id:r.id }, extra), action === 'regrade' ? 120000 : 60000); [bSave, bClear, bRe].forEach(b => b.disabled = false); if (res.ok){ const k = ROWS.findIndex(x => x.row === r.row); ROWS[k] = res.rec; render(); open(r.row); const m = $('#panel .msg'); m.className = 'msg ok'; m.textContent = ok; } else { msg.className = 'msg bad'; msg.textContent = errText(res.error); } };
+  bSave.addEventListener('click', () => { const v = score.value.trim(); if (v !== '' && (isNaN(+v) || +v < 0 || +v > 100)){ msg.className = 'msg bad'; msg.textContent = 'Балл 0–100 аралығында болуы керек.'; return; } send('set', { score:v, comment:cmt.value }, 'Сақталды ✓ Журнал да жаңарды.'); });
+  bClear.addEventListener('click', () => send('set', { score:'', comment:cmt.value }, 'ЖИ баллына қайтарылды ✓'));
+  bRe.addEventListener('click', () => send('regrade', {}, 'ЖИ қайта бағалады ✓'));
+  const right = h('div', {}, [
+    h('div', { class:'box edit' }, [h('h3', { text:'Қорытынды балл' + (has(r.teacher_score) ? ' — сіз өзгерткенсіз' : '') }), h('label', { for:'tScore', text:'Балл (0–100). Бос қалса, ЖИ баллы алынады.' }), score, h('label', { for:'tCmt', text:'Пікір' }), cmt, h('div', { class:'row2' }, [bSave, bClear, bRe]), msg]),
+    h('div', { class:'box' }, [h('h3', { text:'ЖИ талдауы' }), sc, r.flags ? h('p', { class:'aibox', text:String(r.flags) }) : '', h('p', { class:'aibox', text:String(r.comment || '—') }), h('div', { style:'margin-top:10px' }, sig)])
+  ]);
+  P.append(h('div', { class:'p-body' }, [left, right]));
+  $('#ov').hidden = false; document.body.style.overflow = 'hidden';
+}
+function close(){ $('#ov').hidden = true; document.body.style.overflow = ''; CUR = null; }
+$('#ov').addEventListener('click', e => { if (e.target.id === 'ov') close(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#ov').hidden) close(); });
+
+if (PW) enter();
+})();
+</script>
+</body>
+</html>
