@@ -8,33 +8,20 @@
 <meta name="description" content="Гаусс әдісін нөлден бастап түсіндіретін интерактивті сабақ: көр, түсін, өзің жаса, кодқа аудар.">
 <style>
 :root{
-  --bg:#f7f4ee; --surface:#ffffff; --surface-2:#f0ece4; --text:#17212e; --muted:#4f5b6b; --line:#d8d1c4;
-  --primary:#0a4d75; --primary-2:#0d6596; --primary-soft:#e3eef6; --on-primary:#ffffff;
-  --pivot:#b55600; --pivot-bg:#fde7cf; --pivot-ring:#f08a1c;
-  --ok:#17703f; --ok-bg:#dcf2e3; --ok-ring:#2fa35f;
-  --bad:#b3261e; --bad-bg:#fbe0dd;
-  --info:#1d5fbf; --info-bg:#e2ebfb;
-  --warn:#7a5000; --warn-bg:#fff3d1;
-  --code-bg:#f3f6f9; --code-text:#1b2733; --code-hl:#ffefc2; --code-ln:#8a95a3;
-  --t-kw:#7a3e9d; --t-str:#0b7a3b; --t-com:#68727e; --t-num:#b4530a; --t-fn:#0a5f9e;
-  --shadow:0 1px 2px rgba(20,30,45,.06), 0 6px 20px rgba(20,30,45,.06);
-  --radius:14px;
-  --spd:1;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0f1720; --surface:#16212d; --surface-2:#1d2a38; --text:#e8eef5; --muted:#a9b6c5; --line:#2e3d4f;
-    --primary:#5fb3e8; --primary-2:#86c7ef; --primary-soft:#173246; --on-primary:#06131d;
-    --pivot:#ffad5c; --pivot-bg:#4a2c0c; --pivot-ring:#ff9a3c;
-    --ok:#6bdb97; --ok-bg:#123a24; --ok-ring:#3fbf73;
-    --bad:#ff8a80; --bad-bg:#4a1714;
-    --info:#8ab4ff; --info-bg:#1a2c4d;
-    --warn:#ffd27a; --warn-bg:#3d2f0b;
-    --code-bg:#0b121a; --code-text:#e3eaf2; --code-hl:#3a3315; --code-ln:#6f7c8b;
-    --t-kw:#d7a6ff; --t-str:#8ee0a6; --t-com:#8b96a3; --t-num:#ffb870; --t-fn:#7cc4ff;
-    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
-  }
+  --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#EEF2F8; --text:#172033; --muted:#5B6B80; --line:#E2E8F0;
+  --primary:#2563EB; --primary-2:#1D4ED8; --primary-soft:#EAF1FF; --on-primary:#FFFFFF; --accent-2:#38BDF8;
+  --pivot:#B45309; --pivot-bg:#FEF3C7; --pivot-ring:#F59E0B;
+  --ok:#15803D; --ok-bg:#DCFCE7; --ok-ring:#16A34A;
+  --bad:#DC2626; --bad-bg:#FEE2E2; --info:#2563EB; --info-bg:#DBEAFE;
+  --violet:#6D28D9; --violet-bg:#EDE9FE; --warn:#92400E; --warn-bg:#FEF3C7;
+  --lock:#64748B; --lock-bg:#EEF2F6;
+  --code-bg:#F1F5F9; --code-text:#1B2733; --code-hl:#FEF3C7; --code-ln:#94A3B8;
+  --t-kw:#7C3AED; --t-str:#15803D; --t-com:#64748B; --t-num:#C2410C; --t-fn:#1D4ED8;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.05);
+  --radius:18px; --spd:1;
+  --font:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --math:"Cambria Math","STIX Two Math","Latin Modern Math","Times New Roman",serif;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}

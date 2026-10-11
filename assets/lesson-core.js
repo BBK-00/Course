@@ -188,7 +188,7 @@ const Course = {
     o.sections.forEach(s => { const a = el('a', { href:'#' + s.id }, [el('span', { class:'nn', text:String(s.n) }), el('span', { class:'nl', text:s.title })]); nav.append(el('li', null, a)); this.links[s.id] = a; });
     this.fill = el('div', { class:'progress-fill' }); this.ptext = el('span', { class:'progress-text', text:'0 / ' + o.sections.length });
     const head = el('header', { class:'topbar' }, [
-      el('div', { class:'topbar-in' }, [el('a', { class:'brand', href:o.back.href, text:o.back.text }), el('nav', { class:'nav', 'aria-label':'Сабақ бөлімдері' }, nav)]),
+      el('div', { class:'topbar-in' }, [el('a', { class:'brand', href:o.back.href }, [el('span', { text:'←' }), el('span', { class:'bl', text:o.back.text.replace(/^←s*/, ' ') })])].concat(o.title ? [el('span', { class:'lesson-title' }, [el('b', { text:String(o.title[0]) }), o.title[1]])] : [], [el('nav', { class:'nav', 'aria-label':'Сабақ бөлімдері' }, nav)])),
       el('div', { class:'progress' }, [el('span', { text:'Сабақ барысы' }), el('div', { class:'progress-track' }, this.fill), this.ptext])
     ]);
     document.body.prepend(head);
