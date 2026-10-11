@@ -95,23 +95,27 @@ function prompt(task, topic, variant, p, sig, auto) {
   if (task === 2) return common.concat(['AUTOMATIC CHECK (already scored): final answers correct ' + (auto / 3) + '/3.', '', '<steps>\n' + String(p.steps || '').slice(0, 6000) + '\n</steps>', '', behaviour, '', 'Return:', '1) score: ' + t.steps, '2) (ignore)'], own).join('\n');
   return common.concat(['AUTOMATIC CHECK (already scored): printed output correct: ' + (auto ? 'yes' : 'no') + '.', '', '<code>\n' + String(p.code || '').slice(0, 6000) + '\n</code>', '<output>' + String(p.out || '').slice(0, 300) + '</output>', '', behaviour, '', 'Return:', '1) score: ' + t.code, '2) (ignore)'], own).join('\n');
 }
+let good = 0;
 async function callGemini(env, text, task) {
   if (env.GEMINI_STUB) return { score: task === 2 ? 13 : 16, ai_suspicion: Number(env.GEMINI_STUB_AI) || 10, comment: 'Тест түсініктеме' };
-  const key = env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY бапталмаған');
+  /* Бірнеше кілтті үтір немесе жаңа жол арқылы жазуға болады: біреуі істемесе (квота, қате), келесісі алынады */
+  const keys = String(env.GEMINI_API_KEY || '').split(/[\s,;]+/).filter(Boolean);
+  if (!keys.length) throw new Error('GEMINI_API_KEY бапталмаған');
   const models = [env.GEMINI_MODEL || 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
   let last = '';
-  for (let t = 0; t < 5; t++) {
+  const tries = Math.min(9, Math.max(5, keys.length * 3));
+  for (let t = 0; t < tries; t++) {
+    const key = keys[(good + t) % keys.length];
     try {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[t % models.length] + ':generateContent', {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[Math.floor(t / keys.length) % models.length] + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: SCHEMA } })
       });
       const j = await res.json();
-      if (j.candidates && j.candidates[0].content) return JSON.parse(j.candidates[0].content.parts.map(x => x.text || '').join(''));
+      if (j.candidates && j.candidates[0].content) { good = (good + t) % keys.length; return JSON.parse(j.candidates[0].content.parts.map(x => x.text || '').join('')); }
       last = j.error ? j.error.message : 'бос жауап';
     } catch (e) { last = e.message; }
-    await new Promise(r => setTimeout(r, 1500 * (t + 1)));
+    await new Promise(r => setTimeout(r, t < keys.length ? 300 : 1500 * (t + 1 - keys.length)));
   }
   throw new Error(last);
 }
