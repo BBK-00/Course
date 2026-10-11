@@ -10,7 +10,7 @@ window.CourseWork = { mount(host, cfg){
   const NA = cfg.task1.answers.length;
   let D = null, built = '', ui = null;
   const dkey = me => cfg.key + ':' + me.session.id + ':' + me.student.name;
-  const fresh = () => ({ quiz:cfg.quiz.map(() => null), steps:'', ans:Array(NA).fill(''), code:'', out:'', sig:{ paste:0, pasted:0, typed:0, away:0, f:{} } });
+  const fresh = () => ({ quiz:cfg.quiz.map(() => null), steps:'', ans:Array(NA).fill(''), code:'', lang:'python', sig:{ paste:0, pasted:0, typed:0, away:0, f:{} } });
   const load = me => { try { return Object.assign(fresh(), JSON.parse(localStorage.getItem(dkey(me))) || {}); } catch (e) { return fresh(); } };
   const save = () => { try { if (D && D.k) localStorage.setItem(D.k, JSON.stringify(D)); } catch (e) {} };
   document.addEventListener('visibilitychange', () => { const me = window.Join.get(); if (document.hidden && D && me && me.session.work_until && !me.complete){ D.sig.away++; save(); } });
@@ -73,11 +73,11 @@ window.CourseWork = { mount(host, cfg){
       const send = el('button', { type:'button', class:'btn primary', text:'📤 Жіберу' }); let armed = false;
       send.addEventListener('click', async () => {
         const noPhoto = n === 1 && !D.photo && !D.steps.trim();
-        const empty = n === 3 ? D.quiz.includes(null) : n === 1 ? D.ans.some(v => !String(v).trim()) || noPhoto : !D.code.trim() || !D.out.trim();
+        const empty = n === 3 ? D.quiz.includes(null) : n === 1 ? D.ans.some(v => !String(v).trim()) || noPhoto : !D.code.trim();
         if (noPhoto){ msg.innerHTML = ''; msg.append(el('p', { class:'notice', text:'Дәптер фотосын жүкте (немесе шешуді мәтінмен жаз).' })); return; }
         if (empty && !armed){ armed = true; send.textContent = '📤 Иә, солай жіберу'; msg.innerHTML = '<p class="notice">Кейбір өрістер бос. Сонда да жібересің бе? Тағы бір рет бас.</p>'; return; }
         send.disabled = true; msg.innerHTML = n === 3 ? '' : '<p><span class="spinner"></span>ЖИ тексеріп жатыр. Бұл 10–40 секундқа созылуы мүмкін, бетті жаппа.</p>';
-        const payload = n === 3 ? { quiz:D.quiz } : n === 1 ? { steps:D.steps, ans:D.ans, photo:D.photo, photo_mime:'image/jpeg' } : { code:D.code, out:D.out };
+        const payload = n === 3 ? { quiz:D.quiz } : n === 1 ? { steps:D.steps, ans:D.ans, photo:D.photo, photo_mime:'image/jpeg' } : { code:D.code, lang:D.lang };
         const j = await window.Join.api('submit', { task:n, payload, signals:D.sig });
         if (j.ok){ msg.innerHTML = ''; await window.Join.refresh(); return; }
         send.disabled = false; armed = false; send.textContent = '📤 Жіберу';
@@ -107,21 +107,39 @@ window.CourseWork = { mount(host, cfg){
     const ans = el('div', { class:'submit-grid' });
     t1.answers.forEach((a, i) => ans.append(el('label', { for:cfg.key + 'a' + i, html:a.label }), field('input', () => D.ans[i], v => { D.ans[i] = v; }, 'a' + i, { type:'text', class:'cf-input', id:cfg.key + 'a' + i })));
     b1.push(el('p', { text:t1.answersTitle || 'Жауабың:' }), ans);
-    const sampleEl = t1.sample ? el('div', { class:'sample' }, [el('b', { text:'Үлгі' }), el('span', { class:'muted', text:' — ' + t1.sampleNote }), el('pre', { text:t1.sample })]) : null;
-    card(1, '1-тапсырма · ' + t1.title, 'Жүйені қолмен шығарасың. Үлгіні қарап, дәптерге жазып, суретке түсіресің немесе осында жазасың. Қолмен жазғаның сенімді болады.', b1, sampleEl ? [sampleEl] : []);
-    show();
-    /* 2 — бағдарлама */
-    const pyList = M => '[' + M.map(r => Array.isArray(r) ? '[' + r.join(', ') + ']' : r).join(', ') + ']';
-    const TPL = ['A = ' + pyList(A), 'b = ' + pyList(B), 'eps = 0.0001', 'n = 3', 'x = [0.0, 0.0, 0.0]          # бастапқы жуықтау', '', 'for k in range(1, 101):', '    delta = 0', '    for i in range(n):',
-      '        # 1) s = қалған белгісіздер бойынша қосынды: A[i][j] * x[j], мұнда j != i', '        s = 0', '        # TODO', '', '        # 2) жаңа мән: (b[i] - s) / A[i][i]', '        new = 0   # TODO', '',
-      '        # 3) delta-ны жаңарт (|new - x[i]| ең үлкені) және жаңа мәнді бірден x[i]-ге жаз', '        # TODO', '', '    # 4) тоқтау шарты: delta < eps болса, циклді тоқтат', '    # TODO', '', 'print(x)'].join('\n');
-    const tplMsg = el('span', { class:'muted', role:'status' });
-    const tplBlock = cfg.task2.template ? el('div', { class:'sample' }, [el('b', { text:'Шаблон' }), el('span', { class:'muted', text:' — көшіріп алып, TODO орындарын толықтыр (Python; басқа тілде жазсаң, осыны үлгі ет)' }), el('pre', { text:TPL }),
-      el('div', { class:'stepbar' }, [(() => { const b2 = el('button', { type:'button', class:'btn small', text:'📋 Көшіру' }); b2.addEventListener('click', () => copyText(TPL, tplMsg)); return b2; })(),
-        (() => { const b3 = el('button', { type:'button', class:'btn small', text:'⤵ Кодқа қою' }); b3.addEventListener('click', () => { const ta = document.querySelector('textarea[aria-label="Бағдарлама коды"]'); if (ta && !ta.value.trim()){ ta.value = TPL; ta.dispatchEvent(new Event('input')); tplMsg.textContent = 'Қойылды ✓'; } else tplMsg.textContent = 'Код өрісі бос емес.'; setTimeout(() => { tplMsg.textContent = ''; }, 2500); }); return b3; })(), tplMsg])]) : '';
-    card(2, '2-тапсырма · ' + cfg.task2.title, cfg.task2.text.split('. ')[0] + '.', [el('p', { text:cfg.task2.text }), tplBlock, el('p', { text:'Сенің кодың:' }),
-      field('textarea', () => D.code, v => { D.code = v; }, 'code', { class:'work-area mono', rows:'14', 'aria-label':'Бағдарлама коды' }),
-      el('div', { class:'submit-grid' }, [el('label', { for:cfg.key + 'o', text:'Нәтиже' }), field('input', () => D.out, v => { D.out = v; }, 'out', { type:'text', class:'cf-input wide', id:cfg.key + 'o', placeholder:'бағдарлама шығарған нәтиже' })])]);
+    const det = (title, hint, nodes) => el('details', { class:'help' }, [el('summary', { text:title })].concat(hint ? [el('p', { class:'muted', text:hint })] : [], nodes));
+    card(1, '1-тапсырма · ' + t1.title, 'Жүйені қолмен шығарасың. Дәптерге жазып, суретке түсіресің немесе осында жазасың. Қолмен жазғаның сенімді болады.', b1, t1.sample ? [det('📖 Үлгіні көру', t1.sampleNote, [el('pre', { text:t1.sample })])] : []);
+    /* 2 — бағдарлама: тіл таңдау, шаблон, сервердe нақты орындау */
+    const LANGS = [['python', 'Python'], ['cpp', 'C++'], ['javascript', 'JavaScript'], ['java', 'Java'], ['c', 'C']];
+    const lst = (M, o, c) => o + M.map(r => Array.isArray(r) ? o + r.join(', ') + c : r).join(', ') + c;
+    const TODO = ['1) s = қалған белгісіздер бойынша қосынды: A[i][j] * x[j], мұнда j != i', '2) жаңа мән: (b[i] - s) / A[i][i]', '3) delta-ны жаңарт (|жаңа - x[i]| ең үлкені) және жаңа мәнді бірден x[i]-ге жаз', '4) тоқтау шарты: delta < eps болса, циклді тоқтат'];
+    const TPLS = {
+      python: ['A = ' + lst(A, '[', ']'), 'b = ' + lst(B, '[', ']'), 'eps = 0.0001', 'x = [0.0, 0.0, 0.0]          # бастапқы жуықтау', '', 'for k in range(1, 101):', '    delta = 0', '    for i in range(3):', '        # ' + TODO[0], '        s = 0', '        # TODO', '', '        # ' + TODO[1], '        new = 0   # TODO', '', '        # ' + TODO[2], '        # TODO', '', '    # ' + TODO[3], '    # TODO', '', 'print(x[0], x[1], x[2])'].join('\n'),
+      cpp: ['#include <iostream>', '#include <cmath>', 'using namespace std;', '', 'int main() {', '    double A[3][3] = ' + lst(A, '{', '}') + ';', '    double b[3] = ' + lst(B, '{', '}') + ';', '    double eps = 0.0001;', '    double x[3] = {0, 0, 0};          // бастапқы жуықтау', '', '    for (int k = 1; k <= 100; k++) {', '        double delta = 0;', '        for (int i = 0; i < 3; i++) {', '            // ' + TODO[0], '            double s = 0;', '            // TODO', '', '            // ' + TODO[1], '            double nw = 0;   // TODO', '', '            // ' + TODO[2], '            // TODO', '        }', '        // ' + TODO[3], '        // TODO', '    }', '    cout << x[0] << " " << x[1] << " " << x[2] << endl;', '    return 0;', '}'].join('\n'),
+      javascript: ['const A = ' + lst(A, '[', ']') + ';', 'const b = ' + lst(B, '[', ']') + ';', 'const eps = 0.0001;', 'const x = [0, 0, 0];          // бастапқы жуықтау', '', 'for (let k = 1; k <= 100; k++) {', '    let delta = 0;', '    for (let i = 0; i < 3; i++) {', '        // ' + TODO[0], '        let s = 0;', '        // TODO', '', '        // ' + TODO[1], '        let nw = 0;   // TODO', '', '        // ' + TODO[2], '        // TODO', '    }', '    // ' + TODO[3], '    // TODO', '}', 'console.log(x[0], x[1], x[2]);'].join('\n')
+    };
+    const tplPre = el('pre'), tplMsg = el('span', { class:'muted', role:'status' });
+    const showTpl = () => { tplPre.textContent = TPLS[D.lang] || 'Бұл тіл үшін шаблон жоқ. Python шаблонын үлгі ет.'; };
+    const codeTa = field('textarea', () => D.code, v => { D.code = v; }, 'code', { class:'work-area mono', rows:'16', 'aria-label':'Бағдарлама коды', spellcheck:'false' });
+    codeTa.addEventListener('keydown', e => { if (e.key === 'Tab'){ e.preventDefault(); const p = codeTa.selectionStart; codeTa.setRangeText('    ', p, codeTa.selectionEnd, 'end'); codeTa.dispatchEvent(new Event('input')); } });
+    const sel = el('select', { class:'cf-input', 'aria-label':'Бағдарламалау тілі', style:'width:auto' }, LANGS.map(([v, n]) => el('option', { value:v, text:n, selected:D.lang === v })));
+    sel.addEventListener('change', () => { D.lang = sel.value; save(); showTpl(); });
+    const copyB = el('button', { type:'button', class:'btn small', text:'📋 Көшіру' }), pasteB = el('button', { type:'button', class:'btn small', text:'⤵ Кодқа қою' });
+    copyB.addEventListener('click', () => copyText(TPLS[D.lang] || '', tplMsg));
+    pasteB.addEventListener('click', () => { if (!codeTa.value.trim() && TPLS[D.lang]){ codeTa.value = TPLS[D.lang]; codeTa.dispatchEvent(new Event('input')); tplMsg.textContent = 'Қойылды ✓'; } else tplMsg.textContent = 'Код өрісі бос емес.'; setTimeout(() => { tplMsg.textContent = ''; }, 2500); });
+    const outBox = el('div', { role:'status' }), runB = el('button', { type:'button', class:'btn', text:'▶ Іске қосу' });
+    runB.addEventListener('click', async () => {
+      if (!D.code.trim()){ outBox.innerHTML = ''; outBox.append(el('p', { class:'notice', text:'Алдымен код жаз.' })); return; }
+      runB.disabled = true; outBox.innerHTML = '<p><span class="spinner"></span>Бағдарлама орындалып жатыр…</p>';
+      const j = await window.Join.api('run', { language:D.lang, code:D.code }); runB.disabled = false; outBox.innerHTML = '';
+      if (!j.ok){ outBox.append(el('p', { class:'errbox', text:j.error === 'wait' ? 'Тым жиі іске қостың. Бір минут күт.' : 'Іске қосу мүмкін болмады. Қайта көр.' })); return; }
+      const r = j.run; outBox.append(el('p', { class:r.ok ? 'success' : 'errbox', style:'margin:8px 0 4px', text:(r.ok ? '✓ Орындалды' : '✕ ' + (r.status || 'Қате')) }), el('pre', { class:'pyout', text:(r.stdout || '(нәтиже шықпады)') + (r.stderr ? '\n' + r.stderr : '') }));
+    });
+    showTpl();
+    card(2, '2-тапсырма · ' + cfg.task2.title, cfg.task2.text.split('. ')[0] + '.', [el('p', { text:cfg.task2.text }),
+      det('🧩 Шаблонды көру', 'Көшіріп алып, TODO орындарын толықтыр.', [tplPre, el('div', { class:'stepbar' }, [copyB, pasteB, tplMsg])]),
+      el('div', { class:'row2', style:'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 6px' }, [el('label', { text:'Тіл:' }), sel, runB]),
+      codeTa, outBox, el('p', { class:'muted', text:'«Іске қосу» бағдарламаны нақты орындайды. Жіберген кезде сервер оны қайта орындап, нәтижесін автоматты тексереді.' })]);
     /* 3 — тест */
     const q = [];
     cfg.quiz.forEach(([qq, opts], i) => {

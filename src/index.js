@@ -1,7 +1,8 @@
 /* Сабақ жүйесінің API-ы (Cloudflare Worker + D1). Статикалық сайтты ASSETS беріп тұрады. */
 import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
-import { TOPICS, MAX, autoScore, aiGrade, compute, variantOf, sysText } from './grading.js';
+import { TOPICS, MAX, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
 import { SCHEMA } from './schema.js';
+import { runCode, LANGS } from './runner.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); ready = true; }
@@ -91,6 +92,18 @@ async function route(request, env, ctx, url) {
     return json({ ok: true });
   }
 
+  if (path === 'run' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
+    if (busy.n >= 12) return err('wait', 429);
+    await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
+    const code = String(b.code || '');
+    if (!code.trim()) return err('bad_request');
+    const r = await runCode(env, LANGS.includes(b.language) ? b.language : 'python', code, '');
+    return json({ ok: true, run: r });
+  }
+
   if (path === 'submit' && method === 'POST') {
     const p = await verify(env, bearer(request));
     if (!p || p.r !== 's') return err('auth', 401);
@@ -109,7 +122,8 @@ async function route(request, env, ctx, url) {
     const sig = JSON.stringify(b.signals || {}).slice(0, 4000), auto = autoScore(task, ses.topic, att.variant, payload);
     const ins = await DB.prepare('INSERT OR IGNORE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, task, JSON.stringify(payload), sig, auto, now()).run();
     if (!ins.meta.changes) return err('already', 409);
-    if (task < 3) await gradeRow(env, DB, p.ses, p.st, task, ses, att.variant, payload, b.signals || {}, auto, (now() - st0.started_at) / 60);
+    if (task === 2) await gradeCode(env, DB, p.ses, p.st, ses, att.variant, payload, b.signals || {}, (now() - st0.started_at) / 60);
+    else if (task === 1) await gradeRow(env, DB, p.ses, p.st, task, ses, att.variant, payload, b.signals || {}, auto, (now() - st0.started_at) / 60);
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), task });
   }
 
@@ -140,7 +154,21 @@ function sanitize(task, p) {
     const photo = /^[A-Za-z0-9+/=]*$/.test(String(p.photo || '').slice(0, 200)) ? s(p.photo, 950000) : '';
     return { steps: s(p.steps, 8000), ans: (Array.isArray(p.ans) ? p.ans : []).slice(0, 3).map(v => s(v, 30)), photo, photo_mime: /^image\/(jpeg|png|webp)$/.test(p.photo_mime) ? p.photo_mime : 'image/jpeg' };
   }
-  return { code: s(p.code, 8000), out: s(p.out, 400) };
+  return { code: s(p.code, 8000), lang: LANGS.includes(p.lang) ? p.lang : 'python' };
+}
+
+/* Код: сервердe нақты орындалады, нәтиже шешіммен салыстырылады, сосын ЖИ логиканы бағалайды */
+async function gradeCode(env, DB, ses_id, st_id, ses, variant, payload, sig, tmin) {
+  const ex = variantOf(ses.topic, variant);
+  const res = await runCode(env, payload.lang || 'python', payload.code, '');
+  const p2 = { ...payload, out: String(res.stdout || '').slice(0, 300), run: { ok: res.ok, stdout: res.stdout, stderr: res.stderr, status: res.status, backend: res.backend || '' } };
+  const auto = res.infra ? 0 : (outOk(res.stdout, ex.out) ? 12 : 0);
+  await DB.prepare('UPDATE submissions SET payload=?, auto_score=? WHERE session_id=? AND student_id=? AND task=2').bind(JSON.stringify(p2), auto, ses_id, st_id).run();
+  if (res.infra) {
+    await DB.prepare('UPDATE submissions SET ai_score=NULL, ai_pct=NULL, flags=?, ai_comment=? WHERE session_id=? AND student_id=? AND task=2').bind('⚠ орындау қызметі жауап бермеді', 'Бағдарламаны іске қосу мүмкін болмады. «ЖИ-мен қайта» батырмасымен кейін қайта тексеріңіз.', ses_id, st_id).run();
+    return;
+  }
+  await gradeRow(env, DB, ses_id, st_id, 2, ses, variant, p2, sig, auto, tmin);
 }
 
 async function gradeRow(env, DB, ses_id, st_id, task, ses, variant, payload, sig, auto, elapsed) {
@@ -297,7 +325,9 @@ async function teacher(path, method, b, env, ctx, url) {
     const s = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     if (!s || s.task === 3) return err('not_found', 404);
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(s.session_id).first(), att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(s.session_id, s.student_id).first();
-    await gradeRow(env, DB, s.session_id, s.student_id, s.task, ses, att ? att.variant : 1, JSON.parse(s.payload), s.signals ? JSON.parse(s.signals) : {}, s.auto_score || 0, null);
+    const pl = JSON.parse(s.payload), sg = s.signals ? JSON.parse(s.signals) : {};
+    if (s.task === 2) await gradeCode(env, DB, s.session_id, s.student_id, ses, att ? att.variant : 1, pl, sg, null);
+    else await gradeRow(env, DB, s.session_id, s.student_id, s.task, ses, att ? att.variant : 1, pl, sg, s.auto_score || 0, null);
     return json({ ok: true });
   }
   if (path === 'reopen' && method === 'POST') {

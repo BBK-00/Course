@@ -199,9 +199,9 @@ function paintDetail(j){
       parts.push(h('pre', { text: 'Жауаптар: ' + (p.ans || []).join(' ; ') + '\nЖауап балы: ' + s.auto_score + ' / 9' }));
       if (p.steps) parts.push(h('pre', { text: p.steps }));
     }
-    if (n === 2) parts.push(h('pre', { text: p.code || '—' }), h('pre', { text: 'Нәтиже: ' + (p.out || '—') + '\nНәтиже балы: ' + s.auto_score + ' / 6' }));
+    if (n === 2) { const r = p.run || {}; parts.push(h('pre', { text: p.code || '—' }), h('pre', { text: 'Тіл: ' + (p.lang || 'python') + ' · нақты орындалды (' + (r.status || '—') + ')\nНәтиже: ' + (r.stdout || p.out || '—') + (r.stderr ? '\nҚате: ' + r.stderr : '') + '\nНәтиже балы: ' + s.auto_score + ' / 12' })); }
     if (n === 3) parts.push(h('pre', { text: 'Таңдаған жауаптар (нөмірі): ' + (p.quiz || []).map(v => v === null ? '—' : v + 1).join(', ') + '\nДұрыс жауап балы: ' + s.auto_score + ' / 12' }));
-    if (n < 3) { parts.push(h('p', { class: 'sub', text: 'ЖИ: ' + (has(s.ai_score) ? s.ai_score + ' / ' + (n === 1 ? 15 : 18) + ' · ЖИ үлесі ' + s.ai_pct + '%' : 'әлі бағаланған жоқ') })); if (s.flags) parts.push(h('p', { class: 'aibox', text: s.flags })); if (s.ai_comment) parts.push(h('p', { class: 'aibox', text: s.ai_comment })); }
+    if (n < 3) { parts.push(h('p', { class: 'sub', text: 'ЖИ: ' + (has(s.ai_score) ? s.ai_score + ' / ' + (n === 1 ? 15 : 12) + ' · ЖИ үлесі ' + s.ai_pct + '%' : 'әлі бағаланған жоқ') })); if (s.flags) parts.push(h('p', { class: 'aibox', text: s.flags })); if (s.ai_comment) parts.push(h('p', { class: 'aibox', text: s.ai_comment })); }
     const sc = h('input', { class: 'field', type: 'number', min: '0', max: String(t.max), style: 'width:90px', placeholder: String(t.pts), value: has(s.teacher_score) ? String(s.teacher_score) : '' });
     const cm = h('input', { class: 'field', type: 'text', placeholder: 'Пікір (міндетті емес)', value: s.teacher_comment || '', style: 'flex:1;min-width:160px' });
     parts.push(h('div', { class: 'row', style: 'margin-top:8px' }, [h('span', { text: 'Балл:' }), sc, cm, h('button', { class: 'btn sm primary', text: 'Сақтау', on: { click: async () => { await api('task_grade', { id: s.id, task: n, score: sc.value.trim(), comment: cm.value }); reDetail('Сақталды ✓'); } } }),

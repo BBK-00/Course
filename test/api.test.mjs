@@ -11,6 +11,7 @@ const call = async (path, o = {}, tok) => {
 let TT = '';
 const T = (path, o) => call('teacher/' + path, o, TT);
 const GN = 'ИС-' + (Date.now() % 100000);
+const GOOD = 'A = [[10, 2, 2], [2, 10, -2], [-2, 2, 10]]\nb = [-22, -2, 38]\nx = [0.0, 0.0, 0.0]\nfor k in range(100):\n    for i in range(3):\n        s = sum(A[i][j] * x[j] for j in range(3) if j != i)\n        x[i] = (b[i] - s) / A[i][i]   # жаңа мән бірден\nprint(x[0], x[1], x[2])';
 // 1x1 JPEG
 const PHOTO = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 
@@ -38,6 +39,8 @@ me = (await call('me', {}, tok2)).j; ok(me.variant === 2, 'келесі студ
 r = await T('release', { body: { session_id: live.session.id, student_id: s1.id } }); r = await call('join', { body: { student_id: s1.id, code, device: 'devB' } }); const tok1b = r.j.token; ok(!!tok1b, 'оқытушы босатқан соң басқа құрылғыдан кіруге болады');
 
 console.log('Тапсырмалар (әрқайсысының өз таймері)');
+r = await call('run', { body: { language: 'python', code: 'print(2+2)' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '4', 'сервер кодты нақты орындайды (' + (r.j.run && r.j.run.backend) + ')');
+r = await call('run', { body: { language: 'cpp', code: '#include <iostream>\nint main(){std::cout<<6*7;}' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '42', 'C++ компиляторы жұмыс істейді (' + (r.j.run && r.j.run.backend) + ')');
 r = await call('task/start', { body: { task: 1 } }, tok1b); ok(r.s === 403 && r.j.error === 'not_started', 'оқытушы жұмысты бастамай тапсырма басталмайды');
 r = await T('session/work', { body: { minutes: 50 } }); ok(r.j.ok, 'оқытушы жұмысты бастады (50 мин)');
 r = await call('submit', { body: { task: 3, payload: { quiz: [1, 0, 2, 0, 2, 1] } } }, tok1b); ok(r.s === 403 && r.j.error === 'task_not_started', 'тапсырманы «Бастау» баспай жіберуге болмайды');
@@ -48,8 +51,8 @@ r = await call('task/start', { body: { task: 1 } }, tok1b); ok(r.j.tasks[1].limi
 const hand = { steps: 'x1 = (-22 - 2x2 - 2x3)/10\n'.repeat(5) + '1-итерация ...', ans: ['-2.910', '1.045', '3.009'], photo: PHOTO, photo_mime: 'image/jpeg' };
 r = await call('submit', { body: { task: 1, payload: hand, signals: { paste: 0, away: 1, f: { steps: { pasted: 0, typed: 300, first: 60000, last: 900000 } } } } }, tok1b); ok(r.j.ok && r.j.tasks[1].sent, 'қолмен есеп (фотомен) жіберілді: ' + JSON.stringify(r.j.tasks[1]));
 r = await call('task/start', { body: { task: 2 } }, tok1b);
-r = await call('submit', { body: { task: 2, payload: { code: 'x=[0,0,0]\nfor k in range(100):\n  pass\n'.repeat(5), out: '[-3.0, 1.0, 3.0]' }, signals: { away: 0 } } }, tok1b);
-ok(r.j.ok && r.j.tasks[2].sent, 'бағдарлама жіберілді: ' + JSON.stringify(r.j.tasks[2]));
+r = await call('submit', { body: { task: 2, payload: { code: '# сабақтағы мысал\nA = [[4, 1, 1], [1, 5, 2], [1, 2, 6]]\nprint([1.0, 2.0, -1.0])', lang: 'python' }, signals: { away: 0 } } }, tok1b);
+ok(r.j.ok && r.j.tasks[2].sent && r.j.tasks[2].pts <= 3, 'басқа жүйенің кодын қойса, балл өте аз: ' + JSON.stringify(r.j.tasks[2]));
 ok(r.j.complete && r.j.total >= 50 && r.j.total <= 100, 'жиынтық: ' + r.j.total);
 live = (await T('live')).j; const sid = live.session.id;
 let w = (await T(`work?session=${sid}&student=${s1.id}`)).j; ok(/минутта/.test(w.calc.tasks[1].flags), 'ЖИ белгісі (тапсырма тез жіберілді): ' + w.calc.tasks[1].flags);
@@ -66,8 +69,8 @@ r = await T('total', { body: { session_id: sid, student_id: s1.id, total: null }
 w = (await T(`work?session=${sid}&student=${s1.id}`)).j; ok(w.calc.final === w.calc.auto, 'түзету алынды: ' + w.calc.final);
 r = await T('regrade', { body: { id: subCode.id } }); ok(r.j.ok, 'ЖИ қайта бағалады');
 r = await T('reopen', { body: { id: subCode.id } });
-r = await call('submit', { body: { task: 2, payload: { code: 'print(1)', out: '1' } } }, tok1b); ok(r.j.error === 'task_not_started', 'қайта ашылған тапсырманы қайта «Бастау» керек');
-r = await call('task/start', { body: { task: 2 } }, tok1b); r = await call('submit', { body: { task: 2, payload: { code: 'print(1)', out: '1' } } }, tok1b); ok(r.j.ok, 'қайта бастап, қайта жіберуге болады');
+r = await call('submit', { body: { task: 2, payload: { code: GOOD, lang: 'python' } } }, tok1b); ok(r.j.error === 'task_not_started', 'қайта ашылған тапсырманы қайта «Бастау» керек');
+r = await call('task/start', { body: { task: 2 } }, tok1b); r = await call('submit', { body: { task: 2, payload: { code: GOOD, lang: 'python' } } }, tok1b); ok(r.j.ok && r.j.tasks[2].pts >= 12, 'мәнін өз нұсқасына өзгертіп дұрыс жазса, толық балл алады: ' + JSON.stringify(r.j.tasks[2]));
 
 console.log('Бекіту және рефлексия');
 r = await call('feedback', { body: { level: 4, learned: ['идея'], hard: 'Код', comment: 'жақсы' } }, tok1b); ok(r.j.ok, 'студент рефлексия жіберді');

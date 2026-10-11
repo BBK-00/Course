@@ -291,3 +291,8 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
 .modal-box .submit-grid{max-width:none}
 
 [hidden]{display:none!important}
+
+/* жасырын көмек блоктары (үлгі, шаблон) */
+.help{border:1px dashed var(--primary-2);border-radius:12px;padding:2px 14px 8px;margin:10px 0;background:var(--surface)}
+.help>summary{cursor:pointer;font-weight:600;color:var(--primary-2);min-height:44px;display:flex;align-items:center}
+.help pre{margin:6px 0;white-space:pre-wrap;word-break:break-word;font:.9rem/1.5 var(--mono);background:var(--code-bg);border-radius:10px;padding:10px 12px;max-height:340px;overflow:auto}
