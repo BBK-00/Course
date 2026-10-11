@@ -38,6 +38,24 @@
 .tl li.loop{background:var(--info-bg)}.tl li.loop::before{background:var(--info)}
 .tl b{display:block}
 .f.gs3 .rows{text-align:left}
+.fc{display:flex;flex-direction:column;align-items:center}
+.fc .fb{min-width:230px;max-width:100%;padding:9px 16px;text-align:center;background:var(--surface);border:2px solid var(--line);border-radius:10px;font-family:var(--math);font-size:1.12rem;line-height:1.35;transition:background .3s,border-color .3s}
+.fc .fb.start{border-radius:999px;font-weight:700}
+.fc .fb.io{transform:skewX(-12deg)}.fc .fb.io>span{display:inline-block;transform:skewX(12deg)}
+.fc .fb.on{border-color:var(--pivot-ring);background:var(--pivot-bg)}
+.fc .fb.dec{border:none;background:none;padding:0;min-width:0;width:min(260px,100%)}
+.fc .fb.dec svg{display:block;width:100%;height:auto}
+.fc .fb.dec polygon{fill:var(--surface);stroke:var(--line);stroke-width:3;transition:fill .3s,stroke .3s}
+.fc .fb.dec.on polygon{fill:var(--pivot-bg);stroke:var(--pivot-ring)}
+.fc .fb.dec text{font-family:var(--math);font-size:26px;fill:var(--text);text-anchor:middle}
+.fc .fa{color:var(--muted);line-height:1;font-size:1.25rem;margin:3px 0}
+.fc .hint{display:block;font-family:var(--font);font-size:.78rem;color:var(--muted)}
+.fc .grp{width:100%;border:2px dashed var(--info);border-radius:14px;padding:8px 12px 10px;display:flex;flex-direction:column;align-items:center;margin:3px 0;background:color-mix(in srgb,var(--info-bg) 40%,transparent)}
+.fc .grp.g2{border-color:var(--ok-ring);background:color-mix(in srgb,var(--ok-bg) 45%,transparent)}
+.fc .gl{align-self:flex-start;font-family:var(--font);font-size:.84rem;font-weight:700;color:var(--primary-2);margin:0 0 6px;transition:color .3s}
+.fc .gl.on{color:var(--pivot);text-decoration:underline}
+.fc .back{font-family:var(--font);font-size:.82rem;color:var(--info);font-weight:600;margin-top:2px}
+.fc .yes{font-family:var(--font);font-size:.82rem;color:var(--ok);font-weight:700}
 .expr{display:grid;gap:10px;margin-top:8px}
 .expr .row3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px;align-items:center;background:var(--surface-2);border-radius:14px;padding:12px 16px}
 .expr .eq,.expr .res{font-family:var(--math);font-size:1.3rem}
@@ -82,8 +100,8 @@
   <div class="sec-head"><span class="sec-num">★</span><h2>Сабақтың мақсаты</h2></div>
   <div class="goal-grid">
     <div><h4>Мақсаты</h4><p>Гаусс–Зейдель итерациялық әдісінің мәнін түсініп, үш белгісізді жүйені осы әдіспен шеше білу.</p></div>
-    <div><h4>Міндеттері</h4><ul><li>Әдістің идеясын және формуласын түсіндіру;</li><li>жинақталу шартын (диагональдық басымдылық) тексеру;</li><li>екі итерацияны қолмен орындау;</li><li>алгоритмді Python кодымен байланыстыру.</li></ul></div>
-    <div><h4>Күтілетін нәтиже</h4><p>Сабақ соңында студент формуланы жазады, шарттың орындалуын тексереді, екі итерацияны қолмен есептейді және алгоритмнің бағдарламасын түсіндіреді.</p></div>
+    <div><h4>Міндеттері</h4><ul><li>Әдістің идеясын және формуласын түсіндіру;</li><li>жинақталу шартын (диагональдық басымдылық) тексеру;</li><li>екі итерацияны қолмен орындау;</li><li>алгоритмнің блок-схемасын түсініп, бағдарлама жазу.</li></ul></div>
+    <div><h4>Күтілетін нәтиже</h4><p>Сабақ соңында студент формуланы жазады, шарттың орындалуын тексереді, екі итерацияны қолмен есептейді және блок-схема бойынша бағдарлама жазады.</p></div>
   </div>
   <div class="blk"><h3 class="blk-h"><span class="ic">⏱</span>Сабақ жоспары · 50 минут</h3>
     <div class="plan"><div class="p1">Түсіндіру<small>10–15 мин</small></div><div class="p2">Бақылау жұмысы<small>25–30 мин · 3 тапсырма</small></div><div class="p3">Қорытынды<small>5–10 мин</small></div></div>
@@ -162,10 +180,10 @@
   <div class="remember"><h4>Есте сақта</h4><p>Диагональдық басымдылық бар болса, әдіс жинақталады. Жоқ болса, теңдеулердің орнын ауыстырып көреміз.</p></div>
 </div></div></section>
 
-<!-- ================= 4. АЛГОРИТМ ЖӘНЕ КОД ================= -->
+<!-- ================= 4. АЛГОРИТМ ЖӘНЕ БЛОК-СХЕМА ================= -->
 <section id="algo" class="lesson" data-sec="algo"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">4</span><h2>Алгоритм және Python коды</h2></div>
-  <p class="learn">Бұл бөлімде есептеу алгоритмін және оның Python бағдарламасына қалай айналатынын үйренесің.</p>
+  <div class="sec-head"><span class="sec-num">4</span><h2>Алгоритм және блок-схема</h2></div>
+  <p class="learn">Бұл бөлімде есептеу алгоритмін және бағдарламаны қалай жазу керегін блок-схема бойынша үйренесің.</p>
   <ol class="tl">
     <li><b>Шартты тексер.</b>Диагональдық басымдылық бар ма? Жоқ болса, теңдеулердің орнын ауыстыр.</li>
     <li><b>Бастапқы жуықтауды таңда.</b>Әдетте x⁽⁰⁾ = 0.</li>
@@ -175,13 +193,13 @@
   </ol>
   <div class="legend-line"><span><i class="sw" style="background:var(--info)"></i>3–5 қадамдар әр итерацияда қайталанады</span></div>
   <div class="phase">
-    <h3 class="phase-h"><span class="phase-tag code">3 · КОДТА КӨРСЕТ</span> Алгоритм Python тілінде.</h3>
+    <h3 class="phase-h"><span class="phase-tag code">3 · СХЕМА</span> Алгоритмнің блок-схемасы.</h3>
     <div class="demo">
-      <div class="stage" style="padding:0;background:none"><div class="code-head"><b>gauss_seidel.py</b><span><span class="muted" id="pyMsg" role="status"></span> <button type="button" class="btn small" id="pyCopy">📋 Көшіру</button></span></div><div id="pyCode"></div></div>
-      <div class="side"><div id="pyEx"></div><div id="pyBar"></div></div>
+      <div class="stage"><div class="fc" id="afChart"></div></div>
+      <div class="side"><div id="afEx"></div><div id="afBar"></div></div>
     </div>
   </div>
-  <div class="remember"><h4>Есте сақта</h4><p>Бағдарламада бір ғана <code>x</code> тізімі бар. Мән табылған бойда ескі мәннің орнына жазылады, сондықтан келесі формула жаңа мәнді өзі алады.</p></div>
+  <div class="remember"><h4>Есте сақта</h4><p>Схемадағы әр блок бағдарламада бір әрекетке сәйкес келеді: көк және жасыл жақтаулар — циклдер, ромб — шарт. Бағдарламаны осы схема бойынша жазасың.</p></div>
 </div></div></section>
 
 <!-- ================= 5. БАҚЫЛАУ ЖҰМЫСЫ ================= -->
@@ -304,37 +322,30 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
   stepper.init();
 })();
 
-/* ===== 4. Python коды: алгоритм қадамдары бойынша ===== */
+/* ===== 4. Блок-схема: алгоритм қадамдары ===== */
 (function(){
-  const PY = [
-    'def gauss_seidel(A, b, eps=1e-4, max_iter=100):',
-    '    n = len(A)',
-    '    x = [0.0] * n                      # бастапқы жуықтау',
-    '    for k in range(1, max_iter + 1):',
-    '        delta = 0',
-    '        for i in range(n):',
-    '            s = sum(A[i][j] * x[j] for j in range(n) if j != i)',
-    '            new = (b[i] - s) / A[i][i]',
-    '            delta = max(delta, abs(new - x[i]))',
-    '            x[i] = new                 # жаңа мән бірден қолданылады',
-    '        if delta < eps:                # тоқтау шарты',
-    '            return x, k',
-    '    return x, max_iter'
-  ].join('\n');
-  const code = new CodeView($('#pyCode'), { code:PY, label:'Гаусс–Зейдель коды' });
-  $('#pyCopy').addEventListener('click', () => copyText(PY, $('#pyMsg')));
-  const ex = new ExplainPanel($('#pyEx'));
+  const chart = $('#afChart'), B = {};
+  const mk = (cls, html, id, hint) => { const d = el('div', { class:'fb ' + cls }); d.innerHTML = '<span>' + html + '</span>' + (hint ? '<small class="hint">' + hint + '</small>' : ''); B[id] = d; return d; };
+  const ar = () => el('div', { class:'fa', text:'↓' });
+  const lab = (t, id) => { const d = el('div', { class:'gl', text:t }); B[id] = d; return d; };
+  const dec = el('div', { class:'fb dec' }); dec.innerHTML = '<svg viewBox="0 0 260 110" role="img" aria-label="Шарт: δ < ε"><polygon points="130,4 256,55 130,106 4,55"/><text x="130" y="64">δ &lt; ε ?</text></svg>'; B.dec = dec;
+  const g1 = el('div', { class:'grp' }), g2 = el('div', { class:'grp g2' });
+  g2.append(lab('Әр белгісіз үшін: i = 1, 2, …, n  (ішкі цикл)', 'gi'), mk('', 's = ∑ aᵢⱼ · xⱼ &nbsp;(j ≠ i)', 'sum', 'қалған белгісіздер бойынша қосынды'), ar(), mk('', 'жаңа = (bᵢ − s) / aᵢᵢ', 'new', 'алгоритмнің басты формуласы'), ar(), mk('', 'δ = max(δ, |жаңа − xᵢ|)', 'dmax', 'max және abs'), ar(), mk('', 'xᵢ = жаңа', 'xi', 'жаңа мән бірден жазылады'));
+  g1.append(lab('Әр итерация: k = 1, 2, …, k_max  (сыртқы цикл)', 'gk'), mk('', 'δ = 0', 'd0'), ar(), g2, ar(), dec, el('div', { class:'back', text:'Жоқ → келесі итерацияға (циклдің басына) ↻' }));
+  chart.append(mk('start', 'Бастау', 'start'), ar(), mk('io', 'Енгізу: A, b, ε, k_max', 'io'), ar(), mk('', 'x = (0, 0, 0) &nbsp;— бастапқы жуықтау', 'x0'), ar(), g1, el('div', { class:'yes', text:'Иә ↓' }), mk('io', 'Шығару: x, k', 'out'), ar(), mk('start', 'Соңы', 'end'));
+  const ex = new ExplainPanel($('#afEx'));
   const S = [
-    { lines:[1], t:{ now:'Функция A матрицасын, b векторын, дәлдік ε-ды және итерацияның ең көп санын алады.', why:'Бағдарлама кез келген жүйені шешуі керек.', how:'eps — тоқтау дәлдігі, max_iter — шексіз циклден сақтайды.' } },
-    { lines:[2, 3], t:{ now:'Бастапқы жуықтау: x = [0, 0, 0].', why:'Алгоритмнің 2-қадамы: итерация нөлден басталады.', how:'Бір ғана x тізімі жеткілікті.' } },
-    { lines:[4, 5], t:{ now:'Итерация циклі. Әр айналымда δ нөлден басталады.', why:'3–5 қадамдар әр итерацияда қайталанады.', how:'k — итерация нөмірі.' } },
-    { lines:[6, 7, 8], t:{ now:'Әр белгісіз ретімен есептеледі.', why:'Формула: xᵢ = (bᵢ − Σ aᵢⱼxⱼ) / aᵢᵢ.', how:'s — қалған белгісіздер бойынша қосынды. x тізімінде бұрын жаңартылғандары жаңа, қалғандары ескі мәнді сақтайды.' } },
-    { lines:[9, 10], t:{ now:'δ жаңарады, содан кейін жаңа мән бірден x[i]-ге жазылады.', why:'Гаусс–Зейдель әдісінің ерекшелігі осы: келесі белгісіз жаңа мәнді бірден алады.', how:'δ — мәннің ескісі мен жаңасының ең үлкен айырмасы.' } },
-    { lines:[11, 12], t:{ now:'Тоқтау шарты: δ < ε болса, нәтиже қайтарылады.', why:'Шешім берілген дәлдікке жетті.', how:'x — жуық шешім, k — қанша итерация қажет болды.' } },
-    { lines:[13], t:{ now:'Дәлдікке жетпесе, соңғы жуықтау қайтарылады.', why:'Жинақталмайтын жүйеде цикл шексіз жүрмейді.', how:'Бұл жағдайда шартты қайта тексеру керек.', after:'Код алгоритмге толық сәйкес келеді.' } }
+    { on:['start', 'io'], t:{ now:'Бастау. Алгоритмге A матрицасы, b векторы, дәлдік ε және итерацияның ең көп саны енгізіледі.', why:'Бағдарлама кез келген жүйені шешуі керек.', how:'Бұл деректерді бағдарламаның басында айнымалыларға жазасың.' } },
+    { on:['x0'], t:{ now:'Бастапқы жуықтау: x = (0, 0, 0).', why:'Итерация нөлден басталады.', how:'Бір ғана x тізімін жасайсың, оны жаңартып отырасың.' } },
+    { on:['gk'], t:{ now:'Сыртқы цикл: әр айналым — бір итерация.', why:'3–5 қадамдар әр итерацияда қайталанады.', how:'for циклі. k — итерация нөмірі, ол k_max-тан аспайды.' } },
+    { on:['d0', 'gi'], t:{ now:'Әр итерацияда δ нөлден басталады. Ішкі цикл белгісіздерді ретімен өтеді.', why:'δ осы итерациядағы ең үлкен өзгерісті жинайды.', how:'Ішкі for циклі: i = 1, 2, …, n.' } },
+    { on:['sum', 'new'], t:{ now:'Әр белгісіз үшін қосынды s және жаңа мән есептеледі.', why:'Формула: xᵢ = (bᵢ − ∑ aᵢⱼxⱼ) / aᵢᵢ.', how:'s үшін қосынды (ішкі цикл немесе sum), содан кейін (bᵢ − s) / aᵢᵢ.' } },
+    { on:['dmax', 'xi'], t:{ now:'δ жаңартылады, содан кейін жаңа мән бірден xᵢ-ге жазылады.', why:'Гаусс–Зейдель әдісінің ерекшелігі осы: келесі белгісіз жаңа мәнді бірден алады.', how:'δ үшін max және abs, содан кейін x[i] = жаңа мән.' } },
+    { on:['dec'], t:{ now:'Шартты тексереміз: δ < ε ма?', why:'Шарт орындалса, шешім берілген дәлдікке жетті.', how:'if шарты. Иә болса, цикл тоқтайды. Жоқ болса, келесі итерация басталады.' } },
+    { on:['out', 'end'], t:{ now:'Нәтижені шығарамыз: жуық шешім x және итерация саны k.', why:'Есептеу аяқталды.', how:'Нәтижені print арқылы шығарасың.', after:'Схема бойынша бағдарламаны жаза аласың.' } }
   ];
-  const apply = s => { code.highlight(S[s].lines); ex.set(S[s].t); };
-  const stepper = new Stepper({ count:S.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(250); }, barHost:$('#pyBar') });
+  const apply = s => { Object.values(B).forEach(b => b.classList.remove('on')); S[s].on.forEach(id => B[id] && B[id].classList.add('on')); ex.set(S[s].t); };
+  const stepper = new Stepper({ count:S.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(300); }, barHost:$('#afBar') });
   Course.register('algo', { stepper, reset(){ stepper.reset(); } });
   stepper.init();
 })();
@@ -369,7 +380,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
 (function(){
   const host = $('#fbHost'); let key = '';
   const LEVELS = [['😟', 'Түсінбедім'], ['😕', 'Аз түсіндім'], ['😐', 'Жартылай'], ['🙂', 'Жақсы'], ['😀', 'Толық']];
-  const LEARNED = ['Әдістің идеясын', 'Есептеу формуласын', 'Жинақталу шартын', 'Алгоритм мен кодты'];
+  const LEARNED = ['Әдістің идеясын', 'Есептеу формуласын', 'Жинақталу шартын', 'Алгоритм мен блок-схеманы'];
   const HARD = ['Формула', 'Жинақталу шарты', 'Қолмен есептеу', 'Бағдарлама', 'Қиын болмады'];
   function render(me){
     host.innerHTML = '';
@@ -394,7 +405,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
 
 Course.init({ back:{ href:'index.html', text:'← Сандық әдістер' }, title:[6, 'Гаусс–Зейдель әдісі'], sections:[
   { id:'aim', n:'★', title:'Мақсаты' }, { id:'idea', n:1, title:'Әдістің мәні' }, { id:'example', n:2, title:'Мысал' }, { id:'conv', n:3, title:'Жинақталу' },
-  { id:'algo', n:4, title:'Алгоритм және код' }, { id:'work', n:5, title:'Бақылау жұмысы' }, { id:'fb', n:6, title:'Қорытынды' }
+  { id:'algo', n:4, title:'Алгоритм және схема' }, { id:'work', n:5, title:'Бақылау жұмысы' }, { id:'fb', n:6, title:'Қорытынды' }
 ] });
 window.Join.mount({ gate:true });
 })();
