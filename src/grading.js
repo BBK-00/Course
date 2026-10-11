@@ -6,7 +6,7 @@ export const TOPICS = {
     title: '6-тақырып', variants: V6, limits: { 1: 12, 2: 12, 3: 6 }, quizKey: [1, 0, 2, 0, 2, 1],
     task: 'solving a 3x3 linear system by the Gauss–Seidel iterative method: two iterations by hand from the zero initial guess, and a full program',
     steps: 'score 0-15: iteration formulas written for each unknown (4); two iterations computed with substitution, using the NEW values immediately within the same iteration — Gauss–Seidel, not Jacobi (7); arithmetic consistent with the reported values (2); a remark on convergence (e.g. diagonal dominance) or on stopping (2). Partial credit allowed; 0 if empty or only final values.',
-    code: 'score 0-18: implements Gauss–Seidel correctly — updated values are used immediately (6); uses this system\'s coefficients (4); has a stopping criterion with tolerance (4); prints a solution consistent with the output (4). Any language. Partial credit allowed; 0 if empty or unrelated.'
+    code: 'score 0-18. The student received a starter template (the system A, b, eps, x = 0 and TODO comments) and had to fill in the logic: the sum over the other unknowns (4), the formula new = (b[i] - s) / A[i][i] (4), the NEW value is used immediately by writing x[i] right away (4), the stopping criterion with tolerance (4), the program prints the solution (2). The code may be in another language. Partial credit allowed; 0 if the logic is empty or unrelated.'
   }
 };
 export const MAX = { 1: 24, 2: 24, 3: 12 };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
@@ -72,7 +72,6 @@ function flags(task, p, sig, tmin, gem) {
   }
   if (task === 2) {
     const len = String(p.code || '').trim().length;
-    if (len >= 100 && tmin !== null && tmin < 5) sign(75, 'код ' + tmin.toFixed(0) + ' минутта жазылды');
   }
   if ((s.away || 0) >= 10) sign(50, 'беттен ' + s.away + ' рет шыққан');
   return { ai, why };
@@ -91,6 +90,7 @@ function prompt(task, topic, variant, p, sig, auto) {
     '3) ai_suspicion 0-100: how much of the work looks produced by an AI assistant or copied rather than written by the student.',
     '   Signs of the student\'s own work: handwriting in a notebook with small imperfections, crossings-out, uneven layout; Kazakh or transliterated variable names and comments, short simple names, personal or slightly untidy style.',
     '   Signs of AI or copying: a screenshot or printed/typed text instead of handwriting, perfectly neat and polished layout, long English descriptive names, docstrings, type hints, polished comments, numpy or libraries not taught in class, markdown, long explanations, unrealistically fast completion.',
+    '   The student was given a starter template; copied template lines are NORMAL, judge only the logic they added themselves.',
     '   Pasting code alone is normal because students write code in an editor. Use the whole range: 0-20 clearly own work, 20-45 mostly own, 45-70 partly AI, 70-100 mostly or fully AI.',
     '4) comment: 1-3 short sentences in Kazakh for the teacher: what is good, what is wrong, and the main AI signs if any.'];
   if (task === 1) return common.concat(['AUTOMATIC CHECK (already scored): final answers typed by the student are correct ' + (auto / 3) + '/3.', 'The student solved the system BY HAND and attached a photo of the notebook page' + (p.photo ? '.' : ' (no photo; only the typed steps below).'), '', '<steps>\n' + String(p.steps || '').slice(0, 6000) + '\n</steps>', '', behaviour, '', 'Return:', '1) score: ' + t.steps + ' Read the handwriting in the photo carefully.', '2) (ignore)'], own).join('\n');
@@ -136,7 +136,7 @@ export async function aiGrade(env, task, topic, variant, p, sig, auto, tmin) {
 export function compute(att, subs, result, bonus) {
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {};
-  let quality = 0, aiPct = 0;
+  let quality = 0, aiSum = 0;
   [1, 2, 3].forEach(n => {
     const s = by[n];
     if (!s) { tasks[n] = { sent: false, pts: null, max: MAX[n] }; return; }
@@ -144,13 +144,14 @@ export function compute(att, subs, result, bonus) {
     const pending = !over && n < 3 && (s.ai_score === null || s.ai_score === undefined);
     const pts = over ? s.teacher_score : (s.auto_score || 0) + (s.ai_score || 0);
     tasks[n] = { sent: true, pts, max: MAX[n], pending, edited: over, ai_pct: over ? 0 : (s.ai_pct === undefined ? null : s.ai_pct), flags: s.flags || '', comment: s.ai_comment || '' };
-    quality += pts; if (!over && s.ai_pct) aiPct = Math.max(aiPct, s.ai_pct);
+    quality += pts; if (!over && s.ai_pct) aiSum += s.ai_pct;
   });
+  const aiPct = Math.round(aiSum / 3);   /* үш тапсырманың орташасы (тест 0 есептеледі) */
   const all = [1, 2, 3].every(n => tasks[n].sent), anyPending = [1, 2, 3].some(n => tasks[n].pending);
-  const k = 1 - 0.8 * Math.min(1, Math.max(0, (aiPct - 30) / 60));
+  const k = 1 - 0.8 * Math.min(1, Math.max(0, (aiPct - 20) / 40));   /* ЖИ орташа (3-ке бөлінген) болғандықтан шек 20–60% */
   const part = Math.round(quality * k);
   const attendance = att ? 40 : 0;
-  const auto = attendance + (all && !anyPending ? Math.max(10, part) : part);
+  const auto = attendance + (all && !anyPending ? Math.max(Math.min(10, quality), part) : part);   /* ЖИ көшірген жұмыс та 10 балдан кем емес, ал нақты аз жинаған студент өз балын алады */
   const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   const final = Math.min(100, base + (bonus || 0));
   return { attendance, tasks, quality, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final, complete: all && !anyPending, edited_total: base !== auto };

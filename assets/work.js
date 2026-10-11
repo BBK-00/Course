@@ -3,7 +3,7 @@
    CourseWork.mount(host, { topic, key, variants:[[A,b],...], task1:{ title, text, sample, sampleNote, answersTitle, answers:[{label}] }, task2:{ title, text }, quiz:[[сұрақ,[нұсқалар]],...] }) */
 (function(){
 'use strict';
-const { el, fmt, Course } = window.L;
+const { el, fmt, Course, copyText } = window.L;
 const mmss = s => Math.floor(Math.max(0, s) / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
 const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', task_time_over:'Бұл тапсырманың уақыты бітті.', task_not_started:'Алдымен тапсырманы бастау керек.', closed:'Сабақ жабылған.', already:'Бұл тапсырма жіберіліп қойған.', auth:'Сабаққа қайта кір.' };
 window.CourseWork = { mount(host, cfg){
@@ -61,7 +61,7 @@ window.CourseWork = { mount(host, cfg){
     const status = el('p', { role:'status' }), sum = el('div', { role:'status' });
     head.append(el('h4', { text:me.student.name + ' · ' + me.student.group }), el('p', { class:'muted', text:'Нұсқа №' + me.variant + ' · қатысым: ' + me.attendance + ' балл. Әр тапсырманың өз уақыты бар: «Бастау» батырмасын басқанда уақыт басталады.' }), status, sum);
     const cards = {};
-    function card(n, title, intro, body){
+    function card(n, title, intro, body, above){
       const c = el('div', { class:'task' });
       const t = me.tasks[n], tm = el('span', { class:'work-timer', style:'margin:0 0 0 auto', role:'timer' });
       c.append(el('div', { style:'display:flex;align-items:center;gap:10px;flex-wrap:wrap' }, [el('h4', { text:title, style:'margin:0' }), tm]));
@@ -85,13 +85,12 @@ window.CourseWork = { mount(host, cfg){
         if (j.error === 'already') window.Join.refresh();
       });
       main.append(el('div', { class:'stepbar' }, send), msg);
-      c.append(pre, main, res); host.append(c);
+      c.append(...(above || []), pre, main, res); host.append(c);
       cards[n] = { c, pre, main, res, send, tm, start };
     }
 
     /* 1 — қолмен есептеу: үлгі, фото, жауаптар */
     const t1 = cfg.task1, b1 = [el('p', { html:'<b>№' + me.variant + ' нұсқа:</b>' }), sysView(A, B), el('p', { text:t1.text })];
-    if (t1.sample) b1.push(el('div', { class:'sample' }, [el('b', { text:'Үлгі' }), el('span', { class:'muted', text:' — ' + t1.sampleNote }), el('pre', { text:t1.sample })]));
     const pv = el('img', { alt:'Дәптер фотосы', style:'max-width:100%;max-height:340px;border-radius:12px;border:1px solid var(--line);display:none;margin-top:8px' });
     const pmsg = el('div', { role:'status' });
     const fi = el('input', { type:'file', accept:'image/*', style:'display:none' });
@@ -103,15 +102,24 @@ window.CourseWork = { mount(host, cfg){
       try { D.photo = await shrink(fi.files[0]); try { localStorage.setItem(D.k + ':photo', D.photo); } catch (e) {} pmsg.innerHTML = ''; show(); }
       catch (e) { pmsg.innerHTML = ''; pmsg.append(el('p', { class:'errbox', text:'Фотоны оқу мүмкін болмады. Басқа сурет таңда.' })); }
     });
-    const fb = el('details', null, [el('summary', { text:'Фото жүктей алмасаң, шешуді мәтінмен жаз' }), field('textarea', () => D.steps, v => { D.steps = v; }, 'steps', { class:'work-area mono', rows:'10', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында жаз...' })]);
+    const fb = el('div', null, [el('p', { html:'<b>Немесе шешуді осында жаз</b> (фото жүктей алмасаң, не қосымша түсініктеме):', style:'margin-top:14px' }), field('textarea', () => D.steps, v => { D.steps = v; }, 'steps', { class:'work-area mono', rows:'10', 'aria-label':'Шешу барысы', placeholder:'Шешу барысын осында жаз...' })]);
     b1.push(el('p', { html:'<b>Дәптерге қолмен жаз</b> және суретке түсіріп жүкте: формулалар, екі итерация, мәндер. Фотоны ЖИ оқып тексереді.' }), el('div', { class:'stepbar' }, pick), fi, pv, pmsg, fb);
     const ans = el('div', { class:'submit-grid' });
     t1.answers.forEach((a, i) => ans.append(el('label', { for:cfg.key + 'a' + i, html:a.label }), field('input', () => D.ans[i], v => { D.ans[i] = v; }, 'a' + i, { type:'text', class:'cf-input', id:cfg.key + 'a' + i })));
     b1.push(el('p', { text:t1.answersTitle || 'Жауабың:' }), ans);
-    card(1, '1-тапсырма · ' + t1.title, 'Жүйені қолмен шығарасың. Үлгіні қарап, дәптерге жазып, суретке түсіресің. Қолмен жазғаның сенімді болады.', b1);
+    const sampleEl = t1.sample ? el('div', { class:'sample' }, [el('b', { text:'Үлгі' }), el('span', { class:'muted', text:' — ' + t1.sampleNote }), el('pre', { text:t1.sample })]) : null;
+    card(1, '1-тапсырма · ' + t1.title, 'Жүйені қолмен шығарасың. Үлгіні қарап, дәптерге жазып, суретке түсіресің немесе осында жазасың. Қолмен жазғаның сенімді болады.', b1, sampleEl ? [sampleEl] : []);
     show();
     /* 2 — бағдарлама */
-    card(2, '2-тапсырма · ' + cfg.task2.title, cfg.task2.text.split('. ')[0] + '.', [el('p', { text:cfg.task2.text }), el('p', { text:'Сенің кодың:' }),
+    const pyList = M => '[' + M.map(r => Array.isArray(r) ? '[' + r.join(', ') + ']' : r).join(', ') + ']';
+    const TPL = ['A = ' + pyList(A), 'b = ' + pyList(B), 'eps = 0.0001', 'n = 3', 'x = [0.0, 0.0, 0.0]          # бастапқы жуықтау', '', 'for k in range(1, 101):', '    delta = 0', '    for i in range(n):',
+      '        # 1) s = қалған белгісіздер бойынша қосынды: A[i][j] * x[j], мұнда j != i', '        s = 0', '        # TODO', '', '        # 2) жаңа мән: (b[i] - s) / A[i][i]', '        new = 0   # TODO', '',
+      '        # 3) delta-ны жаңарт (|new - x[i]| ең үлкені) және жаңа мәнді бірден x[i]-ге жаз', '        # TODO', '', '    # 4) тоқтау шарты: delta < eps болса, циклді тоқтат', '    # TODO', '', 'print(x)'].join('\n');
+    const tplMsg = el('span', { class:'muted', role:'status' });
+    const tplBlock = cfg.task2.template ? el('div', { class:'sample' }, [el('b', { text:'Шаблон' }), el('span', { class:'muted', text:' — көшіріп алып, TODO орындарын толықтыр (Python; басқа тілде жазсаң, осыны үлгі ет)' }), el('pre', { text:TPL }),
+      el('div', { class:'stepbar' }, [(() => { const b2 = el('button', { type:'button', class:'btn small', text:'📋 Көшіру' }); b2.addEventListener('click', () => copyText(TPL, tplMsg)); return b2; })(),
+        (() => { const b3 = el('button', { type:'button', class:'btn small', text:'⤵ Кодқа қою' }); b3.addEventListener('click', () => { const ta = document.querySelector('textarea[aria-label="Бағдарлама коды"]'); if (ta && !ta.value.trim()){ ta.value = TPL; ta.dispatchEvent(new Event('input')); tplMsg.textContent = 'Қойылды ✓'; } else tplMsg.textContent = 'Код өрісі бос емес.'; setTimeout(() => { tplMsg.textContent = ''; }, 2500); }); return b3; })(), tplMsg])]) : '';
+    card(2, '2-тапсырма · ' + cfg.task2.title, cfg.task2.text.split('. ')[0] + '.', [el('p', { text:cfg.task2.text }), tplBlock, el('p', { text:'Сенің кодың:' }),
       field('textarea', () => D.code, v => { D.code = v; }, 'code', { class:'work-area mono', rows:'14', 'aria-label':'Бағдарлама коды' }),
       el('div', { class:'submit-grid' }, [el('label', { for:cfg.key + 'o', text:'Нәтиже' }), field('input', () => D.out, v => { D.out = v; }, 'out', { type:'text', class:'cf-input wide', id:cfg.key + 'o', placeholder:'бағдарлама шығарған нәтиже' })])]);
     /* 3 — тест */

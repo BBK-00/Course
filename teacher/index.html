@@ -158,12 +158,12 @@ function renderLive(){
   root.append(h('div', { class: 'row', style: 'margin:6px 0' }, [h('select', { class: 'field', style: 'max-width:240px', 'aria-label': 'Топ', on: { change: e => { gFilter = e.target.value; renderLive(); } } }, [h('option', { value: '', text: 'Барлық топ' })].concat(LIVE.groups.map(g => h('option', { value: String(g.id), text: g.name, selected: gFilter === String(g.id) ? 'selected' : false })))), ses ? h('span', { class: 'sub', text: ses.topic + '-тақырып · ' + hhmm(ses.created_at) + ' басталған' }) : '']));
   groups.forEach(g => {
     const rows = g.students.filter(s => s.active !== false).map(s => {
-      const cls = !s.present ? 'absent' : s.ai_pct >= 70 ? 'red' : s.ai_pct >= 45 ? 'org' : '';
+      const cls = !s.present ? 'absent' : s.ai_pct >= 50 ? 'red' : s.ai_pct >= 30 ? 'org' : '';
       const tc = n => { const t = s.tasks && s.tasks[n]; return h('td', { text: !t || !t.sent ? '—' : t.pending ? t.pts + '…' : t.pts + '/' + t.max }); };
       return h('tr', { class: cls }, [
         h('td', { class: 'l' }, [h('b', { text: s.name }), s.present ? h('span', { class: 'sub', text: hhmm(s.joined_at) + (s.manual ? ' · қолмен' : '') }) : '']),
         h('td', { text: s.present ? '✓ 40' : 'жоқ' }), h('td', { text: s.present ? '№' + s.variant : '' }), tc(1), tc(2), tc(3),
-        h('td', {}, s.present && s.ai_pct ? h('span', { class: 'pill', style: 'background:' + (s.ai_pct >= 70 ? '#fecaca' : s.ai_pct >= 45 ? '#fed7aa' : '#bbf7d0'), text: s.ai_pct + '%' }) : '—'),
+        h('td', {}, s.present && s.ai_pct ? h('span', { class: 'pill', style: 'background:' + (s.ai_pct >= 50 ? '#fecaca' : s.ai_pct >= 30 ? '#fed7aa' : '#bbf7d0'), text: s.ai_pct + '%' }) : '—'),
         h('td', {}, s.present ? [h('span', { class: 'pill', style: 'background:' + band(s.total), text: String(s.total) }), s.edited ? h('span', { class: 'sub mark', text: '✎' }) : ''] : '—'),
         h('td', {}, s.present ? [h('button', { class: 'btn sm', text: 'Ашу', on: { click: () => openDetail(ses.id, s.id) } }), ' ', s.device ? h('button', { class: 'btn sm', title: 'Басқа құрылғыдан кіруге рұқсат', text: '📱', on: { click: async () => { await api('release', { session_id: ses.id, student_id: s.id }); loadLive(true); } } }) : '']
           : (ses ? h('button', { class: 'btn sm', text: '✓ Келді', on: { click: async () => { await api('attendance', { session_id: ses.id, student_id: s.id, present: true }); loadLive(true); } } }) : ''))
@@ -212,7 +212,7 @@ function paintDetail(j){
   const tot = h('input', { class: 'field big', type: 'number', min: '0', max: '100', placeholder: String(c.auto), value: j.result && has(j.result.teacher_total) ? String(j.result.teacher_total) : '' });
   const tc = h('textarea', { class: 'field', rows: '2', placeholder: 'Пікір (міндетті емес)' }); tc.value = j.result ? j.result.teacher_comment || '' : '';
   right.append(h('div', { class: 'box edit' }, [h('h3', { text: 'Қорытынды балл: ' + c.final + ' / 100' + (c.edited_total ? ' (сіз қойдыңыз)' : '') }),
-    h('dl', { class: 'kv' }, [['Қатысым', c.attendance + ' / 40'], ['Тапсырмалар (сапа)', c.quality + ' / 60'], ['ЖИ үлесі', c.ai_pct + '%'], ['ЖИ коэффициенті', String(c.k)], ['Автоматты балл', String(c.auto)]].flatMap(([a, b]) => [h('dt', { text: a }), h('dd', { text: b })])),
+    h('dl', { class: 'kv' }, [['Қатысым', c.attendance + ' / 40'], ['Тапсырмалар (сапа)', c.quality + ' / 60'], ['ЖИ үлесі (3 тапсырманың орташасы)', c.ai_pct + '%'], ['ЖИ коэффициенті', String(c.k)], ['Автоматты балл', String(c.auto)]].flatMap(([a, b]) => [h('dt', { text: a }), h('dd', { text: b })])),
     h('label', { text: 'Қорытынды балл (0–100). Бос қалса, автоматты балл алынады.' }), tot, h('label', { text: 'Пікір' }), tc,
     h('div', { class: 'row', style: 'margin-top:12px' }, [h('button', { class: 'btn primary', text: 'Сақтау', on: { click: async () => { const v = tot.value.trim(); if (v !== '' && (isNaN(+v) || +v < 0 || +v > 100)) return; await api('total', { session_id: DETAIL.sid, student_id: DETAIL.stu, total: v, comment: tc.value }); reDetail('Сақталды ✓ Журналға түсті.'); } } }),
       h('button', { class: 'btn', text: 'Автоматты баллға қайту', on: { click: async () => { await api('total', { session_id: DETAIL.sid, student_id: DETAIL.stu, total: null, comment: tc.value }); reDetail('Автоматты баллға қайтты ✓'); } } })]), h('div', { class: 'msg', role: 'status' })]));

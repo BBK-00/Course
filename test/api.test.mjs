@@ -52,7 +52,7 @@ r = await call('submit', { body: { task: 2, payload: { code: 'x=[0,0,0]\nfor k i
 ok(r.j.ok && r.j.tasks[2].sent, 'бағдарлама жіберілді: ' + JSON.stringify(r.j.tasks[2]));
 ok(r.j.complete && r.j.total >= 50 && r.j.total <= 100, 'жиынтық: ' + r.j.total);
 live = (await T('live')).j; const sid = live.session.id;
-let w = (await T(`work?session=${sid}&student=${s1.id}`)).j; ok(/тез|минутта/.test(w.calc.tasks[2].flags), 'ЖИ белгісі (тез жазылды): ' + w.calc.tasks[2].flags);
+let w = (await T(`work?session=${sid}&student=${s1.id}`)).j; ok(/минутта/.test(w.calc.tasks[1].flags), 'ЖИ белгісі (тапсырма тез жіберілді): ' + w.calc.tasks[1].flags);
 ok(w.subs.find(s => s.task === 1).payload.photo.length > 50, 'фото сақталды, оқытушы көре алады');
 
 console.log('Оқытушы талдауы және түзету');
