@@ -22,6 +22,12 @@ export async function verify(env, token) {
     return p.exp > Date.now() / 1000 ? p : null;
   } catch (e) { return null; }
 }
+export async function liveCode(env, sessionId, offset = 0) {
+  const w = Math.floor(Date.now() / 60000) + offset;
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await key(env), enc.encode('code|' + sessionId + '|' + w)));
+  const n = ((sig[0] << 24) | (sig[1] << 16) | (sig[2] << 8) | sig[3]) >>> 0;
+  return String(n % 10000).padStart(4, '0');
+}
 export function safeEqual(a, b) {
   a = String(a); b = String(b);
   let d = a.length ^ b.length;

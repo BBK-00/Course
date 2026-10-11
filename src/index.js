@@ -1,5 +1,5 @@
 /* Сабақ жүйесінің API-ы (Cloudflare Worker + D1). Статикалық сайтты ASSETS беріп тұрады. */
-import { sign, verify, safeEqual, bearer } from './auth.js';
+import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
 import { TOPICS, MAX, autoScore, aiGrade, compute, variantOf, sysText } from './grading.js';
 import { SCHEMA } from './schema.js';
 
@@ -48,7 +48,8 @@ async function route(request, env, ctx, url) {
     if (fails.n >= 5) return err('wait', 429);
     const st = await DB.prepare('SELECT * FROM students WHERE id=? AND active=1').bind(sid).first();
     if (!st) return err('no_student', 404);
-    if (String(b.code || '').trim() !== ses.code) { await DB.prepare('INSERT INTO join_fails (student_id, at) VALUES (?, ?)').bind(sid, now()).run(); return err('bad_code'); }
+    const codes = [await liveCode(env, ses.id, 0), await liveCode(env, ses.id, -1)];
+    if (!codes.includes(String(b.code || '').trim())) { await DB.prepare('INSERT INTO join_fails (student_id, at) VALUES (?, ?)').bind(sid, now()).run(); return err('bad_code'); }
     let att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(ses.id, sid).first();
     if (att) {
       if (att.device_id && att.device_id !== dev) return err('taken', 409);
@@ -190,7 +191,8 @@ async function teacher(path, method, b, env, ctx, url) {
     if (!ses) return err('no_session');
     const min = Math.max(1, Math.min(240, Number(b.minutes) || 40));
     const t = now();
-    await DB.prepare('UPDATE sessions SET work_started_at=COALESCE(work_started_at, ?), work_until=? WHERE id=?').bind(t, (b.extend && ses.work_until && ses.work_until > t ? ses.work_until : t) + min * 60, ses.id).run();
+    const until = b.total && ses.work_started_at ? ses.work_started_at + min * 60 : (b.extend && ses.work_until && ses.work_until > t ? ses.work_until : t) + min * 60;
+    await DB.prepare('UPDATE sessions SET work_started_at=COALESCE(work_started_at, ?), work_until=? WHERE id=?').bind(t, until, ses.id).run();
     return json({ ok: true });
   }
   if (path === 'session/stopwork' && method === 'POST') {
@@ -235,7 +237,7 @@ async function teacher(path, method, b, env, ctx, url) {
       s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.code, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups });
+    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 60 - (Math.floor(Date.now() / 1000) % 60), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups });
   }
 
   /* Бір студенттің толық жұмысы */
