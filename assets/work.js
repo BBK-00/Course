@@ -23,7 +23,7 @@ window.CourseWork = { mount(host, cfg){
   }
   const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   const sysView = (A, b) => {
-    const v = ['x', 'y', 'z'], rows = el('div', { class:'rows' });
+    const v = ['x₁', 'x₂', 'x₃'], rows = el('div', { class:'rows' });
     A.forEach((r, i) => rows.append(el('div', { text:r.map((a, j) => (a < 0 ? (j ? ' − ' : '−') : j ? ' + ' : '') + (Math.abs(a) === 1 ? '' : Math.abs(a)) + v[j]).join('').trim() + ' = ' + fmt(b[i]) })));
     return el('div', { class:'sys' }, [el('span', { class:'brace', text:'{' }), rows]);
   };
