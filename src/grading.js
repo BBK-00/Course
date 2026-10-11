@@ -3,7 +3,7 @@ import { V6 } from './variants.js';
 
 export const TOPICS = {
   '6': {
-    title: '6-тақырып', variants: V6, limits: { 1: 20, 2: 20, 3: 10 }, quizKey: [1, 0, 2, 0, 2, 1],
+    title: '6-тақырып', variants: V6, limits: { 1: 12, 2: 12, 3: 6 }, quizKey: [1, 0, 2, 0, 2, 1],
     task: 'solving a 3x3 linear system by the Gauss–Seidel iterative method: two iterations by hand from the zero initial guess, and a full program',
     steps: 'score 0-15: iteration formulas written for each unknown (4); two iterations computed with substitution, using the NEW values immediately within the same iteration — Gauss–Seidel, not Jacobi (7); arithmetic consistent with the reported values (2); a remark on convergence (e.g. diagonal dominance) or on stopping (2). Partial credit allowed; 0 if empty or only final values.',
     code: 'score 0-18: implements Gauss–Seidel correctly — updated values are used immediately (6); uses this system\'s coefficients (4); has a stopping criterion with tolerance (4); prints a solution consistent with the output (4). Any language. Partial credit allowed; 0 if empty or unrelated.'
@@ -133,7 +133,7 @@ export async function aiGrade(env, task, topic, variant, p, sig, auto, tmin) {
 
 /* ---------- Жиынтық балл ----------
    tasks: submissions массиві; att: қатысым бар ма; result: оқытушының қорытынды баллы */
-export function compute(att, subs, result) {
+export function compute(att, subs, result, bonus) {
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {};
   let quality = 0, aiPct = 0;
@@ -151,6 +151,7 @@ export function compute(att, subs, result) {
   const part = Math.round(quality * k);
   const attendance = att ? 40 : 0;
   const auto = attendance + (all && !anyPending ? Math.max(10, part) : part);
-  const final = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
-  return { attendance, tasks, quality, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, final, complete: all && !anyPending, edited_total: final !== auto };
+  const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
+  const final = Math.min(100, base + (bonus || 0));
+  return { attendance, tasks, quality, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final, complete: all && !anyPending, edited_total: base !== auto };
 }

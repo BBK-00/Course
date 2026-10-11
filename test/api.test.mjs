@@ -41,10 +41,10 @@ console.log('Тапсырмалар (әрқайсысының өз таймер�
 r = await call('task/start', { body: { task: 1 } }, tok1b); ok(r.s === 403 && r.j.error === 'not_started', 'оқытушы жұмысты бастамай тапсырма басталмайды');
 r = await T('session/work', { body: { minutes: 50 } }); ok(r.j.ok, 'оқытушы жұмысты бастады (50 мин)');
 r = await call('submit', { body: { task: 3, payload: { quiz: [1, 0, 2, 0, 2, 1] } } }, tok1b); ok(r.s === 403 && r.j.error === 'task_not_started', 'тапсырманы «Бастау» баспай жіберуге болмайды');
-r = await call('task/start', { body: { task: 3 } }, tok1b); ok(r.j.ok && r.j.tasks[3].started_at && r.j.tasks[3].limit === 10, 'тест басталды, шегі 10 мин');
+r = await call('task/start', { body: { task: 3 } }, tok1b); ok(r.j.ok && r.j.tasks[3].started_at && r.j.tasks[3].limit === 6, 'тест басталды, шегі 6 мин');
 r = await call('submit', { body: { task: 3, payload: { quiz: [1, 0, 2, 0, 2, 1] } } }, tok1b); ok(r.j.ok && r.j.tasks[3].pts === 12, 'тест: 12/12');
 r = await call('submit', { body: { task: 3, payload: { quiz: [0, 0, 0, 0, 0, 0] } } }, tok1b); ok(r.s === 409 && r.j.error === 'already', 'қайта тапсыру жоқ');
-r = await call('task/start', { body: { task: 1 } }, tok1b); ok(r.j.tasks[1].limit === 20, 'қолмен есеп басталды, шегі 20 мин');
+r = await call('task/start', { body: { task: 1 } }, tok1b); ok(r.j.tasks[1].limit === 12, 'қолмен есеп басталды, шегі 12 мин');
 const hand = { steps: 'x1 = (-22 - 2x2 - 2x3)/10\n'.repeat(5) + '1-итерация ...', ans: ['-2.910', '1.045', '3.009'], photo: PHOTO, photo_mime: 'image/jpeg' };
 r = await call('submit', { body: { task: 1, payload: hand, signals: { paste: 0, away: 1, f: { steps: { pasted: 0, typed: 300, first: 60000, last: 900000 } } } } }, tok1b); ok(r.j.ok && r.j.tasks[1].sent, 'қолмен есеп (фотомен) жіберілді: ' + JSON.stringify(r.j.tasks[1]));
 r = await call('task/start', { body: { task: 2 } }, tok1b);
@@ -69,6 +69,14 @@ r = await T('reopen', { body: { id: subCode.id } });
 r = await call('submit', { body: { task: 2, payload: { code: 'print(1)', out: '1' } } }, tok1b); ok(r.j.error === 'task_not_started', 'қайта ашылған тапсырманы қайта «Бастау» керек');
 r = await call('task/start', { body: { task: 2 } }, tok1b); r = await call('submit', { body: { task: 2, payload: { code: 'print(1)', out: '1' } } }, tok1b); ok(r.j.ok, 'қайта бастап, қайта жіберуге болады');
 
+console.log('Бекіту және рефлексия');
+r = await call('feedback', { body: { level: 4, learned: ['идея'], hard: 'Код', comment: 'жақсы' } }, tok1b); ok(r.j.ok, 'студент рефлексия жіберді');
+r = await T('feedback'); ok(r.j.rows.length >= 1 && r.j.levels[3] >= 1, 'оқытушы кері байланысты көреді');
+r = await T('consolidate'); ok(r.j.low.length >= 2 && r.j.low[0].total <= r.j.low[1].total, 'бекіту: ең аз балл алғандар өсу ретімен: ' + r.j.low.map(x => x.name + ' ' + x.total).join(', '));
+const before = (await T('work?session=' + sid + '&student=' + s1.id)).j.calc.final;
+r = await T('bonus', { body: { session_id: sid, student_id: s1.id, points: 5, note: 'дұрыс жауап' } });
+const after = (await T('work?session=' + sid + '&student=' + s1.id)).j.calc; ok(after.bonus === 5 && after.final === Math.min(100, before + 5), 'бонус +5 жалпы балға қосылды: ' + before + ' → ' + after.final);
+me = (await call('me', {}, tok1b)).j; ok(me.bonus === 5 && me.feedback === true, 'студент бонусты және рефлексия белгісін көреді');
 console.log('Қатысым қолмен және журнал');
 r = await T('attendance', { body: { session_id: sid, student_id: s3.id, present: true } });
 r = await T('journal'); const row = r.j.groups.find(x => x.id === g.id).students; ok(r.j.topics.includes('6') && row.find(s => s.id === s3.id).scores['6'].attendance === 40, 'журнал: қолмен белгіленген студентке 40 қатысым');

@@ -81,6 +81,16 @@ async function route(request, env, ctx, url) {
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)) });
   }
 
+  if (path === 'feedback' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const level = Math.max(1, Math.min(5, Math.round(Number(b.level) || 0)));
+    if (!b.level) return err('bad_request');
+    const learned = JSON.stringify((Array.isArray(b.learned) ? b.learned : []).slice(0, 8).map(v => String(v).slice(0, 60)));
+    await DB.prepare('INSERT INTO feedback (session_id, student_id, level, learned, hard, comment, at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id) DO UPDATE SET level=excluded.level, learned=excluded.learned, hard=excluded.hard, comment=excluded.comment, at=excluded.at').bind(p.ses, p.st, level, learned, String(b.hard || '').slice(0, 80), String(b.comment || '').slice(0, 600), now()).run();
+    return json({ ok: true });
+  }
+
   if (path === 'submit' && method === 'POST') {
     const p = await verify(env, bearer(request));
     if (!p || p.r !== 's') return err('auth', 401);
@@ -139,12 +149,13 @@ async function gradeRow(env, DB, ses_id, st_id, task, ses, variant, payload, sig
 }
 
 async function loadFor(DB, ses_id, st_id) {
-  const [att, subs, res] = await Promise.all([
+  const [att, subs, res, bn] = await Promise.all([
     DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first(),
     all(DB.prepare('SELECT * FROM submissions WHERE session_id=? AND student_id=? ORDER BY task').bind(ses_id, st_id)),
-    DB.prepare('SELECT * FROM results WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first()
+    DB.prepare('SELECT * FROM results WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first(),
+    DB.prepare('SELECT COALESCE(SUM(points),0) AS n FROM bonus WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first()
   ]);
-  return { att, subs, res };
+  return { att, subs, res, bonus: bn ? bn.n : 0 };
 }
 
 /* Студентке көрінетін күй: ұпайлар, таймер. ЖИ түсініктемесі көрсетілмейді. */
@@ -152,13 +163,14 @@ async function studentState(env, ses_id, st_id) {
   const DB = env.DB;
   const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(ses_id).first();
   const st = await DB.prepare('SELECT s.full_name, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(st_id).first();
-  const { att, subs, res } = await loadFor(DB, ses_id, st_id);
+  const { att, subs, res, bonus } = await loadFor(DB, ses_id, st_id);
   if (!ses || !st || !att) return { ok: false, error: 'auth' };
-  const c = compute(att, subs, res);
+  const c = compute(att, subs, res, bonus);
+  const fbk = await DB.prepare('SELECT 1 AS x FROM feedback WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first();
   const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
   [1, 2, 3].forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: TOPICS[ses.topic].limits[n] }; });
-  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, complete: c.complete };
+  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete };
 }
 
 /* ---------------- Оқытушы маршруттары ---------------- */
@@ -241,18 +253,19 @@ async function teacher(path, method, b, env, ctx, url) {
     const ses = await DB.prepare('SELECT * FROM sessions ORDER BY (status=\'open\') DESC, id DESC LIMIT 1').first();
     const groups = await roster(DB);
     if (!ses) return json({ ok: true, session: null, now: now(), groups });
-    const [atts, subs, ress] = await Promise.all([
+    const [atts, subs, ress, bns] = await Promise.all([
       all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)),
       all(DB.prepare('SELECT * FROM submissions WHERE session_id=?').bind(ses.id)),
-      all(DB.prepare('SELECT * FROM results WHERE session_id=?').bind(ses.id))
+      all(DB.prepare('SELECT * FROM results WHERE session_id=?').bind(ses.id)),
+      all(DB.prepare('SELECT student_id, SUM(points) AS n FROM bonus WHERE session_id=? GROUP BY student_id').bind(ses.id))
     ]);
-    const A = new Map(atts.map(a => [a.student_id, a])), R = new Map(ress.map(r => [r.student_id, r]));
+    const A = new Map(atts.map(a => [a.student_id, a])), R = new Map(ress.map(r => [r.student_id, r])), BN = new Map(bns.map(r => [r.student_id, r.n]));
     const S = {}; subs.forEach(s => { (S[s.student_id] = S[s.student_id] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
       const a = A.get(s.id);
       s.present = !!a; s.joined_at = a ? a.joined_at : null; s.variant = a ? a.variant : null; s.device = a ? !!a.device_id : false; s.manual = a ? !!a.manual : false;
-      const c = compute(a, S[s.id] || [], R.get(s.id));
-      s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
+      const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0);
+      s.bonus = c.bonus; s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
     return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 60 - (Math.floor(Date.now() / 1000) % 60), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups });
@@ -264,7 +277,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(sid).first();
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
-    const { att, subs, res } = await loadFor(DB, sid, stu), c = compute(att, subs, res);
+    const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus);
     const ex = att ? variantOf(ses.topic, att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: att ? sysText(ses.topic, att.variant) : '', note: ex ? ex.noteKk : '', result: res || null, calc: c,
@@ -293,19 +306,54 @@ async function teacher(path, method, b, env, ctx, url) {
     return json({ ok: true });
   }
 
+  /* Бекіту: ең аз балл алған 10 студент, бонус балл */
+  if (path === 'consolidate' && method === 'GET') {
+    const ses = await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    if (!ses) return json({ ok: true, session: null, low: [], log: [] });
+    const [atts, subs, ress, bns, studs, log] = await Promise.all([
+      all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)), all(DB.prepare('SELECT * FROM submissions WHERE session_id=?').bind(ses.id)),
+      all(DB.prepare('SELECT * FROM results WHERE session_id=?').bind(ses.id)), all(DB.prepare('SELECT student_id, SUM(points) AS n FROM bonus WHERE session_id=? GROUP BY student_id').bind(ses.id)),
+      all(DB.prepare('SELECT s.id, s.full_name, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.active=1')),
+      all(DB.prepare('SELECT b.id, b.points, b.note, b.at, s.full_name FROM bonus b JOIN students s ON s.id=b.student_id WHERE b.session_id=? ORDER BY b.id DESC').bind(ses.id))
+    ]);
+    const R = new Map(ress.map(r => [r.student_id, r])), BN = new Map(bns.map(r => [r.student_id, r.n])), S = {}; subs.forEach(s => { (S[s.student_id] = S[s.student_id] || []).push(s); });
+    const SN = new Map(studs.map(s => [s.id, s]));
+    const rows = atts.filter(a => SN.has(a.student_id)).map(a => { const c = compute(a, S[a.student_id] || [], R.get(a.student_id), BN.get(a.student_id) || 0), st = SN.get(a.student_id); return { id: a.student_id, name: st.full_name, group: st.gname, total: c.final, bonus: c.bonus }; });
+    rows.sort((x, y) => x.total - y.total || x.name.localeCompare(y.name, 'kk'));
+    return json({ ok: true, session: { id: ses.id, topic: ses.topic, status: ses.status }, present: rows.length, low: rows.slice(0, 10), log });
+  }
+  if (path === 'bonus' && method === 'POST') {
+    const pts = Math.max(0, Math.min(10, Math.round(Number(b.points) || 0)));
+    if (!pts) return err('bad_request');
+    await DB.prepare('INSERT INTO bonus (session_id, student_id, points, note, at) VALUES (?,?,?,?,?)').bind(Number(b.session_id), Number(b.student_id), pts, String(b.note || '').slice(0, 120), now()).run();
+    return json({ ok: true });
+  }
+  if (path === 'bonus_delete' && method === 'POST') {
+    await DB.prepare('DELETE FROM bonus WHERE id=?').bind(Number(b.id)).run();
+    return json({ ok: true });
+  }
+  if (path === 'feedback' && method === 'GET') {
+    const ses = await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    if (!ses) return json({ ok: true, rows: [], levels: [0, 0, 0, 0, 0], present: 0 });
+    const rows = await all(DB.prepare('SELECT f.level, f.learned, f.hard, f.comment, f.at, s.full_name, g.name AS gname FROM feedback f JOIN students s ON s.id=f.student_id JOIN groups g ON g.id=s.group_id WHERE f.session_id=? ORDER BY f.at DESC').bind(ses.id));
+    const present = (await DB.prepare('SELECT COUNT(*) AS n FROM attendance WHERE session_id=?').bind(ses.id).first()).n;
+    const levels = [0, 0, 0, 0, 0]; rows.forEach(r => { levels[r.level - 1]++; });
+    return json({ ok: true, present, levels, rows: rows.map(r => ({ name: r.full_name, group: r.gname, level: r.level, learned: JSON.parse(r.learned || '[]'), hard: r.hard, comment: r.comment, at: r.at })) });
+  }
+
   /* Журнал: студент × тақырып (қатысым + қорытынды) */
   if (path === 'journal' && method === 'GET') {
     const sess = await all(DB.prepare('SELECT * FROM sessions ORDER BY id'));
     const groups = await roster(DB, true);
-    const [atts, subs, ress] = await Promise.all([all(DB.prepare('SELECT * FROM attendance')), all(DB.prepare('SELECT * FROM submissions')), all(DB.prepare('SELECT * FROM results'))]);
+    const [atts, subs, ress, bns] = await Promise.all([all(DB.prepare('SELECT * FROM attendance')), all(DB.prepare('SELECT * FROM submissions')), all(DB.prepare('SELECT * FROM results')), all(DB.prepare('SELECT session_id, student_id, SUM(points) AS n FROM bonus GROUP BY session_id, student_id'))]);
     const topics = [...new Set(sess.map(s => s.topic))].sort(), latest = {};
     sess.forEach(s => { latest[s.topic] = s; });
     const key = (a, b2) => a + ':' + b2;
-    const A = new Map(atts.map(a => [key(a.session_id, a.student_id), a])), R = new Map(ress.map(r => [key(r.session_id, r.student_id), r]));
+    const A = new Map(atts.map(a => [key(a.session_id, a.student_id), a])), R = new Map(ress.map(r => [key(r.session_id, r.student_id), r])), BN = new Map(bns.map(r => [key(r.session_id, r.student_id), r.n]));
     const S = {}; subs.forEach(s => { (S[key(s.session_id, s.student_id)] = S[key(s.session_id, s.student_id)] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
       s.scores = {};
-      topics.forEach(t => { const se = latest[t], k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k)); s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, sent: [1, 2, 3].filter(n => c.tasks[n].sent).length, edited: c.edited_total }; });
+      topics.forEach(t => { const se = latest[t], k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0); s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, sent: [1, 2, 3].filter(n => c.tasks[n].sent).length, edited: c.edited_total }; });
     }));
     return json({ ok: true, topics, titles: Object.fromEntries(topics.map(t => [t, (TOPICS[t] || {}).title || t])), groups });
   }
