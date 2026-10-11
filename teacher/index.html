@@ -84,7 +84,7 @@ textarea.field{min-height:6em}
 'use strict';
 const $ = s => document.querySelector(s);
 const h = (tag, a, kids) => { const e = document.createElement(tag); for (const k in (a || {})) { if (k === 'text') e.textContent = a[k]; else if (k === 'class') e.className = a[k]; else if (k === 'on') { for (const ev in a[k]) e.addEventListener(ev, a[k][ev]); } else if (a[k] !== false && a[k] !== undefined) e.setAttribute(k, a[k]); } [].concat(kids === undefined ? [] : kids).forEach(c => { if (c !== null && c !== undefined && c !== false) e.append(c); }); return e; };
-let TOK = '', LIVE = null, ROSTER = [], JOUR = null, TAB = 'live', DETAIL = null, busy = false, gFilter = '', jf = '', skew = 0, WMIN = 40, wDirty = false;
+let TOK = '', LIVE = null, ROSTER = [], JOUR = null, TAB = 'live', DETAIL = null, busy = false, gFilter = '', jf = '', skew = 0, WMIN = 50, wDirty = false;
 try { TOK = sessionStorage.getItem('ttok') || ''; } catch (e) {}
 const band = v => v === '' || v === null || v === undefined ? '#e2e8f0' : v >= 90 ? '#b7e1c1' : v >= 75 ? '#dcefc8' : v >= 60 ? '#fff1b8' : '#ffd6cc';
 const has = v => v !== '' && v !== null && v !== undefined;
@@ -133,8 +133,8 @@ function renderLive(){
     if (ses) root.append(h('p', { class: 'sub', text: 'Соңғы сабақ жабылған. Төменде оның нәтижесі.' }));
   } else {
     const ctl = h('div', { class: 'row' }), started = !!ses.work_until;
-    if (!wDirty) WMIN = started && ses.work_started_at ? Math.max(1, Math.round((ses.work_until - ses.work_started_at) / 60)) : 40;
-    const mins = h('input', { class: 'field', type: 'number', value: String(WMIN), min: '1', max: '240', style: 'width:90px', 'aria-label': 'Жұмыс ұзақтығы, минут', on: { input: e => { WMIN = +e.target.value || 40; wDirty = true; } } });
+    if (!wDirty) WMIN = started && ses.work_started_at ? Math.max(1, Math.round((ses.work_until - ses.work_started_at) / 60)) : 50;
+    const mins = h('input', { class: 'field', type: 'number', value: String(WMIN), min: '1', max: '240', style: 'width:90px', 'aria-label': 'Жұмыс ұзақтығы, минут', on: { input: e => { WMIN = +e.target.value || 50; wDirty = true; } } });
     if (!started) ctl.append(h('span', { text: 'Жұмыс ұзақтығы:' }), mins, h('span', { text: 'мин' }), h('button', { class: 'btn primary', text: '▶ Жұмысты бастау', on: { click: async () => { wDirty = false; await api('session/work', { minutes: WMIN }); loadLive(true); } } }));
     else ctl.append(h('div', { class: 'timer', id: 'timer' }), h('span', { text: 'ұзақтығы:' }), mins, h('span', { text: 'мин' }),
       h('button', { class: 'btn sm', text: 'Өзгерту', on: { click: async () => { wDirty = false; await api('session/work', { minutes: WMIN, total: true }); loadLive(true); } } }),
@@ -180,18 +180,23 @@ function paintDetail(j){
   const by = {}; j.subs.forEach(s => { by[s.task] = s; });
   [1, 2, 3].forEach(n => {
     const s = by[n], t = c.tasks[n];
-    const title = n === 1 ? '1-тапсырма · Тест' : n === 2 ? '2-тапсырма · Қолмен есептеу' : '3-тапсырма · Бағдарлама';
+    const title = n === 1 ? '1-тапсырма · Қолмен есептеу' : n === 2 ? '2-тапсырма · Бағдарлама' : '3-тапсырма · Тест';
     if (!s) { left.append(h('div', { class: 'box' }, [h('h3', { text: title }), h('p', { class: 'sub', text: 'Әлі жіберілмеген.' })])); return; }
     const p = s.payload, parts = [h('h3', { text: title + ' — ' + t.pts + ' / ' + t.max + (t.edited ? ' (сіз қойдыңыз)' : '') })];
-    if (n === 1) parts.push(h('pre', { text: 'Таңдаған жауаптар (нөмірі): ' + (p.quiz || []).map(v => v === null ? '—' : v + 1).join(', ') + '\nДұрыс жауап балы: ' + s.auto_score + ' / 12' }));
-    if (n === 2) parts.push(h('pre', { text: 'Жауаптар: ' + (p.ans || []).join(' ; ') + '\nЖауап балы: ' + s.auto_score + ' / 9' }), h('pre', { text: p.steps || '—' }));
-    if (n === 3) parts.push(h('pre', { text: p.code || '—' }), h('pre', { text: 'Нәтиже: ' + (p.out || '—') + '\nНәтиже балы: ' + s.auto_score + ' / 6' }));
-    if (n > 1) { parts.push(h('p', { class: 'sub', text: 'ЖИ: ' + (has(s.ai_score) ? s.ai_score + ' / ' + (n === 2 ? 15 : 18) + ' · ЖИ үлесі ' + s.ai_pct + '%' : 'әлі бағаланған жоқ') })); if (s.flags) parts.push(h('p', { class: 'aibox', text: s.flags })); if (s.ai_comment) parts.push(h('p', { class: 'aibox', text: s.ai_comment })); }
+    if (n === 1) {
+      if (p.photo) parts.push(h('div', { style: 'overflow:auto;max-height:520px;margin-bottom:8px' }, h('img', { src: 'data:' + (p.photo_mime || 'image/jpeg') + ';base64,' + p.photo, alt: 'Дәптер фотосы', title: 'Басып үлкейту', style: 'max-width:100%;border-radius:12px;border:1px solid var(--line);cursor:zoom-in', on: { click: e => { e.target.style.maxWidth = e.target.style.maxWidth === 'none' ? '100%' : 'none'; } } })));
+      else parts.push(h('p', { class: 'sub', text: 'Фото жүктелмеген.' }));
+      parts.push(h('pre', { text: 'Жауаптар: ' + (p.ans || []).join(' ; ') + '\nЖауап балы: ' + s.auto_score + ' / 9' }));
+      if (p.steps) parts.push(h('pre', { text: p.steps }));
+    }
+    if (n === 2) parts.push(h('pre', { text: p.code || '—' }), h('pre', { text: 'Нәтиже: ' + (p.out || '—') + '\nНәтиже балы: ' + s.auto_score + ' / 6' }));
+    if (n === 3) parts.push(h('pre', { text: 'Таңдаған жауаптар (нөмірі): ' + (p.quiz || []).map(v => v === null ? '—' : v + 1).join(', ') + '\nДұрыс жауап балы: ' + s.auto_score + ' / 12' }));
+    if (n < 3) { parts.push(h('p', { class: 'sub', text: 'ЖИ: ' + (has(s.ai_score) ? s.ai_score + ' / ' + (n === 1 ? 15 : 18) + ' · ЖИ үлесі ' + s.ai_pct + '%' : 'әлі бағаланған жоқ') })); if (s.flags) parts.push(h('p', { class: 'aibox', text: s.flags })); if (s.ai_comment) parts.push(h('p', { class: 'aibox', text: s.ai_comment })); }
     const sc = h('input', { class: 'field', type: 'number', min: '0', max: String(t.max), style: 'width:90px', placeholder: String(t.pts), value: has(s.teacher_score) ? String(s.teacher_score) : '' });
     const cm = h('input', { class: 'field', type: 'text', placeholder: 'Пікір (міндетті емес)', value: s.teacher_comment || '', style: 'flex:1;min-width:160px' });
     parts.push(h('div', { class: 'row', style: 'margin-top:8px' }, [h('span', { text: 'Балл:' }), sc, cm, h('button', { class: 'btn sm primary', text: 'Сақтау', on: { click: async () => { await api('task_grade', { id: s.id, task: n, score: sc.value.trim(), comment: cm.value }); reDetail('Сақталды ✓'); } } }),
-      n > 1 ? h('button', { class: 'btn sm', text: 'ЖИ-мен қайта', on: { click: async e => { e.target.disabled = true; e.target.textContent = 'Тексеріп жатыр…'; await api('regrade', { id: s.id }); reDetail('ЖИ қайта бағалады ✓'); } } }) : '',
-      h('button', { class: 'btn sm danger', text: 'Қайта ашу', title: 'Студент бұл тапсырманы қайта жібере алады', on: { click: async () => { if (confirm('Тапсырманы өшіріп, студентке қайта жіберуге рұқсат бересіз бе?')) { await api('reopen', { id: s.id }); reDetail('Қайта ашылды ✓'); } } } })]));
+      n < 3 ? h('button', { class: 'btn sm', text: 'ЖИ-мен қайта', on: { click: async e => { e.target.disabled = true; e.target.textContent = 'Тексеріп жатыр…'; await api('regrade', { id: s.id }); reDetail('ЖИ қайта бағалады ✓'); } } }) : '',
+      h('button', { class: 'btn sm danger', text: 'Қайта ашу', title: 'Студент бұл тапсырманы қайта бастап, қайта жібере алады', on: { click: async () => { if (confirm('Тапсырманы өшіріп, студентке қайта орындауға рұқсат бересіз бе?')) { await api('reopen', { id: s.id }); reDetail('Қайта ашылды ✓'); } } } })]));
     left.append(h('div', { class: 'box' }, parts));
   });
   const tot = h('input', { class: 'field big', type: 'number', min: '0', max: '100', placeholder: String(c.auto), value: j.result && has(j.result.teacher_total) ? String(j.result.teacher_total) : '' });

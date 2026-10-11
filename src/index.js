@@ -69,6 +69,18 @@ async function route(request, env, ctx, url) {
     return json(await studentState(env, p.ses, p.st));
   }
 
+  if (path === 'task/start' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const task = Number(b.task);
+    if (![1, 2, 3].includes(task)) return err('bad_task');
+    const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+    if (!ses || ses.status !== 'open') return err('closed', 403);
+    if (!ses.work_until || now() > ses.work_until + 90) return err(ses.work_until ? 'time_over' : 'not_started', 403);
+    await DB.prepare('INSERT OR IGNORE INTO task_starts (session_id, student_id, task, started_at) VALUES (?,?,?,?)').bind(p.ses, p.st, task, now()).run();
+    return json({ ok: true, ...(await studentState(env, p.ses, p.st)) });
+  }
+
   if (path === 'submit' && method === 'POST') {
     const p = await verify(env, bearer(request));
     if (!p || p.r !== 's') return err('auth', 401);
@@ -78,13 +90,16 @@ async function route(request, env, ctx, url) {
     if (!ses || ses.status !== 'open') return err('closed', 403);
     if (!ses.work_until) return err('not_started', 403);
     if (now() > ses.work_until + 90) return err('time_over', 403);
+    const st0 = await DB.prepare('SELECT started_at FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(p.ses, p.st, task).first();
+    if (!st0) return err('task_not_started', 403);
+    if (now() > st0.started_at + TOPICS[ses.topic].limits[task] * 60 + 45) return err('task_time_over', 403);
     const att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
     if (!att) return err('auth', 401);
     const payload = sanitize(task, b.payload || {});
     const sig = JSON.stringify(b.signals || {}).slice(0, 4000), auto = autoScore(task, ses.topic, att.variant, payload);
     const ins = await DB.prepare('INSERT OR IGNORE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, task, JSON.stringify(payload), sig, auto, now()).run();
     if (!ins.meta.changes) return err('already', 409);
-    if (task > 1) await gradeRow(env, DB, p.ses, p.st, task, ses, att.variant, payload, b.signals || {}, auto);
+    if (task < 3) await gradeRow(env, DB, p.ses, p.st, task, ses, att.variant, payload, b.signals || {}, auto, (now() - st0.started_at) / 60);
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), task });
   }
 
@@ -110,14 +125,16 @@ async function route(request, env, ctx, url) {
 
 function sanitize(task, p) {
   const s = (v, n) => String(v === undefined || v === null ? '' : v).slice(0, n);
-  if (task === 1) return { quiz: (Array.isArray(p.quiz) ? p.quiz : []).slice(0, 12).map(v => (Number.isInteger(v) ? v : null)) };
-  if (task === 2) return { steps: s(p.steps, 8000), ans: (Array.isArray(p.ans) ? p.ans : []).slice(0, 3).map(v => s(v, 30)) };
+  if (task === 3) return { quiz: (Array.isArray(p.quiz) ? p.quiz : []).slice(0, 12).map(v => (Number.isInteger(v) ? v : null)) };
+  if (task === 1) {
+    const photo = /^[A-Za-z0-9+/=]*$/.test(String(p.photo || '').slice(0, 200)) ? s(p.photo, 950000) : '';
+    return { steps: s(p.steps, 8000), ans: (Array.isArray(p.ans) ? p.ans : []).slice(0, 3).map(v => s(v, 30)), photo, photo_mime: /^image\/(jpeg|png|webp)$/.test(p.photo_mime) ? p.photo_mime : 'image/jpeg' };
+  }
   return { code: s(p.code, 8000), out: s(p.out, 400) };
 }
 
-async function gradeRow(env, DB, ses_id, st_id, task, ses, variant, payload, sig, auto) {
-  const elapsed = ses.work_started_at ? (now() - ses.work_started_at) / 60 : null;
-  const g = await aiGrade(env, task, ses.topic, variant, payload, sig, auto, elapsed);
+async function gradeRow(env, DB, ses_id, st_id, task, ses, variant, payload, sig, auto, elapsed) {
+  const g = await aiGrade(env, task, ses.topic, variant, payload, sig, auto, elapsed === undefined ? null : elapsed);
   await DB.prepare('UPDATE submissions SET ai_score=?, ai_pct=?, flags=?, ai_comment=? WHERE session_id=? AND student_id=? AND task=?').bind(g.score, g.ai_pct, g.flags, g.comment, ses_id, st_id, task).run();
 }
 
@@ -138,8 +155,9 @@ async function studentState(env, ses_id, st_id) {
   const { att, subs, res } = await loadFor(DB, ses_id, st_id);
   if (!ses || !st || !att) return { ok: false, error: 'auth' };
   const c = compute(att, subs, res);
+  const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
-  [1, 2, 3].forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending }; });
+  [1, 2, 3].forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: TOPICS[ses.topic].limits[n] }; });
   return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, complete: c.complete };
 }
 
@@ -264,13 +282,14 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   if (path === 'regrade' && method === 'POST') {
     const s = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
-    if (!s || s.task === 1) return err('not_found', 404);
+    if (!s || s.task === 3) return err('not_found', 404);
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(s.session_id).first(), att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(s.session_id, s.student_id).first();
-    await gradeRow(env, DB, s.session_id, s.student_id, s.task, ses, att ? att.variant : 1, JSON.parse(s.payload), s.signals ? JSON.parse(s.signals) : {}, s.auto_score || 0);
+    await gradeRow(env, DB, s.session_id, s.student_id, s.task, ses, att ? att.variant : 1, JSON.parse(s.payload), s.signals ? JSON.parse(s.signals) : {}, s.auto_score || 0, null);
     return json({ ok: true });
   }
   if (path === 'reopen' && method === 'POST') {
-    await DB.prepare('DELETE FROM submissions WHERE id=?').bind(Number(b.id)).run();
+    const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
+    if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
   }
 

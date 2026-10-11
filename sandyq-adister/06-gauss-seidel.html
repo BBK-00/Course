@@ -4,107 +4,66 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>6-тақырып: Гаусс–Зейдель әдісі — Сандық әдістер</title>
-<meta name="description" content="Гаусс–Зейдель әдісі: идеясы, жинақталу шарты, алгоритмі, есеп үлгісі және бақылау жұмысы.">
+<meta name="description" content="Гаусс–Зейдель әдісі: идеясы, мысал, жинақталу шарты, алгоритм, Python коды және бақылау жұмысы.">
 <link rel="stylesheet" href="../assets/lesson.css">
 <script src="../assets/config.js"></script>
 <style>
-.hero-actions{display:flex;justify-content:center;margin-top:8px}
-.hforms{display:grid;gap:8px;margin-top:12px;transition:opacity .4s}
-.hforms.off{opacity:0}
-.ex-sys{margin:6px 0 10px}
-.mx3{grid-template-columns:repeat(3,auto)}
-.rule .chk-list div,.blk .chk-list div{white-space:normal}
-.f.gs3 .rows{text-align:left}
-/* бөлік блоктары */
-.blk{margin-top:28px}
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.topic-box{display:inline-block;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:9px 16px;font-family:"Times New Roman",Times,serif;font-size:1.15rem;line-height:1.4;margin:0 0 18px;max-width:100%}
+.topic-box b{font-weight:700}.topic-box i{font-style:italic}
+.blk{margin-top:26px}
 .blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
 .blk-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
-.vs,.steps2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-.vs>div{background:var(--surface-2);border-radius:14px;padding:14px 16px;border-top:5px solid var(--c)}
-.vs h4{margin:0 0 4px;color:var(--c);font-size:1.1rem}
-.vs-lead{margin:0 0 8px}
-.path{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-family:var(--math);margin:8px 0 12px}
-.path span{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:2px 9px}
-.path span.end{border:2px solid var(--c);color:var(--c);font-weight:700}
-.path i{font-style:normal;color:var(--muted)}
-.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 12px;font-size:.95rem}
-.facts dt{color:var(--muted)}
-.facts dd{margin:0;font-weight:600}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font-size:.85rem;padding:3px 11px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
-.chip.on{background:var(--ok-bg);border-color:var(--ok-ring);color:var(--ok);font-weight:700}
+.steps2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .steps2>div{position:relative;border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px 62px;background:var(--surface)}
 .steps2 .n{position:absolute;left:16px;top:16px;width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;font-weight:800}
-.steps2 h4{margin:4px 0 4px}
-.steps2 p{margin:0 0 8px}
+.steps2 h4{margin:4px 0 4px}.steps2 p{margin:0 0 8px}
 .mini{font-family:var(--math);background:var(--surface-2);border-radius:8px;padding:6px 10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:.9rem;padding:4px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 .legend-line{display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center;font-size:.92rem;margin:4px 0 0}
 .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}
-.tip>b{flex:none}
-.tip.ok{background:var(--ok-bg)}
-.tip.warn{background:var(--warn-bg)}
-.tip.info{background:var(--info-bg)}
-.rule{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;background:var(--surface-2);border-radius:14px;padding:16px}
-.rule .f{margin:0 0 8px}
-.rule .cap{text-align:center;font-size:.85rem;margin:6px 0 0}
-.rule .chk-list{margin:6px 0 0}
+.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.given{border:2px dashed var(--primary);border-radius:14px;padding:14px 16px;margin:6px 0 16px}
+.given-h{font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;font-size:.85rem}
+.ex-sys{margin:6px 0 10px}
+.fx{transition:opacity .4s;margin-bottom:14px}
+.hforms{display:grid;gap:8px}
+.answer{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;background:var(--ok-bg);border:2px solid var(--ok-ring);border-radius:14px;padding:12px 16px;margin:16px 0 0;font-size:1.1rem}
+.answer b{color:var(--ok)}
 .tl{list-style:none;counter-reset:s;margin:0;padding:0}
 .tl li{counter-increment:s;position:relative;padding:10px 14px 10px 58px;margin:0 0 8px;border-radius:12px;background:var(--surface-2)}
 .tl li::before{content:counter(s);position:absolute;left:12px;top:10px;width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:800;font-size:.95rem}
-.tl li.loop{background:var(--info-bg)}
-.tl li.loop::before{background:var(--info)}
+.tl li.loop{background:var(--info-bg)}.tl li.loop::before{background:var(--info)}
 .tl b{display:block}
-.given{border:2px dashed var(--primary);border-radius:14px;padding:14px 16px;margin:6px 0 0}
-.given-h{font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;font-size:.85rem}
-.answer{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;background:var(--ok-bg);border:2px solid var(--ok-ring);border-radius:14px;padding:12px 16px;margin:16px 0 0;font-size:1.1rem}
-.answer b{color:var(--ok)}
-@media (max-width:600px){.f.gs3{padding-left:6px;padding-right:6px}.f.gs3 .sys{font-size:.8rem;gap:4px}.f.gs3 .brace{font-size:2.6rem}.rule{grid-template-columns:1fr;justify-items:center}.rule-r{width:100%}.steps2>div{padding-left:56px}}
+.f.gs3 .rows{text-align:left}
+@media (max-width:600px){.f.gs3{padding-left:6px;padding-right:6px}.f.gs3 .sys{font-size:.8rem;gap:4px}.f.gs3 .brace{font-size:2.6rem}.steps2>div{padding-left:56px}}
 </style>
 </head>
 <body>
 <main id="main">
 
-<!-- ================= ШОЛУ ================= -->
+<!-- ================= ТАҚЫРЫП ================= -->
 <section id="hero" class="hero" data-sec="hero"><div class="wrap">
   <p class="kicker"><a href="index.html">Сандық әдістер</a> · 6-тақырып</p>
+  <div class="topic-box"><b>Тақырып:</b> <i>Сызықтық алгебралық теңдеулер жүйесін шешудің итерациялық әдістері.</i></div>
   <h1>Гаусс–Зейдель әдісі</h1>
-  <p class="lead">Шешімге қадам сайын жақындаймыз.</p>
-  <ol class="hero-steps"><li>Әдістің идеясы</li><li>Жинақталу шарты</li><li>Алгоритм</li><li>Есеп үлгісі</li></ol>
+  <p class="lead">Жүйенің шешімін жуық мәннен бастап, қадам сайын дәлдейміз.</p>
   <div class="hero-actions"><a class="btn primary big" href="#idea">Сабақты бастау →</a></div>
 </div></section>
 
-<!-- ================= 1. ӘДІС ИДЕЯСЫ ================= -->
+<!-- ================= 1. ӘДІСТІҢ МӘНІ ================= -->
 <section id="idea" class="lesson" data-sec="idea"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">1</span><h2>Әдістің идеясы</h2></div>
-  <p class="learn">Бұл бөлімде жүйені шешу әдістерінің екі түрін ажыратып, Гаусс–Зейдель әдісінің идеясын және формуласын үйренесің.</p>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">⚖</span>Жүйені шешудің екі түрі</h3>
-    <div class="vs">
-      <div style="--c:var(--pivot)">
-        <h4>Тура әдістер</h4>
-        <p class="vs-lead">Шешімді алдын ала белгілі амалдар санымен бірден табады.</p>
-        <div class="path"><span>Ax = b</span><i>→</i><span>ақырлы амалдар</span><i>→</i><span class="end">x</span></div>
-        <dl class="facts"><dt>Нәтиже</dt><dd>Дәл шешім</dd><dt>Тиімді</dt><dd>Белгісіз саны аз болғанда</dd></dl>
-        <div class="chips"><span class="chip">Гаусс</span><span class="chip">Крамер</span><span class="chip">LU жіктеу</span></div>
-      </div>
-      <div style="--c:var(--ok)">
-        <h4>Итерациялық әдістер</h4>
-        <p class="vs-lead">Жуық мәннен бастап, шешімді қадам сайын дәлдейді. Әр қадам — <dfn>итерация</dfn>.</p>
-        <div class="path"><span>x⁽⁰⁾</span><i>→</i><span>x⁽¹⁾</span><i>→</i><span>x⁽²⁾</span><i>→ … →</i><span class="end">x</span></div>
-        <dl class="facts"><dt>Нәтиже</dt><dd>Берілген ε дәлдікпен жуық шешім</dd><dt>Тиімді</dt><dd>Белгісіз саны өте көп болғанда</dd></dl>
-        <div class="chips"><span class="chip">Якоби</span><span class="chip on">Гаусс–Зейдель</span></div>
-      </div>
-    </div>
-  </div>
-
+  <div class="sec-head"><span class="sec-num">1</span><h2>Әдістің мәні</h2></div>
+  <p class="learn">Бұл бөлімде Гаусс–Зейдель әдісінің идеясын және есептеу формуласын үйренесің.</p>
+  <p>Сызықтық теңдеулер жүйесі <b>Ax = b</b> түрінде жазылады. <dfn>Итерациялық әдіс</dfn> шешімді бірден емес, жуық мәннен бастап қадам сайын дәлдеп табады. Әр қадам — <dfn>итерация</dfn>.</p>
   <div class="blk"><h3 class="blk-h"><span class="ic">💡</span>Әдіс екі әрекеттен тұрады</h3>
     <div class="steps2">
       <div><span class="n">1</span><h4>Белгісізді өрнектейміз</h4><p>Әр теңдеуден диагональдағы белгісізді өрнектейміз.</p><div class="mini">10x₁ − x₂ + 2x₃ = 6 &nbsp;⇒&nbsp; x₁ = (6 + x₂ − 2x₃) / 10</div></div>
       <div><span class="n">2</span><h4>Ретімен есептейміз</h4><p>Жаңа табылған мәнді келесі белгісізді есептегенде бірден қолданамыз.</p><div class="mini">x₁⁽¹⁾ табылды &nbsp;⇒&nbsp; x₂⁽¹⁾ формуласына бірден қоямыз</div></div>
     </div>
   </div>
-
   <div class="blk"><h3 class="blk-h"><span class="ic">ƒ</span>Есептеу формуласы</h3>
     <div class="f box gs3"><span class="sys"><span class="brace">{</span><span class="rows">
       <span>x<sub>1</sub><sup>(k+1)</sup> = (b<sub>1</sub> − a<sub>12</sub><span class="old">x<sub>2</sub><sup>(k)</sup></span> − a<sub>13</sub><span class="old">x<sub>3</sub><sup>(k)</sup></span>) / a<sub>11</sub></span>
@@ -112,147 +71,31 @@
       <span>x<sub>3</sub><sup>(k+1)</sup> = (b<sub>3</sub> − a<sub>31</sub><span class="new">x<sub>1</sub><sup>(k+1)</sup></span> − a<sub>32</sub><span class="new">x<sub>2</sub><sup>(k+1)</sup></span>) / a<sub>33</sub></span>
     </span></span></div>
     <div class="legend-line"><span><i class="sw" style="background:var(--info)"></i>жаңа мәндер (осы итерация)</span><span><i class="sw" style="background:var(--ok)"></i>ескі мәндер (алдыңғы итерация)</span></div>
-    <div class="tip warn"><b>⚠</b><span>Мұндағы k — итерация нөмірі. Диагональ элементтері a<sub>11</sub>, a<sub>22</sub>, a<sub>33</sub> нөлге тең болмауы керек, себебі оларға бөлеміз.</span></div>
+    <div class="tip warn"><b>⚠</b><span>k — итерация нөмірі. Диагональ элементтері a<sub>11</sub>, a<sub>22</sub>, a<sub>33</sub> нөлге тең болмауы керек, себебі оларға бөлеміз.</span></div>
   </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">⇄</span>Якоби мен Зейдельдің айырмасы</h3>
-    <div class="vs">
-      <div style="--c:var(--muted)"><h4>Якоби әдісі</h4><p class="vs-lead">x₂⁽ᵏ⁺¹⁾ есептегенде x₁-дің <span class="old"><b>ескі</b></span> мәнін (x₁⁽ᵏ⁾) алады.</p><p class="muted" style="margin:0">Жаңа мәндер тек келесі итерацияда қолданылады.</p></div>
-      <div style="--c:var(--info)"><h4>Гаусс–Зейдель әдісі</h4><p class="vs-lead">x₂⁽ᵏ⁺¹⁾ есептегенде x₁-дің <span class="new"><b>жаңа</b></span> мәнін (x₁⁽ᵏ⁺¹⁾) алады.</p><p class="muted" style="margin:0">Сондықтан шешімге әдетте тезірек жақындайды.</p></div>
-    </div>
-  </div>
-  <div class="remember"><h4>Есте сақта</h4><p>Гаусс–Зейдель — итерациялық әдіс. Жуық мәннен бастаймыз, жаңа табылған мәнді бірден қолданамыз және шешімді қадам сайын дәлдейміз.</p></div>
+  <div class="remember"><h4>Есте сақта</h4><p>Гаусс–Зейдель әдісінің басты ерекшелігі: жаңа есептелген мән келесі белгісізді табуда бірден қолданылады.</p></div>
 </div></div></section>
 
-<!-- ================= 2. ЖИНАҚТАЛУ ШАРТЫ ================= -->
-<section id="conv" class="lesson" data-sec="conv"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">2</span><h2>Жинақталу шарттары</h2></div>
-  <p class="learn">Бұл бөлімде әдістің шешімге жақындайтынын алдын ала тексеретін ережелерді үйренесің.</p>
-  <p>Итерациялар шешімге жақындаса, әдіс <dfn>жинақталады</dfn> дейміз. Әдіс әр жүйе үшін жинақтала бермейді, сондықтан есептеуді бастамас бұрын шартты тексереміз.</p>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">ρ</span>Жалпы критерий</h3>
-    <div class="f box">ρ(B) &lt; 1</div>
-    <p style="margin:0">Әдіс кез келген бастапқы жуықтаудан жинақталуы үшін итерациялық матрицаның <dfn>спектрлік радиусы</dfn> (меншікті мәндерінің ең үлкен модулі) 1-ден кіші болуы қажет және жеткілікті. Оны қолмен тексеру қиын, сондықтан төмендегі қарапайым шарттарды қолданамыз.</p>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">✓</span>Қарапайым жеткілікті шарттар</h3>
-    <p style="margin-top:0">Төмендегі шарттардың біреуі орындалса, әдіс жинақталады.</p>
-    <div class="rule">
-      <div class="rule-l"><div id="rMx"></div><p class="muted cap">Мысалдағы матрица</p></div>
-      <div class="rule-r">
-        <h4 style="margin:0 0 6px">1. Жолдар бойынша қатаң диагональдық басымдылық</h4>
-        <div class="f box">|a<sub>ii</sub>| &gt; ∑<sub>j≠i</sub> |a<sub>ij</sub>|</div>
-        <p style="margin:0">Әр жолда диагональ элементінің модулі қалған элементтер модульдерінің қосындысынан үлкен болуы керек.</p>
-        <div class="chk-list" id="rChk"></div>
-      </div>
-    </div>
-    <div class="vs" style="margin-top:14px">
-      <div style="--c:var(--info)"><h4>2. Бағандар бойынша басымдылық</h4><div class="f" style="margin:6px 0">|a<sub>jj</sub>| &gt; ∑<sub>i≠j</sub> |a<sub>ij</sub>|</div><p class="muted" style="margin:0">Дәл сол шарт, тек жол емес, баған бойынша тексеріледі.</p></div>
-      <div style="--c:var(--violet)"><h4>3. Симметриялы оң анықталған матрица</h4><div class="f" style="margin:6px 0">A = A<sup>T</sup>, &nbsp; v<sup>T</sup>Av &gt; 0 &nbsp; (v ≠ 0)</div><p class="muted" style="margin:0">Диагональдық басымдылық болмаса да, әдіс жинақталады.</p></div>
-    </div>
-    <div class="tip warn"><b>⚠</b><span>Бұл шарттар жеткілікті, бірақ міндетті емес. Олар орындалмаса да, әдіс кейде жинақталады, бірақ кепілдік жоқ. Якоби мен Зейдель әдістері әртүрлі жүруі мүмкін: бір жүйеде біреуі жинақталып, екіншісі жинақталмайтын жағдай кездеседі.</span></div>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">↻</span>Шарт орындалмаса не істейміз</h3>
-    <div class="steps2">
-      <div><span class="n">1</span><h4>Теңдеулердің орнын ауыстырамыз</h4><p>Әр жолдағы ең үлкен коэффициент диагональға түсуі керек.</p></div>
-      <div><span class="n">2</span><h4>Нормаль жүйеге көшеміз</h4><p>Жүйенің екі жағын да A<sup>T</sup>-ға көбейтеміз.</p><div class="mini">Ax = b &nbsp;⇒&nbsp; A<sup>T</sup>Ax = A<sup>T</sup>b</div></div>
-    </div>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">C</span>Нормаль жүйе</h3>
-    <div class="f box">Cx = d, &nbsp; C = A<sup>T</sup>A, &nbsp; d = A<sup>T</sup>b</div>
-    <p style="margin-top:0">Нормаль жүйенің үш тамаша қасиеті бар:</p>
-    <ol class="tl">
-      <li><b>C матрицасы симметриялы.</b>C = C<sup>T</sup></li>
-      <li><b>Бас диагональдағы элементтер оң.</b>c<sub>ii</sub> &gt; 0</li>
-      <li><b>C матрицасы оң анықталған.</b>Сондықтан Гаусс–Зейдель әдісі жинақталады.</li>
-    </ol>
-    <div class="tip ok"><b>✓</b><span>A матрицасының анықтауышы нөлге тең болмаса, нормаль жүйе үшін әдіс әр кез жинақталады.</span></div>
-    <div class="tip warn"><b>⚠</b><span>Бірақ A<sup>T</sup>A есептеуге қосымша амал керек, ал жинақталу әдетте баяу болады. Сондықтан алдымен теңдеулердің орнын ауыстырып көреміз.</span></div>
-  </div>
-
-  <div class="phase">
-    <h3 class="phase-h"><span class="phase-tag do">2 · ӨЗІҢ ОРЫНДА</span> Шартты тексер.</h3>
-    <p>Дайын мысалды таңда немесе өз сандарыңды жаз. Сайт әр жолдағы басымдылықты тексереді де, жүйені шешіп көреді. «Шарт орындалмайды» мысалында нормаль жүйеге көшіп көр.</p>
-    <div class="stepbar" id="cPresets"></div>
-    <div class="mtx-grid" id="cGrid"></div>
-    <div class="stepbar"><button type="button" class="btn primary" id="cRun">Тексер</button><button type="button" class="btn" id="cSwap">Жолдарды ретке келтір</button><button type="button" class="btn" id="cNorm">Нормаль жүйеге көшір</button></div>
-    <div id="cOut" role="status"></div>
-  </div>
-  <div class="remember"><h4>Есте сақта</h4><p>Диагональдық басымдылық немесе симметриялы оң анықталғандық бар болса, әдіс жинақталады. Жоқ болса, теңдеулердің орнын ауыстырамыз немесе нормаль жүйеге көшеміз.</p></div>
-</div></div></section>
-
-<!-- ================= 3. АЛГОРИТМ ================= -->
-<section id="algo" class="lesson" data-sec="algo"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">3</span><h2>Алгоритм</h2></div>
-  <p class="learn">Бұл бөлімде есептеу ретін және итерацияны қашан тоқтату керегін үйренесің.</p>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">☰</span>Есептеу қадамдары</h3>
-    <ol class="tl">
-      <li><b>Шартты тексер.</b>Диагональдық басымдылық бар ма? Жоқ болса, теңдеулердің орнын ауыстыр немесе нормаль жүйеге көш.</li>
-      <li><b>Формулаларды жаз.</b>Әр теңдеуден диагональдағы белгісізді өрнекте.</li>
-      <li><b>Бастапқы жуықтауды таңда.</b>Әдетте x⁽⁰⁾ = 0.</li>
-      <li class="loop"><b>Белгісіздерді ретімен есепте.</b>Жаңа мәнді бірден қолдан.</li>
-      <li class="loop"><b>Айырманы тап.</b>Екі көрші итерацияның ең үлкен айырмасы: δ.</li>
-      <li class="loop"><b>Тоқтау шартын тексер.</b>δ &lt; ε болса, тоқта. Әйтпесе 4-қадамға орал.</li>
-    </ol>
-    <div class="legend-line"><span><i class="sw" style="background:var(--info)"></i>4–6 қадамдар әр итерацияда қайталанады</span></div>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">ε</span>Тоқтау шарты</h3>
-    <div class="f box">δ = max |x<sub>i</sub><sup>(k+1)</sup> − x<sub>i</sub><sup>(k)</sup>| &lt; ε</div>
-    <div class="tip info"><b>ε</b><span>— берілген дәлдік, мысалы 0,0001. Ол неғұрлым кіші болса, итерация саны соғұрлым көп болады.</span></div>
-    <div class="tip warn"><b>⚠</b><span>Мәндер шексіз өсіп кетсе немесе итерация саны шектен асса (мысалы, 100), есептеуді тоқтатып, жинақталу шартын қайта тексер.</span></div>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">≈</span>Қателікті бағалау</h3>
-    <p style="margin-top:0">Диагональдық басымдылық бар болса, нақты қателікті δ арқылы бағалауға болады:</p>
-    <div class="f box">‖x* − x<sup>(k)</sup>‖ ≤ <span class="frac"><span>μ</span><span>1 − μ</span></span> · δ<sub>k</sub></div>
-    <div class="f">μ = max<sub>i</sub> <span class="frac"><span>β<sub>i</sub></span><span>1 − α<sub>i</sub></span></span>, &nbsp; α<sub>i</sub> = ∑<sub>j&lt;i</sub> |a<sub>ij</sub>/a<sub>ii</sub>|, &nbsp; β<sub>i</sub> = ∑<sub>j&gt;i</sub> |a<sub>ij</sub>/a<sub>ii</sub>|</div>
-    <div class="tip info"><b>μ</b><span>μ &lt; 1 болса, әдіс жинақталады. μ неғұрлым кіші болса, жинақталу соғұрлым жылдам. Мысалы μ = 0,3 болса, қателік δ-дан 0,43 есе кіші.</span></div>
-  </div>
-
-  <div class="blk"><h3 class="blk-h"><span class="ic">★</span>Тәжірибелік ескертулер</h3>
-    <div class="steps2">
-      <div><span class="n">1</span><h4>Жадыны үнемдейді</h4><p>Бір ғана x векторы жеткілікті: жаңа мән ескі мәннің орнына жазылады.</p></div>
-      <div><span class="n">2</span><h4>Реттің маңызы бар</h4><p>Теңдеулердің реті өзгерсе, итерациялар да, жинақталу жылдамдығы да өзгереді.</p></div>
-      <div><span class="n">3</span><h4>Үлкен жүйелерге қолайлы</h4><p>Нөлі көп (сирек) үлкен жүйелерде әр итерация аз амал қажет етеді.</p></div>
-    </div>
-  </div>
-
-  <div class="phase">
-    <h3 class="phase-h"><span class="phase-tag code">3 · КОДТА КӨРСЕТ</span> Алгоритм Python тілінде.</h3>
-    <p>Бағдарламада бір ғана <code>x</code> тізімі бар. Мән табылған бойда ескі мәннің орнына жазылады, сондықтан келесі формула жаңа мәнді өзі алады. Гаусс–Зейдель әдісінің бүкіл ерекшелігі осында.</p>
-    <div class="code-head"><b>gauss_seidel.py</b><span><span class="muted" id="pyMsg" role="status"></span> <button type="button" class="btn small" id="pyCopy">📋 Көшіру</button></span></div>
-    <div id="pyCode"></div>
-    <div class="stage-title" style="margin-top:10px">Экранға шыққаны</div>
-    <div class="pyout" id="pyOut"></div>
-  </div>
-  <div class="remember"><h4>Есте сақта</h4><p>Итерация екі көрші жуықтаудың ең үлкен айырмасы δ берілген ε-нан кіші болғанда тоқтайды.</p></div>
-</div></div></section>
-
-<!-- ================= 4. ЕСЕП ҮЛГІСІ ================= -->
+<!-- ================= 2. МЫСАЛ ================= -->
 <section id="example" class="lesson" data-sec="example"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">4</span><h2>Есеп үлгісі</h2></div>
-  <p class="learn">Бұл бөлімде нақты жүйені Гаусс–Зейдель әдісімен басынан аяғына дейін шешуді үйренесің.</p>
+  <div class="sec-head"><span class="sec-num">2</span><h2>Мысал: берілгенінен жауабына дейін</h2></div>
+  <p class="learn">Бұл бөлімде нақты жүйені Гаусс–Зейдель әдісімен басынан аяғына дейін қалай шығаруды үйренесің.</p>
   <div class="given">
     <div class="given-h">Берілгені</div>
     <div class="ex-sys" id="eSys"></div>
     <div class="chips"><span class="chip">ε = 0,0001</span><span class="chip">x₁⁽⁰⁾ = x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0</span></div>
   </div>
-  <div class="blk"><h3 class="blk-h"><span class="ic">1</span>Шартты тексереміз</h3><div class="chk-list" id="eDom"></div><div class="tip ok"><b>✓</b><span>Диагональдық басымдылық бар, демек әдіс жинақталады.</span></div></div>
-  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Формулаларды жазамыз</h3><div id="eForms" class="hforms"></div></div>
-  <div class="blk"><h3 class="blk-h"><span class="ic">3</span>Итерацияларды орындаймыз</h3>
-    <div class="phase" style="margin-top:0">
-      <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> «Алға →» батырмасымен қадам сайын жүр.</h3>
-      <div class="demo">
-        <div class="stage"><div class="stage-title">Итерация нәтижелері</div><div class="it-wrap"><table class="it" id="eTable"></table></div></div>
-        <div class="side"><div id="eEx"></div><div id="eBar"></div></div>
+  <div class="phase" style="margin-top:0">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> «Алға →» батырмасымен қадам сайын жүр.</h3>
+    <div class="demo">
+      <div class="stage">
+        <div class="fx" id="fChk"><div class="stage-title">1. Шарт</div><div class="chk-list" id="eDom"></div></div>
+        <div class="fx" id="fForm"><div class="stage-title">2. Формулалар</div><div id="eForms" class="hforms"></div></div>
+        <div class="fx" id="fTab"><div class="stage-title">3. Итерациялар</div><div class="it-wrap"><table class="it" id="eTable"></table></div></div>
       </div>
+      <div class="side"><div id="eEx"></div><div id="eBar"></div></div>
     </div>
     <div class="answer" id="eAns"></div>
-    <div class="tip info"><b>μ</b><span id="eMu"></span></div>
   </div>
   <div class="phase">
     <h3 class="phase-h"><span class="phase-tag do">2 · ӨЗІҢ ОРЫНДА</span> Бірінші итерацияны өзің есепте.</h3>
@@ -260,13 +103,58 @@
     <p>Бастапқы жуықтау нөл. <span class="fi">x₁<sup>(1)</sup>, x₂<sup>(1)</sup>, x₃<sup>(1)</sup></span> мәндерін тап (үтірден кейін 3 таңба жеткілікті).</p>
     <div class="fields" id="pFields"></div>
   </div>
-  <div class="remember"><h4>Есте сақта</h4><p>Әр итерацияда белгісіздерді ретімен есептейміз және жаңа мәнді бірден қолданамыз. δ &lt; ε болғанда тоқтаймыз.</p></div>
+  <div class="remember"><h4>Есте сақта</h4><p>Шартты тексереміз, формулаларды жазамыз, бастапқы жуықтаудан бастап белгісіздерді ретімен есептейміз. δ &lt; ε болғанда тоқтаймыз.</p></div>
+</div></div></section>
+
+<!-- ================= 3. ЖИНАҚТАЛУ ================= -->
+<section id="conv" class="lesson" data-sec="conv"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Жинақталу шарты</h2></div>
+  <p class="learn">Бұл бөлімде әдістің шешімге жақындайтынын алдын ала тексеруді үйренесің.</p>
+  <p>Итерациялар шешімге жақындаса, әдіс <dfn>жинақталады</dfn> дейміз. Әдіс әр жүйеде жинақтала бермейді, сондықтан есептеуді бастамас бұрын шартты тексереміз.</p>
+  <div class="blk"><h3 class="blk-h"><span class="ic">✓</span>Диагональдық басымдылық</h3>
+    <div class="f box">|a<sub>ii</sub>| &gt; ∑<sub>j≠i</sub> |a<sub>ij</sub>|</div>
+    <p style="margin:0">Әр жолда диагональ элементінің модулі қалған элементтер модульдерінің қосындысынан үлкен болуы керек.</p>
+    <div class="tip ok"><b>✓</b><span>Шарт орындалса, әдіс кез келген бастапқы жуықтаудан жинақталады.</span></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">↻</span>Шарт орындалмаса не істейміз</h3>
+    <div class="steps2">
+      <div><span class="n">1</span><h4>Теңдеулердің орнын ауыстырамыз</h4><p>Әр жолдағы ең үлкен коэффициент диагональға түсуі керек.</p></div>
+      <div><span class="n">2</span><h4>Нормаль жүйеге көшеміз</h4><div class="mini">Ax = b &nbsp;⇒&nbsp; A<sup>T</sup>Ax = A<sup>T</sup>b</div><p style="margin-top:8px">Нормаль жүйенің матрицасы C = A<sup>T</sup>A симметриялы, диагональ элементтері оң, оң анықталған. Сондықтан әдіс жинақталады, бірақ баяу.</p></div>
+    </div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">ε</span>Қашан тоқтаймыз</h3>
+    <div class="f box">δ = max |x<sub>i</sub><sup>(k+1)</sup> − x<sub>i</sub><sup>(k)</sup>| &lt; ε</div>
+    <div class="tip info"><b>ε</b><span>— берілген дәлдік, мысалы 0,0001. Мәндер шексіз өсіп кетсе немесе итерация саны шектен асса (мысалы, 100), есептеуді тоқтатып, шартты қайта тексер.</span></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Диагональдық басымдылық бар болса, әдіс жинақталады. Жоқ болса, теңдеулердің орнын ауыстырамыз немесе нормаль жүйеге көшеміз.</p></div>
+</div></div></section>
+
+<!-- ================= 4. АЛГОРИТМ ЖӘНЕ КОД ================= -->
+<section id="algo" class="lesson" data-sec="algo"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">4</span><h2>Алгоритм және Python коды</h2></div>
+  <p class="learn">Бұл бөлімде есептеу алгоритмін және оның Python бағдарламасына қалай айналатынын үйренесің.</p>
+  <ol class="tl">
+    <li><b>Шартты тексер.</b>Диагональдық басымдылық бар ма? Жоқ болса, теңдеулердің орнын ауыстыр.</li>
+    <li><b>Бастапқы жуықтауды таңда.</b>Әдетте x⁽⁰⁾ = 0.</li>
+    <li class="loop"><b>Белгісіздерді ретімен есепте.</b>Жаңа мәнді бірден қолдан.</li>
+    <li class="loop"><b>Айырманы тап.</b>Екі көрші итерацияның ең үлкен айырмасы: δ.</li>
+    <li class="loop"><b>Тоқтау шартын тексер.</b>δ &lt; ε болса, тоқта. Әйтпесе 3-қадамға орал.</li>
+  </ol>
+  <div class="legend-line"><span><i class="sw" style="background:var(--info)"></i>3–5 қадамдар әр итерацияда қайталанады</span></div>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag code">3 · КОДТА КӨРСЕТ</span> Алгоритм Python тілінде.</h3>
+    <div class="demo">
+      <div class="stage" style="padding:0;background:none"><div class="code-head"><b>gauss_seidel.py</b><span><span class="muted" id="pyMsg" role="status"></span> <button type="button" class="btn small" id="pyCopy">📋 Көшіру</button></span></div><div id="pyCode"></div></div>
+      <div class="side"><div id="pyEx"></div><div id="pyBar"></div></div>
+    </div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Бағдарламада бір ғана <code>x</code> тізімі бар. Мән табылған бойда ескі мәннің орнына жазылады, сондықтан келесі формула жаңа мәнді өзі алады.</p></div>
 </div></div></section>
 
 <!-- ================= 5. БАҚЫЛАУ ЖҰМЫСЫ ================= -->
 <section id="work" class="lesson" data-sec="work"><div class="wrap"><div class="card">
   <div class="sec-head"><span class="sec-num">5</span><h2>Бақылау жұмысы</h2></div>
-  <p class="learn">Бұл бөлімде үйренгеніңді өз бетіңше қолданып, үш тапсырманы орындайсың. Әр тапсырманың өз «Жіберу» батырмасы бар.</p>
+  <p class="learn">Бұл бөлімде үйренгеніңді өз бетіңше қолданып, үш тапсырманы орындайсың. Әр тапсырманың өз «Бастау» батырмасы, өз уақыты және өз «Жіберу» батырмасы бар.</p>
   <div id="wHost"></div>
 </div></div></section>
 </main>
@@ -278,7 +166,7 @@
 <script>
 (function(){
 'use strict';
-const { $, el, fmt, fmtP, Stepper, ExplainPanel, Check, CodeView, copyText, Course, restartClass } = L;
+const { $, el, fmt, fmtP, Stepper, ExplainPanel, Check, CodeView, copyText, Course } = L;
 const VARS = ['x₁', 'x₂', 'x₃'];
 const supK = k => String(k).replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
 const EX_A = [[10, -1, 2], [-1, 11, -1], [2, -1, 10]], EX_b = [6, 22, -10], EPS = 1e-4, DG = 4;
@@ -297,7 +185,6 @@ function seidel(A, b, o){
     }
     const delta = Math.max(...x.map((v, i) => Math.abs(v - old[i])));
     hist.push({ x:x.slice(), delta });
-    if (!Number.isFinite(delta) || delta > 1e12) return { ok:false, diverged:true, k, hist, steps };
     if (delta < eps) return { ok:true, k, hist, steps };
   }
   return { ok:false, k:max, hist, steps };
@@ -317,79 +204,55 @@ const sysEl = (A, b) => {
   A.forEach((r, i) => rows.append(el('div', { text:r.map((a, j) => (a < 0 ? (j ? ' − ' : '−') : j ? ' + ' : '') + (Math.abs(a) === 1 ? '' : Math.abs(a)) + VARS[j]).join('').trim() + ' = ' + fmt(b[i]) })));
   return el('div', { class:'sys' }, [el('span', { class:'brace', text:'{' }), rows]);
 };
-function iterTable(tbl, hist, withDelta){
-  tbl.innerHTML = '';
-  tbl.append(el('thead', null, el('tr', null, ['k', 'x', 'y', 'z'].concat(withDelta ? ['δ'] : []).map(h => el('th', { text:h })))));
+const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
+
+/* ===== 2. Мысал: берілгенінен жауабына дейін ===== */
+(function(){
+  const A = EX_A, b = EX_b;
+  $('#eSys').append(sysEl(A, b));
+  const rowSum = i => A[i].reduce((t, a, j) => t + (j === i ? 0 : Math.abs(a)), 0);
+  const domLines = A.map((r, i) => (i + 1) + '-жол: |' + fmt(r[i]) + '| > ' + r.filter((_, j) => j !== i).map(a => '|' + fmt(a) + '|').join(' + ') + ' = ' + fmt(rowSum(i)) + '  ✓');
+  const dom = $('#eDom'); domLines.forEach(t => dom.append(el('div', { class:'y', text:t })));
+  A.forEach((r, i) => $('#eForms').append(el('div', { html:rowFormula(A, b, i) })));
+  const tbl = $('#eTable'); tbl.innerHTML = '';
+  tbl.append(el('thead', null, el('tr', null, ['k', 'x₁', 'x₂', 'x₃', 'δ'].map(h => el('th', { text:h })))));
   const tb = el('tbody'); tbl.append(tb);
-  return hist.map((h, k) => { const cells = [0, 1, 2].map(() => el('td')), d = withDelta ? el('td') : null; const tr = el('tr', { class:'hide' }, [el('td', { text:String(k) })].concat(cells, d ? [d] : [])); tb.append(tr); return { tr, cells, d }; });
-}
-function showRows(rows, H, st){
-  rows.forEach((r, k) => {
-    r.tr.classList.toggle('hide', k > st.k); r.tr.classList.toggle('cur', k === st.k && k > 0);
-    r.cells.forEach((c, i) => { const show = k < st.k || (k === st.k && i <= st.up); c.textContent = show ? fmt(H[k].x[i], DG) : ''; c.classList.toggle('fresh', st.k === 1 && k === 1 && i === st.up); });
-    if (r.d) r.d.textContent = k && (k < st.k || st.up === 2) && k <= st.k ? fmt(H[k].delta, 5) : k ? '' : '—';
-  });
-}
-const EX = seidel(EX_A, EX_b);
-const SOL = EX.hist.slice(-1)[0].x;
-
-/* ===== 2. Мысал матрицасы: басымдылық ===== */
-(function(){
-  const mx = el('div', { class:'mx mx3' });
-  EX_A.forEach((r, i) => r.forEach((a, j) => mx.append(el('span', { class:'cell' + (i === j ? ' is-d' : ''), text:fmt(a) }))));
-  $('#rMx').append(mx);
-  EX_A.forEach((r, i) => { const s = r.reduce((t, a, j) => t + (j === i ? 0 : Math.abs(a)), 0); $('#rChk').append(el('div', { class:'y', text:(i + 1) + '-жол: |' + fmt(r[i]) + '| > ' + r.filter((_, j) => j !== i).map(a => '|' + fmt(a) + '|').join(' + ') + ' = ' + fmt(s) + '  ✓' })); });
-})();
-
-/* ===== 2. Жинақталу шартын тексеру ===== */
-(function(){
-  const PRE = [
-    ['Мысал', EX_A, EX_b],
-    ['Жолдары ауысқан', [[2, -1, 10], [10, -1, 2], [-1, 11, -1]], [-10, 6, 22]],
-    ['Шарт орындалмайды', [[1, 2, -2], [1, 1, 1], [2, 2, 1]], [1, 3, 5]]
+  const rows = H.map((h, k) => { const cells = [0, 1, 2].map(() => el('td')), d = el('td'); const tr = el('tr', { class:'hide' }, [el('td', { text:String(k) })].concat(cells, [d])); tb.append(tr); return { tr, cells, d }; });
+  const ex = new ExplainPanel($('#eEx'));
+  const S = [
+    { k:-1, up:-1, chk:0, frm:0, t:{ now:'Берілген жүйені ε = 0,0001 дәлдікпен шешеміз.', why:'Итерациялық әдіс жуық мәннен басталып, қадам сайын шешімге жақындайды.', how:'«Алға →» батырмасымен әр қадамды көр.' } },
+    { k:-1, up:-1, chk:1, frm:0, t:{ now:'Алдымен шартты тексереміз: әр жолда диагональ элементі қалғандарының қосындысынан үлкен бе?', why:'Шарт орындалса, әдіс міндетті түрде шешімге жақындайды.', how:'Әр жолда |aᵢᵢ| мен қалған модульдердің қосындысын салыстырамыз.', calc:domLines, after:'Шарт орындалды: әдіс жинақталады.' } },
+    { k:-1, up:-1, chk:1, frm:1, t:{ now:'Әр теңдеуден диагональдағы белгісізді өрнектейміз.', why:'Әр өрнекте сол жолдың диагональ элементіне бөлеміз, сондықтан ол нөл болмауы керек.', how:'x₁ — бірінші теңдеуден, x₂ — екіншіден, x₃ — үшіншіден. Көк — жаңа мән, жасыл — ескі мән.' } },
+    { k:0, up:2, chk:1, frm:1, t:{ now:'Бастапқы жуықтау: x₁⁽⁰⁾ = x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0.', why:'Итерацияны кез келген жуықтаудан бастауға болады, ең қарапайымы — нөл.', how:'Енді бірінші итерацияны бастаймыз.' } }
   ];
-  const grid = $('#cGrid'), ins = [], out = $('#cOut');
-  for (let i = 0; i < 3; i++){ const row = []; for (let j = 0; j < 4; j++){ if (j === 3) grid.append(el('span', { class:'muted', text:'|' })); const inp = el('input', { class:'mtx-in', type:'text', 'aria-label':j < 3 ? 'a' + (i + 1) + (j + 1) : 'b' + (i + 1) }); grid.append(inp); row.push(inp); } ins.push(row); }
-  const load = (A, b) => { for (let i = 0; i < 3; i++){ for (let j = 0; j < 3; j++) ins[i][j].value = fmt(A[i][j]); ins[i][3].value = fmt(b[i]); } out.innerHTML = ''; };
-  const read = () => {
-    const A = [], b = [];
-    for (let i = 0; i < 3; i++){ A.push([]); for (let j = 0; j < 4; j++){ const p = L.parseNum(ins[i][j].value); if (!p.ok){ out.innerHTML = ''; out.append(el('p', { class:'notice', text:i + 1 + '-жол: ' + p.message })); return null; } if (j < 3) A[i].push(p.value); else b.push(p.value); } }
-    return { A, b };
-  };
-  const dom = A => A.every((r, i) => Math.abs(r[i]) > r.reduce((t, a, j) => t + (j === i ? 0 : Math.abs(a)), 0));
-  PRE.forEach(([t, A, b]) => $('#cPresets').append(el('button', { type:'button', class:'btn small ghost', text:t, onclick:() => load(A, b) })));
-  load(EX_A, EX_b);
-  function check(){
-    const d = read(); if (!d) return; const { A, b } = d; out.innerHTML = '';
-    const list = el('div', { class:'chk-list' });
-    A.forEach((r, i) => { const s = r.reduce((t, a, j) => t + (j === i ? 0 : Math.abs(a)), 0), ok = Math.abs(r[i]) > s; list.append(el('div', { class:ok ? 'y' : 'n', text:(i + 1) + '-жол: |' + fmt(r[i]) + '| ' + (ok ? '>' : '≤') + ' ' + r.filter((_, j) => j !== i).map(a => '|' + fmt(a) + '|').join(' + ') + ' = ' + fmt(s) + (ok ? '  ✓' : '  ✕') })); });
-    const okD = dom(A);
-    const m2 = A[0][0] * A[1][1] - A[0][1] * A[1][0], m3 = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
-    const spd = A.every((r, i) => r.every((v, j) => v === A[j][i])) && A[0][0] > 0 && m2 > 0 && m3 > 0;
-    out.append(list, el('p', { html:okD ? '✓ <b>Диагональдық басымдылық бар.</b> Әдіс міндетті түрде жинақталады.' : spd ? '✕ Диагональдық басымдылық жоқ, бірақ <b>матрица симметриялы және оң анықталған</b>. Әдіс жинақталады.' : '✕ <b>Диагональдық басымдылық жоқ.</b> Жинақталуға кепілдік жоқ. «Жолдарды ретке келтір» немесе «Нормаль жүйеге көшір» батырмасын басып көр.' }));
-    if (A.some((r, i) => r[i] === 0)){ out.append(el('p', { class:'errbox', text:'Диагональда нөл бар: оған бөлуге болмайды. Теңдеулердің орнын ауыстыр.' })); return; }
-    const g = seidel(A, b, { max:3000 });
-    out.append(el('div', { class:'chk-list' }, [el('div', { class:g.ok ? 'y' : 'n', text:g.ok ? '✓ ' + g.k + ' итерацияда шешім табылды (ε = 0,0001).' + (g.k > 100 ? ' Жинақталу өте баяу: δ аз болса да, қателік үлкен болуы мүмкін.' : '') : '✕ ' + (g.diverged ? g.k + '-итерацияда мәндер шексіз өсіп кетті. Әдіс жинақталмады.' : '3000 итерацияда шешімге жақындамады.') })]));
-    if (g.ok){ const x = g.hist.slice(-1)[0].x; out.append(el('p', { html:'Шешім: <span class="mono">x₁ = ' + fmt(x[0], 4) + ', x₂ = ' + fmt(x[1], 4) + ', x₃ = ' + fmt(x[2], 4) + '</span>' })); }
+  ['x₁ мәнін бірінші формуладан табамыз.', 'x₂ мәнін табамыз. Мұнда жаңа x₁⁽¹⁾ бірден қолданылады.', 'x₃ мәнін табамыз. Мұнда жаңа x₁⁽¹⁾ және x₂⁽¹⁾ қолданылады.'].forEach((now, i) => S.push({ k:1, up:i, chk:1, frm:1, t:{ now, why:i ? 'Гаусс–Зейдель әдісінде жаңа мәндер сол итерацияда бірден қолданылады.' : 'x₂ және x₃ әзірге бастапқы жуықтаудан (нөлден) алынады.', how:rowFormula(A, b, i), calc:[stepCalc(EX.steps[i], A, b)] } }));
+  for (let k = 2; k <= EX.k; k++){
+    const last = k === EX.k;
+    S.push({ k, up:2, chk:1, frm:1, t:{ now:k + '-итерация.', why:last ? 'δ = ' + fmt(H[k].delta, 5) + ' < 0,0001: тоқтау шарты орындалды.' : 'δ = ' + fmt(H[k].delta, 5) + ' ≥ 0,0001, сондықтан есептеуді жалғастырамыз.', how:'Әр формулаға соңғы белгілі мәндерді қоямыз.', calc:[0, 1, 2].map(i => stepCalc(EX.steps[(k - 1) * 3 + i], A, b)), after:last ? 'Тоқтаймыз. Жауабы: x₁ = ' + fmt(SOL[0], 3) + ', x₂ = ' + fmt(SOL[1], 3) + ', x₃ = ' + fmt(SOL[2], 3) + ' (' + EX.k + ' итерация).' : '' }, end:last });
   }
-  $('#cRun').addEventListener('click', check);
-  $('#cNorm').addEventListener('click', () => {
-    const d = read(); if (!d) return; const { A, b } = d;
-    const det = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
-    if (Math.abs(det) < 1e-12){ out.innerHTML = ''; out.append(el('p', { class:'errbox', text:'Матрицаның анықтауышы нөлге тең: жүйенің жалғыз шешімі жоқ, нормаль жүйе көмектеспейді.' })); return; }
-    const C = [0, 1, 2].map(i => [0, 1, 2].map(j => A.reduce((t, r) => t + r[i] * r[j], 0))), dd = [0, 1, 2].map(i => A.reduce((t, r, k) => t + r[i] * b[k], 0));
-    load(C, dd); check();
-    out.prepend(el('p', { class:'notice', text:'Жүйе A\u1d40Ax = A\u1d40b түріне келтірілді: C = A\u1d40A симметриялы, диагональ элементтері оң.' }));
-  });
-  $('#cSwap').addEventListener('click', () => {
-    const d = read(); if (!d) return;
-    const P = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]].find(p => dom(p.map(q => d.A[q])));
-    if (!P){ check(); out.append(el('p', { class:'notice', text:'Бұл жүйеде теңдеулердің орнын ауыстырып та басымдылыққа жету мүмкін емес.' })); return; }
-    load(P.map(q => d.A[q]), P.map(q => d.b[q])); check();
-  });
+  const ans = $('#eAns');
+  ans.innerHTML = '<span>Жауабы:</span> <b>x₁ = ' + fmt(SOL[0], 3) + '</b> <b>x₂ = ' + fmt(SOL[1], 3) + '</b> <b>x₃ = ' + fmt(SOL[2], 3) + '</b> <span class="muted">(' + EX.k + ' итерация)</span>';
+  function apply(s){
+    const st = S[s];
+    ex.set(st.t);
+    $('#fChk').style.opacity = st.chk ? 1 : 0.12; $('#fForm').style.opacity = st.frm ? 1 : 0.12; $('#fTab').style.opacity = st.k >= 0 ? 1 : 0.12;
+    rows.forEach((r, k) => {
+      r.tr.classList.toggle('hide', k > st.k); r.tr.classList.toggle('cur', k === st.k && k > 0);
+      r.cells.forEach((c, i) => { const show = k < st.k || (k === st.k && i <= st.up); c.textContent = show ? fmt(H[k].x[i], DG) : ''; c.classList.toggle('fresh', st.k === 1 && k === 1 && i === st.up); });
+      r.d.textContent = k ? ((k < st.k || (k === st.k && st.up === 2)) ? fmt(H[k].delta, 5) : '') : '—';
+    });
+    ans.classList.toggle('hide', !st.end);
+  }
+  const stepper = new Stepper({ count:S.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(400); }, barHost:$('#eBar') });
+  Course.register('example', { stepper, reset(){ stepper.reset(); } });
+  stepper.init();
+  const PA = [[4, 1, 1], [1, 5, 2], [1, 2, 6]], Pb = [6, 8, 9], P = seidel(PA, Pb, { max:1 });
+  $('#pSys').append(sysEl(PA, Pb));
+  P.steps.forEach((st, i) => new Check($('#pFields'), { label:VARS[i] + '<sup>(1)</sup> =', expected:st.val, tol:0.001, dg:DG,
+    hints:[rowFormula(PA, Pb, i) + (i ? ' — мұнда жаңа табылған мәндерді қолдан.' : ' — мұнда x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0.'), 'Сандарды формулаға қой:'], how:stepCalc(st, PA, Pb), success:'Дұрыс!' }));
 })();
 
-/* ===== 3. Python коды ===== */
+/* ===== 4. Python коды: алгоритм қадамдары бойынша ===== */
 (function(){
   const PY = [
     'def gauss_seidel(A, b, eps=1e-4, max_iter=100):',
@@ -404,73 +267,55 @@ const SOL = EX.hist.slice(-1)[0].x;
     '            x[i] = new                 # жаңа мән бірден қолданылады',
     '        if delta < eps:                # тоқтау шарты',
     '            return x, k',
-    '    return x, max_iter',
-    '',
-    'A = [[10, -1, 2], [-1, 11, -1], [2, -1, 10]]',
-    'b = [6, 22, -10]',
-    'x, k = gauss_seidel(A, b)',
-    'print([round(v, 4) for v in x], k)'
+    '    return x, max_iter'
   ].join('\n');
-  new CodeView($('#pyCode'), { code:PY, label:'Гаусс–Зейдель коды' });
+  const code = new CodeView($('#pyCode'), { code:PY, label:'Гаусс–Зейдель коды' });
   $('#pyCopy').addEventListener('click', () => copyText(PY, $('#pyMsg')));
-  const pyR = v => { const r = Math.round(v * 1e4) / 1e4, s = String(r === 0 ? 0 : r); return /^-?\d+$/.test(s) ? s + '.0' : s; };
-  $('#pyOut').textContent = '[' + SOL.map(pyR).join(', ') + '] ' + EX.k;
-})();
-
-/* ===== 4. Есеп үлгісі ===== */
-(function(){
-  const A = EX_A, b = EX_b, H = EX.hist;
-  $('#eSys').append(sysEl(A, b));
-  A.forEach((r, i) => { const t = r.reduce((q, a, j) => q + (j === i ? 0 : Math.abs(a)), 0); $('#eDom').append(el('div', { class:'y', text:(i + 1) + '-жол: |' + fmt(r[i]) + '| > ' + r.filter((_, j) => j !== i).map(a => '|' + fmt(a) + '|').join(' + ') + ' = ' + fmt(t) + '  ✓' })); });
-  $('#eAns').innerHTML = '<span>Жауабы:</span> <b>x₁ = ' + fmt(SOL[0], 3) + '</b> <b>x₂ = ' + fmt(SOL[1], 3) + '</b> <b>x₃ = ' + fmt(SOL[2], 3) + '</b> <span class="muted">(' + EX.k + ' итерация)</span>';
-  A.forEach((r, i) => $('#eForms').append(el('div', { class:'fline', html:rowFormula(A, b, i) })));
-  const rows = iterTable($('#eTable'), H, true);
-  const ex = new ExplainPanel($('#eEx'));
-  const S = [{ k:0, up:2, t:{ now:'Бастапқы жуықтау: x₁⁽⁰⁾ = x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0.', why:'Итерацияны кез келген жуықтаудан бастауға болады, ең қарапайымы — нөл.', how:'«Алға →» батырмасымен бірінші итерацияны бастаймыз.' } }];
-  ['x₁ мәнін бірінші формуладан табамыз.', 'x₂ мәнін табамыз. Мұнда жаңа x₁⁽¹⁾ бірден қолданылады.', 'x₃ мәнін табамыз. Мұнда жаңа x₁⁽¹⁾ және x₂⁽¹⁾ қолданылады.'].forEach((now, i) => S.push({ k:1, up:i, t:{ now, why:i ? 'Гаусс–Зейдель әдісінде жаңа мәндер сол итерацияда бірден қолданылады.' : 'y және z мәндері әзірге бастапқы жуықтаудан алынады.', how:rowFormula(A, b, i), calc:[stepCalc(EX.steps[i], A, b)] } }));
-  for (let k = 2; k <= EX.k; k++){
-    const last = k === EX.k;
-    S.push({ k, up:2, t:{ now:k + '-итерация.', why:last ? 'δ = ' + fmt(H[k].delta, 5) + ' &lt; 0,0001, яғни тоқтау шарты орындалды.' : 'δ = ' + fmt(H[k].delta, 5) + ' ≥ 0,0001, сондықтан есептеуді жалғастырамыз.', how:'Әр формулаға соңғы белгілі мәндерді қоямыз.', calc:[0, 1, 2].map(i => stepCalc(EX.steps[(k - 1) * 3 + i], A, b)), after:last ? 'Жауабы: x₁ = ' + fmt(SOL[0], 3) + ', x₂ = ' + fmt(SOL[1], 3) + ', x₃ = ' + fmt(SOL[2], 3) + ' (' + EX.k + ' итерация).' : '' } });
-  }
-  const mu = Math.max(...A.map((r, i) => r.reduce((t, a, j) => t + (j > i ? Math.abs(a / r[i]) : 0), 0) / (1 - r.reduce((t, a, j) => t + (j < i ? Math.abs(a / r[i]) : 0), 0))));
-  $('#eMu').innerHTML = 'Қателікті бағалау: μ = ' + fmt(mu, 2) + ', сондықтан қателік ≤ ' + fmt(mu / (1 - mu), 2) + '·δ. Соңғы итерацияда δ = ' + fmt(H[EX.k].delta, 5) + ', яғни қателік шамамен ' + fmt(mu / (1 - mu) * H[EX.k].delta, 5) + ' &lt; 0,0001.';
-  function apply(s){ ex.set(S[s].t); showRows(rows, H, S[s]); $('#eAns').classList.toggle('hide', s < S.length - 1); }
-  async function animate(s, ctx){ apply(s); await ctx.wait(400); }
-  const stepper = new Stepper({ count:S.length, apply, animate, barHost:$('#eBar') });
-  Course.register('example', { stepper, reset(){ stepper.reset(); } });
+  const ex = new ExplainPanel($('#pyEx'));
+  const S = [
+    { lines:[1], t:{ now:'Функция A матрицасын, b векторын, дәлдік ε-ды және итерацияның ең көп санын алады.', why:'Бағдарлама кез келген жүйені шешуі керек.', how:'eps — тоқтау дәлдігі, max_iter — шексіз циклден сақтайды.' } },
+    { lines:[2, 3], t:{ now:'Бастапқы жуықтау: x = [0, 0, 0].', why:'Алгоритмнің 2-қадамы: итерация нөлден басталады.', how:'Бір ғана x тізімі жеткілікті.' } },
+    { lines:[4, 5], t:{ now:'Итерация циклі. Әр айналымда δ нөлден басталады.', why:'3–5 қадамдар әр итерацияда қайталанады.', how:'k — итерация нөмірі.' } },
+    { lines:[6, 7, 8], t:{ now:'Әр белгісіз ретімен есептеледі.', why:'Формула: xᵢ = (bᵢ − Σ aᵢⱼxⱼ) / aᵢᵢ.', how:'s — қалған белгісіздер бойынша қосынды. x тізімінде бұрын жаңартылғандары жаңа, қалғандары ескі мәнді сақтайды.' } },
+    { lines:[9, 10], t:{ now:'δ жаңарады, содан кейін жаңа мән бірден x[i]-ге жазылады.', why:'Гаусс–Зейдель әдісінің ерекшелігі осы: келесі белгісіз жаңа мәнді бірден алады.', how:'δ — мәннің ескісі мен жаңасының ең үлкен айырмасы.' } },
+    { lines:[11, 12], t:{ now:'Тоқтау шарты: δ < ε болса, нәтиже қайтарылады.', why:'Шешім берілген дәлдікке жетті.', how:'x — жуық шешім, k — қанша итерация қажет болды.' } },
+    { lines:[13], t:{ now:'Дәлдікке жетпесе, соңғы жуықтау қайтарылады.', why:'Жинақталмайтын жүйеде цикл шексіз жүрмейді.', how:'Бұл жағдайда шартты қайта тексеру керек.', after:'Код алгоритмге толық сәйкес келеді.' } }
+  ];
+  const apply = s => { code.highlight(S[s].lines); ex.set(S[s].t); };
+  const stepper = new Stepper({ count:S.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(250); }, barHost:$('#pyBar') });
+  Course.register('algo', { stepper, reset(){ stepper.reset(); } });
   stepper.init();
-  /* Өзің орында: басқа жүйе үшін бірінші итерация */
-  const PA = [[4, 1, 1], [1, 5, 2], [1, 2, 6]], Pb = [6, 8, 9], P = seidel(PA, Pb, { max:1 });
-  $('#pSys').append(sysEl(PA, Pb));
-  P.steps.forEach((st, i) => new Check($('#pFields'), { label:VARS[i] + '<sup>(1)</sup> =', expected:st.val, tol:0.001, dg:DG,
-    hints:[rowFormula(PA, Pb, i) + (i ? ' — мұнда жаңа табылған мәндерді қолдан.' : ' — мұнда x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0.'), 'Сандарды формулаға қой:'], how:stepCalc(st, PA, Pb), success:'Дұрыс!' }));
 })();
 
 /* ===== 5. Бақылау жұмысы ===== */
-CourseWork.mount($('#wHost'), {
-  topic:'6', key:'gs-work-v2', sectionId:'work',
-  variants:[[[[10,2,2],[2,10,-2],[-2,2,10]],[-22,-2,38]],[[[10,-1,-2],[2,10,-2],[-2,-2,10]],[15,-4,-20]],[[[10,-2,-2],[-1,10,-1],[2,-2,10]],[-10,-21,22]],[[[10,1,-2],[-1,10,-1],[2,-1,10]],[1,-34,35]],[[[10,-2,2],[1,10,2],[-2,1,10]],[0,27,-19]],[[[10,-2,2],[1,10,2],[1,1,10]],[26,35,16]],[[[10,-1,2],[1,10,-2],[2,2,10]],[24,27,-10]],[[[10,2,-1],[1,10,1],[2,2,10]],[3,-28,6]],[[[10,2,2],[1,10,1],[-2,1,10]],[0,31,25]],[[[10,1,2],[1,10,-2],[2,1,10]],[-37,-29,-29]],[[[10,-1,2],[2,10,-2],[-2,-1,10]],[-29,2,15]],[[[10,-1,2],[-2,10,-2],[-2,-1,10]],[15,28,-17]],[[[10,-1,-2],[2,10,2],[-2,-1,10]],[-12,-18,24]],[[[10,1,2],[-1,10,-2],[1,-1,10]],[-17,-25,-18]],[[[10,-2,-2],[-1,10,2],[-2,-1,10]],[18,-25,-20]],[[[10,-2,1],[2,10,-2],[1,2,10]],[2,36,-13]],[[[10,2,-1],[-2,10,-2],[-1,1,10]],[-39,-30,30]],[[[10,1,-1],[-1,10,-1],[2,1,10]],[-4,34,-29]],[[[10,1,1],[2,10,-2],[2,2,10]],[33,12,28]],[[[10,-2,1],[2,10,2],[-2,2,10]],[25,10,-34]]],
-  quiz:[
-    ['Гаусс–Зейдель әдісінің басты ерекшелігі қандай?', ['Анықтауыштарды есептейді', 'Жаңа табылған мәндерді бірден қолданады', 'Итерацияны пайдаланбайды', 'Матрицаны баспалдақ түрге келтіреді']],
-    ['Диагональдық басымдылық орындалса, не болады?', ['Әдіс міндетті түрде жинақталады', 'Әдіс жинақталмайды', 'Жүйенің шешімі болмайды', 'Бір итерация жеткілікті']],
-    ['Итерациялық формулада xᵢ мәнін табу үшін неге бөлеміз?', ['bᵢ бос мүшесіне', 'Барлық коэффициенттердің қосындысына', 'aᵢᵢ диагональ элементіне', 'Анықтауышқа']],
-    ['Диагональдық басымдылық орындалмаса, алдымен не істейміз?', ['Теңдеулердің орнын ауыстырып көреміз', 'Бастапқы жуықтауды үлкейтеміз', 'ε мәнін кішірейтеміз', 'Жүйені шешпейміз']],
-    ['x₂⁽ᵏ⁺¹⁾ есептегенде x₁-дің қай мәні қолданылады?', ['x₁⁽⁰⁾', 'x₁⁽ᵏ⁾', 'x₁⁽ᵏ⁺¹⁾', 'Кез келгені']],
-    ['Итерацияны қашан тоқтатамыз?', ['Бірінші итерациядан кейін', 'Екі көрші итерацияның ең үлкен айырмасы ε-нан кіші болғанда', 'Барлық мәндер нөлге тең болғанда', 'Диагональ элементтері нөлге тең болғанда']]
-  ],
-  task2:{ title:'2-тапсырма. Гаусс–Зейдель әдісімен қолмен есептеу',
-    text:'Бастапқы жуықтау: x₁⁽⁰⁾ = x₂⁽⁰⁾ = x₃⁽⁰⁾ = 0. Әр белгісіздің итерациялық формуласын жаз да, екі итерацияны орында. Жаңа табылған мәндерді бірден қолдан. Шешу барысын төмендегі өріске жаз.',
-    sampleNote:'сабақтағы мысал үшін: 10x₁ − x₂ + 2x₃ = 6;  −x₁ + 11x₂ − x₃ = 22;  2x₁ − x₂ + 10x₃ = −10',
-    sample:'x1 = (6 + x2 - 2*x3) / 10\nx2 = (22 + x1 + x3) / 11\nx3 = (-10 - 2*x1 + x2) / 10\n1-итерация:\nx1 = (6 + 0 - 2*0) / 10 = 0.6\nx2 = (22 + 0.6 + 0) / 11 = 2.0545\nx3 = (-10 - 2*0.6 + 2.0545) / 10 = -0.9145\n2-итерация:\nx1 = (6 + 2.0545 - 2*(-0.9145)) / 10 = 0.9884\nx2 = (22 + 0.9884 - 0.9145) / 11 = 2.0067\nx3 = (-10 - 2*0.9884 + 2.0067) / 10 = -0.9970',
-    answersTitle:'2-итерациядан кейінгі мәндер (үтірден кейін 3 таңба):',
-    answers:[{ label:'x₁⁽²⁾ =' }, { label:'x₂⁽²⁾ =' }, { label:'x₃⁽²⁾ =' }] },
-  task3:{ title:'3-тапсырма. Бағдарлама арқылы шешу',
-    text:'Сол жүйені Гаусс–Зейдель әдісімен шешетін бағдарлама жаз. Кез келген бағдарламалау тілін қолдануға болады. Дәлдік: ε = 0,0001. Кодыңды және бағдарлама шығарған шешімді (x₁, x₂, x₃) төменге қой.' }
-});
+(function(){
+  const frm = i => rowFormula(EX_A, EX_b, i).replace(/<[^>]+>/g, '').replace(/\(k\+1\)|\(k\)/g, '').replace(/^[^=]+=\s*/, '').replace(/\s+/g, ' ');
+  const sample = ['Берілгені: ' + EX_A.map((r, i) => r.map((a, j) => (a < 0 ? ' − ' : j ? ' + ' : '') + (Math.abs(a) === 1 ? '' : Math.abs(a)) + VARS[j]).join('').trim() + ' = ' + fmt(EX_b[i])).join(';  '), '1) Формулалар:']
+    .concat(EX_A.map((r, i) => VARS[i] + ' = ' + frm(i))).concat(['2) x⁽⁰⁾ = (0; 0; 0)', '3) 1-итерация:']).concat(EX.steps.slice(0, 3).map(st => stepCalc(st, EX_A, EX_b)))
+    .concat(['4) 2-итерация:']).concat(EX.steps.slice(3, 6).map(st => stepCalc(st, EX_A, EX_b))).concat(['Жауап: ' + VARS.map((v, i) => v + ' ≈ ' + fmt(H[2].x[i], 3)).join(',  ')]).join('\n');
+  CourseWork.mount($('#wHost'), {
+    topic:'6', key:'gs-work-v3', sectionId:'work',
+    variants:[ [[[10,2,2],[2,10,-2],[-2,2,10]],[-22,-2,38]], [[[10,-1,-2],[2,10,-2],[-2,-2,10]],[15,-4,-20]], [[[10,-2,-2],[-1,10,-1],[2,-2,10]],[-10,-21,22]], [[[10,1,-2],[-1,10,-1],[2,-1,10]],[1,-34,35]], [[[10,-2,2],[1,10,2],[-2,1,10]],[0,27,-19]], [[[10,-2,2],[1,10,2],[1,1,10]],[26,35,16]], [[[10,-1,2],[1,10,-2],[2,2,10]],[24,27,-10]], [[[10,2,-1],[1,10,1],[2,2,10]],[3,-28,6]], [[[10,2,2],[1,10,1],[-2,1,10]],[0,31,25]], [[[10,1,2],[1,10,-2],[2,1,10]],[-37,-29,-29]], [[[10,-1,2],[2,10,-2],[-2,-1,10]],[-29,2,15]], [[[10,-1,2],[-2,10,-2],[-2,-1,10]],[15,28,-17]], [[[10,-1,-2],[2,10,2],[-2,-1,10]],[-12,-18,24]], [[[10,1,2],[-1,10,-2],[1,-1,10]],[-17,-25,-18]], [[[10,-2,-2],[-1,10,2],[-2,-1,10]],[18,-25,-20]], [[[10,-2,1],[2,10,-2],[1,2,10]],[2,36,-13]], [[[10,2,-1],[-2,10,-2],[-1,1,10]],[-39,-30,30]], [[[10,1,-1],[-1,10,-1],[2,1,10]],[-4,34,-29]], [[[10,1,1],[2,10,-2],[2,2,10]],[33,12,28]], [[[10,-2,1],[2,10,2],[-2,2,10]],[25,10,-34]] ],
+    task1:{ title:'Қолмен есептеу',
+      text:'Жүйені Гаусс–Зейдель әдісімен қолмен шеш: әр белгісіздің формуласын жаз, x⁽⁰⁾ = 0 деп алып, екі итерация орында. Жаңа табылған мәнді бірден қолдан. Дәптерге жазып, суретке түсіріп жүкте.',
+      sampleNote:'сабақтағы мысал үшін, өзіңдікін осылай жаз', sample,
+      answersTitle:'2-итерациядан кейінгі мәндер (үтірден кейін 3 таңба):', answers:[{ label:'x₁⁽²⁾ =' }, { label:'x₂⁽²⁾ =' }, { label:'x₃⁽²⁾ =' }] },
+    task2:{ title:'Бағдарлама арқылы шешу',
+      text:'Сол жүйені Гаусс–Зейдель әдісімен шешетін бағдарлама жаз. Кез келген бағдарламалау тілін қолдануға болады. Дәлдік: ε = 0,0001. Кодыңды және бағдарлама шығарған шешімді (x₁, x₂, x₃) төменге қой.' },
+    quiz:[
+      ['Гаусс–Зейдель әдісінің басты ерекшелігі қандай?', ['Анықтауыштарды есептейді', 'Жаңа табылған мәндерді бірден қолданады', 'Итерацияны пайдаланбайды', 'Матрицаны баспалдақ түрге келтіреді']],
+      ['Диагональдық басымдылық орындалса, не болады?', ['Әдіс міндетті түрде жинақталады', 'Әдіс жинақталмайды', 'Жүйенің шешімі болмайды', 'Бір итерация жеткілікті']],
+      ['Итерациялық формулада xᵢ мәнін табу үшін неге бөлеміз?', ['bᵢ бос мүшесіне', 'Барлық коэффициенттердің қосындысына', 'aᵢᵢ диагональ элементіне', 'Анықтауышқа']],
+      ['Диагональдық басымдылық орындалмаса, алдымен не істейміз?', ['Теңдеулердің орнын ауыстырып көреміз', 'Бастапқы жуықтауды үлкейтеміз', 'ε мәнін кішірейтеміз', 'Жүйені шешпейміз']],
+      ['x₂⁽ᵏ⁺¹⁾ есептегенде x₁-дің қай мәні қолданылады?', ['x₁⁽⁰⁾', 'x₁⁽ᵏ⁾', 'x₁⁽ᵏ⁺¹⁾', 'Кез келгені']],
+      ['Итерацияны қашан тоқтатамыз?', ['Бірінші итерациядан кейін', 'Екі көрші итерацияның ең үлкен айырмасы ε-нан кіші болғанда', 'Барлық мәндер нөлге тең болғанда', 'Диагональ элементтері нөлге тең болғанда']]
+    ]
+  });
+})();
 
 Course.init({ back:{ href:'index.html', text:'← Сандық әдістер' }, title:[6, 'Гаусс–Зейдель әдісі'], sections:[
-  { id:'idea', n:1, title:'Идеясы' }, { id:'conv', n:2, title:'Жинақталу' }, { id:'algo', n:3, title:'Алгоритм' },
-  { id:'example', n:4, title:'Есеп үлгісі' }, { id:'work', n:5, title:'Бақылау жұмысы' }
+  { id:'idea', n:1, title:'Әдістің мәні' }, { id:'example', n:2, title:'Мысал' }, { id:'conv', n:3, title:'Жинақталу' },
+  { id:'algo', n:4, title:'Алгоритм және код' }, { id:'work', n:5, title:'Бақылау жұмысы' }
 ] });
 window.Join.mount();
 })();
