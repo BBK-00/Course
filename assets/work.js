@@ -1,4 +1,4 @@
-/* Бақылау жұмысы: 3 тапсырма. Әрқайсысының өз «Бастау» батырмасы, өз таймері және өз «Жіберу» батырмасы бар.
+/* Практикалық тапсырмалар: 3 тапсырма. Әрқайсысының өз «Бастау» батырмасы, өз таймері және өз «Жіберу» батырмасы бар.
    1 — қолмен есептеу (дәптер фотосы), 2 — бағдарлама, 3 — тест. Студент алдымен сабаққа кіреді (Join).
    CourseWork.mount(host, { topic, key, variants:[[A,b],...], task1:{ title, text, sample, sampleNote, answersTitle, answers:[{label}] }, task2:{ title, text }, quiz:[[сұрақ,[нұсқалар]],...] }) */
 (function(){
@@ -56,7 +56,7 @@ window.CourseWork = { mount(host, cfg){
       const b = el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру' }); b.addEventListener('click', () => window.Join.open());
       head.append(el('div', { class:'stepbar' }, b)); return;
     }
-    if (me.guest){ head.append(el('h4', { text:me.student.name + ' · қонақ мұғалім' }), el('p', { text:'Сіз мұғалім ретінде кірдіңіз: сабақ материалын көре аласыз. Бақылау жұмысын студенттер орындайды.' })); built = 'g:' + me.student.name; return; }
+    if (me.guest){ head.append(el('h4', { text:me.student.name + ' · қонақ мұғалім' }), el('p', { text:'Сіз мұғалім ретінде кірдіңіз: сабақ материалын көре аласыз. Практикалық тапсырманы студенттер орындайды.' })); built = 'g:' + me.student.name; return; }
     D = load(me); D.k = dkey(me); D.photo = ''; try { D.photo = localStorage.getItem(D.k + ':photo') || ''; } catch (e) {}
     const [A, B] = cfg.variants[me.variant - 1];
     const status = el('p', { role:'status' }), sum = el('div', { role:'status' });

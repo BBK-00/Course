@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>6-тақырып: Гаусс–Зейдель әдісі — Сандық әдістер</title>
-<meta name="description" content="Гаусс–Зейдель әдісі: идеясы, мысал, жинақталу шарты, алгоритм, Python коды және бақылау жұмысы.">
+<meta name="description" content="Гаусс–Зейдель әдісі: идеясы, мысал, жинақталу шарты, алгоритм, Python коды және практикалық тапсырмалар.">
 <link rel="stylesheet" href="../assets/lesson.css">
 <script src="../assets/config.js"></script>
 <style>
@@ -102,9 +102,6 @@
     <div><h4>Мақсаты</h4><p>Гаусс–Зейдель итерациялық әдісінің мәнін түсініп, үш белгісізді жүйені осы әдіспен шеше білу.</p></div>
     <div><h4>Міндеттері</h4><ul><li>Әдістің идеясын және формуласын түсіндіру;</li><li>жинақталу шартын (диагональдық басымдылық) тексеру;</li><li>екі итерацияны қолмен орындау;</li><li>алгоритмнің блок-схемасын түсініп, бағдарлама жазу.</li></ul></div>
     <div><h4>Күтілетін нәтиже</h4><p>Сабақ соңында студент формуланы жазады, шарттың орындалуын тексереді, екі итерацияны қолмен есептейді және блок-схема бойынша бағдарлама жазады.</p></div>
-  </div>
-  <div class="blk"><h3 class="blk-h"><span class="ic">⏱</span>Сабақ жоспары · 50 минут</h3>
-    <div class="plan"><div class="p1">Түсіндіру<small>10–15 мин</small></div><div class="p2">Бақылау жұмысы<small>25–30 мин · 3 тапсырма</small></div><div class="p3">Қорытынды<small>5–10 мин</small></div></div>
   </div>
 </div></div></section>
 
@@ -204,7 +201,7 @@
 
 <!-- ================= 5. БАҚЫЛАУ ЖҰМЫСЫ ================= -->
 <section id="work" class="lesson" data-sec="work"><div class="wrap"><div class="card">
-  <div class="sec-head"><span class="sec-num">5</span><h2>Бақылау жұмысы</h2></div>
+  <div class="sec-head"><span class="sec-num">5</span><h2>Практикалық тапсырмалар</h2></div>
   <p class="learn">Бұл бөлімде үйренгеніңді өз бетіңше қолданып, үш тапсырманы орындайсың (барлығы 30 минут). Әр тапсырманың өз «Бастау» батырмасы, өз уақыты және өз «Жіберу» батырмасы бар.</p>
   <div id="wHost"></div>
 </div></div></section>
@@ -350,7 +347,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
   stepper.init();
 })();
 
-/* ===== 5. Бақылау жұмысы ===== */
+/* ===== 5. Практикалық тапсырмалар ===== */
 (function(){
   const frm = i => '(' + fmt(EX_b[i]) + EX_A[i].map((a, j) => (j === i || a === 0) ? '' : (-a < 0 ? ' − ' : ' + ') + (Math.abs(a) === 1 ? '' : fmt(Math.abs(a))) + VARS[j]).join('') + ') / ' + fmt(EX_A[i][i]);
   const sample = ['Берілгені: ' + EX_A.map((r, i) => r.map((a, j) => (a < 0 ? ' − ' : j ? ' + ' : '') + (Math.abs(a) === 1 ? '' : Math.abs(a)) + VARS[j]).join('').trim() + ' = ' + fmt(EX_b[i])).join(';  '), '1) Формулалар:']
@@ -405,7 +402,7 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
 
 Course.init({ back:{ href:'index.html', text:'← Сандық әдістер' }, title:[6, 'Гаусс–Зейдель әдісі'], sections:[
   { id:'aim', n:'★', title:'Мақсаты' }, { id:'idea', n:1, title:'Әдістің мәні' }, { id:'example', n:2, title:'Мысал' }, { id:'conv', n:3, title:'Жинақталу' },
-  { id:'algo', n:4, title:'Алгоритм және схема' }, { id:'work', n:5, title:'Бақылау жұмысы' }, { id:'fb', n:6, title:'Қорытынды' }
+  { id:'algo', n:4, title:'Алгоритм және схема' }, { id:'work', n:5, title:'Практика' }, { id:'fb', n:6, title:'Қорытынды' }
 ] });
 window.Join.mount({ gate:true });
 })();
