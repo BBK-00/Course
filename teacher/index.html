@@ -80,7 +80,7 @@ textarea.field{min-height:6em}
 <body>
 <header class="site-head">
   <div class="wrap head-in"><span class="logo"><span class="logo-mark">ББ</span><span>Оқытушы панелі</span></span>
-    <nav class="head-nav" id="topnav" hidden><a href="#" id="bOut">Шығу</a></nav></div>
+    <nav class="head-nav" id="topnav" hidden><a href="#" id="bLesson">📖 Сабақты ашу</a><a href="#" id="bOut">Шығу</a></nav></div>
 </header>
 <main class="wrap t-main">
   <section id="login" class="login">
@@ -132,6 +132,7 @@ async function login(pw){
 }
 function out(){ TOK = ''; try { sessionStorage.removeItem('ttok'); } catch (e) {} $('#app').hidden = true; $('#topnav').hidden = true; $('#login').hidden = false; $('#pw').value = ''; closeDetail(); }
 $('#fLogin').addEventListener('submit', async e => { e.preventDefault(); $('#eLogin').textContent = ''; const b = $('#bLogin'); b.disabled = true; b.textContent = 'Тексеріп жатыр…'; await login($('#pw').value); b.disabled = false; b.textContent = 'Кіру'; });
+$('#bLesson').addEventListener('click', e => { e.preventDefault(); window.open('/sandyq-adister/06-gauss-seidel#t=' + encodeURIComponent(TOK), '_blank'); });
 $('#bOut').addEventListener('click', e => { e.preventDefault(); out(); });
 function start(){ $('#login').hidden = true; $('#app').hidden = false; $('#topnav').hidden = false; loadLive(true); loadRoster(); }
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { TAB = b.dataset.t; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + TAB)); if (TAB === 'journal') loadJournal(); if (TAB === 'roster') loadRoster(); if (TAB === 'wrap') loadWrap(); if (TAB === 'plan') loadPlan(); }));

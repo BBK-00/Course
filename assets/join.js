@@ -30,7 +30,7 @@ function sync(){ emit(); chip(); if (S.gate) lock(!S.me); }
 let btn;
 function chip(){
   if (!btn) return;
-  if (S.me){ btn.textContent = '✓ ' + S.me.student.name + (S.me.guest ? ' · мұғалім' : ''); btn.className = 'join-chip on'; btn.title = S.me.guest ? 'Қонақ мұғалім' : S.me.student.group + ' · қатысым ' + S.me.attendance + ' балл'; }
+  if (S.me){ btn.textContent = '✓ ' + S.me.student.name + (S.me.teacher ? '' : S.me.guest ? ' · мұғалім' : ''); btn.className = 'join-chip on'; btn.title = S.me.guest ? 'Қонақ мұғалім' : S.me.student.group + ' · қатысым ' + S.me.attendance + ' балл'; }
   else { btn.textContent = S.open ? '🔑 Сабаққа кіру' : '🔒 Сабақ жабық'; btn.className = 'join-chip' + (S.open ? ' go' : ''); btn.title = ''; }
 }
 
@@ -115,6 +115,8 @@ window.Join = {
   serverNow: () => Date.now() + S.skew,
   mount(o){
     S.gate = !!(o && o.gate);
+    const m = /[#&]t=([^&]+)/.exec(location.hash || '');
+    if (m){ saveToken(decodeURIComponent(m[1])); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     const bar = document.querySelector('.topbar-in');
     if (bar){ btn = el('button', { type:'button', class:'join-chip' }); btn.addEventListener('click', openJoin); bar.append(btn); chip(); }
     if (S.gate) document.body.classList.add('locked');

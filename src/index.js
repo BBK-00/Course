@@ -90,6 +90,7 @@ async function route(request, env, ctx, url) {
   if (path === 'me' && method === 'GET') {
     const p = await verify(env, bearer(request));
     if (!p) return err('auth', 401);
+    if (p.r === 't') return json({ ok: true, guest: true, teacher: true, student: { name: 'Оқытушы', group: 'Мұғалім' }, now: now() });
     if (p.r === 'g') {
       const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
       if (!ses) return err('auth', 401);

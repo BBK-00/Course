@@ -44,6 +44,7 @@ r = await call('join_guest', { body: { name: 'Қонақ Мұғалім', code }
 r = await call('me', {}, gtok); ok(r.j.guest === true && r.j.student.group === 'Мұғалім', 'қонақ күйі: ' + (r.j.student && r.j.student.name));
 r = await call('submit', { body: { task: 3, payload: { quiz: [] } } }, gtok); ok(r.s === 401, 'қонақ тапсырма жібере алмайды');
 live = (await T('live')).j; ok(live.guests.some(x => x.name === 'Қонақ Мұғалім'), 'оқытушы панелінде қонақ мұғалім көрінеді');
+r = await call('me', {}, TT); ok(r.j.guest === true && r.j.teacher === true, 'оқытушы токені сабақ бетіне кіреді (код керек емес)');
 console.log('Сабақ жоспары (тек мұғалімдерге)');
 r = await call('plan', {}, null); ok(r.s === 401, 'жоспар токенсіз ашылмайды');
 r = await call('plan', {}, tok1b); ok(r.s === 403, 'студентке жоспар берілмейді');
