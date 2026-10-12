@@ -38,6 +38,10 @@
 .tl li.loop{background:var(--info-bg)}.tl li.loop::before{background:var(--info)}
 .tl b{display:block}
 .f.gs3 .rows{text-align:left}
+.plan-doc{line-height:1.6}.plan-doc h2{font-size:1.4rem;margin:1.2em 0 .4em}.plan-doc h3{font-size:1.15rem;margin:1em 0 .3em}
+.plan-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem;display:block;overflow-x:auto}
+.plan-doc th,.plan-doc td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}.plan-doc th{background:var(--surface-2)}
+.plan-doc ul,.plan-doc ol{padding-left:1.3em}
 .fc{display:flex;flex-direction:column;align-items:center}
 .fc .fb{min-width:230px;max-width:100%;padding:9px 16px;text-align:center;background:var(--surface);border:2px solid var(--line);border-radius:10px;font-family:var(--math);font-size:1.12rem;line-height:1.35;transition:background .3s,border-color .3s}
 .fc .fb.start{border-radius:999px;font-weight:700}
@@ -93,6 +97,13 @@
   <p class="lead">Жүйенің шешімін жуық мәннен бастап, қадам сайын дәлдейміз.</p>
   <div class="hero-actions"><a class="btn primary big" href="#idea">Сабақты бастау →</a></div>
 </div></section>
+
+<!-- ================= САБАҚ ЖОСПАРЫ (тек мұғалімдерге) ================= -->
+<section id="plan" class="lesson" hidden><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">📄</span><h2 id="planTitle">Сабақ жоспары</h2></div>
+  <p class="learn">Бұл бөлім тек мұғалімдерге көрінеді.</p>
+  <div class="plan-doc" id="planBody"></div>
+</div></div></section>
 
 <!-- ================= МАҚСАТ ================= -->
 <section id="aim" class="lesson" data-sec="aim"><div class="wrap"><div class="card">
@@ -369,6 +380,18 @@ const EX = seidel(EX_A, EX_b), SOL = EX.hist.slice(-1)[0].x, H = EX.hist;
       ['x₂⁽ᵏ⁺¹⁾ есептегенде x₁-дің қай мәні қолданылады?', ['x₁⁽⁰⁾', 'x₁⁽ᵏ⁾', 'x₁⁽ᵏ⁺¹⁾', 'Кез келгені']],
       ['Итерацияны қашан тоқтатамыз?', ['Бірінші итерациядан кейін', 'Екі көрші итерацияның ең үлкен айырмасы ε-нан кіші болғанда', 'Барлық мәндер нөлге тең болғанда', 'Диагональ элементтері нөлге тең болғанда']]
     ]
+  });
+})();
+
+/* ===== Сабақ жоспары: тек қонақ мұғалімге ===== */
+(function(){
+  const sec = $('#plan'); let loaded = false;
+  window.Join.on(async me => {
+    if (me && me.guest){
+      if (loaded) return; loaded = true;
+      const j = await window.Join.api('plan');
+      if (j.ok){ $('#planTitle').textContent = j.title; $('#planBody').innerHTML = j.html; sec.hidden = false; } else loaded = false;
+    } else { sec.hidden = true; $('#planBody').innerHTML = ''; loaded = false; }
   });
 })();
 

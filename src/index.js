@@ -3,6 +3,7 @@ import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
 import { TOPICS, MAX, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
+import { PLAN } from './plan.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); ready = true; }
@@ -62,6 +63,14 @@ async function route(request, env, ctx, url) {
     }
     const token = await sign(env, { r: 's', st: sid, ses: ses.id }, 12 * 3600);
     return json({ ok: true, token });
+  }
+
+  /* Сабақ жоспары: тек мұғалімдерге (қонақ мұғалім токені немесе оқытушы панелі) */
+  if (path === 'plan' && method === 'GET') {
+    const p = await verify(env, bearer(request));
+    if (!p) return err('auth', 401);
+    if (p.r !== 'g' && p.r !== 't') return err('forbidden', 403);
+    return json({ ok: true, title: PLAN.title, html: PLAN.html });
   }
 
   if (path === 'join_guest' && method === 'POST') {

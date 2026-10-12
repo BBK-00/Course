@@ -44,6 +44,11 @@ r = await call('join_guest', { body: { name: 'Қонақ Мұғалім', code }
 r = await call('me', {}, gtok); ok(r.j.guest === true && r.j.student.group === 'Мұғалім', 'қонақ күйі: ' + (r.j.student && r.j.student.name));
 r = await call('submit', { body: { task: 3, payload: { quiz: [] } } }, gtok); ok(r.s === 401, 'қонақ тапсырма жібере алмайды');
 live = (await T('live')).j; ok(live.guests.some(x => x.name === 'Қонақ Мұғалім'), 'оқытушы панелінде қонақ мұғалім көрінеді');
+console.log('Сабақ жоспары (тек мұғалімдерге)');
+r = await call('plan', {}, null); ok(r.s === 401, 'жоспар токенсіз ашылмайды');
+r = await call('plan', {}, tok1b); ok(r.s === 403, 'студентке жоспар берілмейді');
+r = await call('plan', {}, gtok); ok(r.j.ok && !!r.j.html, 'қонақ мұғалімге жоспар беріледі');
+r = await call('plan', {}, TT); ok(r.j.ok, 'оқытушы панеліне жоспар беріледі');
 console.log('Тапсырмалар (әрқайсысының өз таймері)');
 r = await call('run', { body: { language: 'python', code: 'print(2+2)' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '4', 'сервер кодты нақты орындайды (' + (r.j.run && r.j.run.backend) + ')');
 r = await call('run', { body: { language: 'cpp', code: '#include <iostream>\nint main(){std::cout<<6*7;}' } }, tok1b); ok(r.j.ok && r.j.run.stdout.trim() === '42', 'C++ компиляторы жұмыс істейді (' + (r.j.run && r.j.run.backend) + ')');

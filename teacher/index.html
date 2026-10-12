@@ -70,6 +70,10 @@ textarea.field{min-height:6em}
 .pjbox .pcode{font-size:min(14vh,22vw);font-weight:800;letter-spacing:.14em;color:var(--primary-2);line-height:1.05;font-family:ui-monospace,Consolas,monospace;margin-top:10px}
 .pjbox p{margin:6px 0;color:var(--muted);font-size:1.2rem}
 .pjbox .x{position:absolute;right:16px;top:16px}
+.plan-doc{line-height:1.6}.plan-doc h2{font-size:1.4rem;margin:1.2em 0 .4em}.plan-doc h3{font-size:1.15rem;margin:1em 0 .3em}
+.plan-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem;display:block;overflow-x:auto}
+.plan-doc th,.plan-doc td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}.plan-doc th{background:var(--surface-2)}
+.plan-doc ul,.plan-doc ol{padding-left:1.3em}
 .sec{display:none}.sec.on{display:block}
 </style>
 </head>
@@ -87,9 +91,10 @@ textarea.field{min-height:6em}
       <button class="btn primary" id="bLogin" type="submit" style="width:100%;margin-top:6px">Кіру</button></form>
   </section>
   <div id="app" hidden>
-    <div class="tabs" id="tabs"><button class="tab on" data-t="live">📡 Сабақ</button><button class="tab" data-t="wrap">🎯 Бекіту</button><button class="tab" data-t="roster">👥 Топтар мен студенттер</button><button class="tab" data-t="journal">📒 Журнал</button></div>
+    <div class="tabs" id="tabs"><button class="tab on" data-t="live">📡 Сабақ</button><button class="tab" data-t="wrap">🎯 Бекіту</button><button class="tab" data-t="plan">📄 Сабақ жоспары</button><button class="tab" data-t="roster">👥 Топтар мен студенттер</button><button class="tab" data-t="journal">📒 Журнал</button></div>
     <section class="sec on" id="s-live"></section>
     <section class="sec" id="s-wrap"></section>
+    <section class="sec" id="s-plan"></section>
     <section class="sec" id="s-roster"></section>
     <section class="sec" id="s-journal"></section>
   </div>
@@ -129,7 +134,7 @@ function out(){ TOK = ''; try { sessionStorage.removeItem('ttok'); } catch (e) {
 $('#fLogin').addEventListener('submit', async e => { e.preventDefault(); $('#eLogin').textContent = ''; const b = $('#bLogin'); b.disabled = true; b.textContent = 'Тексеріп жатыр…'; await login($('#pw').value); b.disabled = false; b.textContent = 'Кіру'; });
 $('#bOut').addEventListener('click', e => { e.preventDefault(); out(); });
 function start(){ $('#login').hidden = true; $('#app').hidden = false; $('#topnav').hidden = false; loadLive(true); loadRoster(); }
-document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { TAB = b.dataset.t; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + TAB)); if (TAB === 'journal') loadJournal(); if (TAB === 'roster') loadRoster(); if (TAB === 'wrap') loadWrap(); }));
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { TAB = b.dataset.t; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + TAB)); if (TAB === 'journal') loadJournal(); if (TAB === 'roster') loadRoster(); if (TAB === 'wrap') loadWrap(); if (TAB === 'plan') loadPlan(); }));
 
 /* ---------- Сабақ (live) ---------- */
 async function loadLive(force){ if (busy || !TOK) return; busy = true; const j = await api('live'); busy = false; if (j.ok) { LIVE = j; const a = document.activeElement; if (!force && a && a.closest && a.closest('#s-live') && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) { tickTimer(); return; } renderLive(); } }
@@ -293,6 +298,15 @@ function renderWrap(){
   root.append(h('div', { class: 'card' }, [h('h2', { text: 'Кері байланыс (рефлексия)' }), h('p', { class: 'sub', text: fb.rows.length + ' / ' + fb.present + ' студент жауап берді' }),
     h('div', {}, fb.levels.map((n, i) => h('div', { class: 'bar5' }, [h('span', { text: FACES[i] + ' ' + (i + 1) }), h('div', { class: 'b' }, h('i', { style: 'width:' + (n / mx * 100) + '%' })), h('b', { text: String(n) })]))),
     fb.rows.length ? h('div', { style: 'margin-top:12px' }, fb.rows.map(r => h('div', { class: 'cmt' }, [h('b', { text: FACES[r.level - 1] + ' ' + r.name }), h('span', { class: 'sub', text: r.group + (r.hard ? ' · қиын: ' + r.hard : '') + (r.learned.length ? ' · түсінді: ' + r.learned.join(', ') : '') }), r.comment ? h('div', { text: r.comment }) : '']))) : '']));
+}
+
+/* ---------- Сабақ жоспары (тек мұғалімдерге) ---------- */
+async function loadPlan(){
+  const root = $('#s-plan'); root.innerHTML = '';
+  let j; try { j = await (await fetch('/api/plan', { headers: { Authorization: 'Bearer ' + TOK } })).json(); } catch (e) { j = { ok: false }; }
+  const box = h('div', { class: 'card' }); root.append(box);
+  if (!j.ok) { box.append(h('p', { text: 'Жоспарды жүктеу мүмкін болмады.' })); return; }
+  box.append(h('h2', { text: j.title })); const d = h('div', { class: 'plan-doc' }); d.innerHTML = j.html; box.append(d);
 }
 
 /* ---------- Топтар мен студенттер ---------- */
