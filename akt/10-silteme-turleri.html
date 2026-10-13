@@ -7,6 +7,10 @@
 <meta name="description" content="Excel: салыстырмалы, абсолютті және аралас сілтеме. Анимациямен түсіндіру.">
 <link rel="stylesheet" href="../assets/lesson.css">
 <style>
+.xl-steps{padding-left:1.2em;line-height:1.7}.xl-steps li{margin:6px 0}.xl-up{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}.xl-up input{max-width:100%}
+.xl-timer{font-weight:700;font-size:1.2rem;margin:0 0 8px}.xl-timer.low{color:#b91c1c}.xl-msg{margin-top:10px}.xl-msg.bad{color:#b91c1c;font-weight:600}.xl-msg.ok{color:#15803d;font-weight:600}
+.xl-total{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:14px;background:#ecfdf5;border:1px solid #86efac;margin-bottom:12px}.xl-total b{font-size:1.4rem}.xl-total span{color:var(--muted)}
+.xl-sheet{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0}.xl-sheet summary{cursor:pointer;font-weight:700}.xl-sheet ul{list-style:none;padding:0;margin:8px 0 0}.xl-sheet li{padding:3px 0}.xl-sheet li.ok{color:#15803d}.xl-sheet li.mid{color:#b45309}.xl-sheet li.no{color:#b91c1c}
 .topic-box{display:block;width:fit-content;max-width:min(560px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.45}
 .hero-actions{display:flex;justify-content:center;margin-top:14px}
 .sheet{border-collapse:collapse;font-family:var(--mono);font-size:1rem;margin:4px 0}
@@ -148,10 +152,23 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
     <div><h4>Аралас</h4><p>Жолдар мен бағандар бойынша күрделі есептеулерге.</p></div>
   </div>
 </div></div></section>
+<!-- 8 -->
+<section id="work" class="lesson" data-sec="work"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">8</span><h2>Практикалық жұмыс · Excel</h2></div>
+  <div class="cards3">
+    <div><h4>1-лист · Оңай</h4><p>15 минут. Салыстырмалы сілтеме: дүкен сатылымы.</p></div>
+    <div><h4>2-лист · Орташа</h4><p>20 минут. Абсолютті сілтеме: жеңілдік пен салық.</p></div>
+    <div><h4>3-лист · Күрделі</h4><p>25 минут. Аралас сілтеме: көбейту кестесі.</p></div>
+  </div>
+  <p class="learn">Әр студенттің файлы жеке, сандары әртүрлі. Балл автоматты есептеледі: қатысым 40 + жұмыс 60.</p>
+  <div id="xlHost"></div>
+</div></div></section>
 </main>
 <footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">АКТ</a></div></footer>
 
 <script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/xl-work.js"></script>
 <script>
 (function(){
 'use strict';
@@ -277,8 +294,10 @@ const move = (dr, dc) => (dr ? dr + ' жол төмен' : '') + (dc ? dc + ' б
 
 Course.init({ back:{ href:'index.html', text:'← АКТ' }, title:[10, 'Сілтеме түрлері'], sections:[
   { id:'ref', n:1, title:'Сілтеме' }, { id:'rel', n:2, title:'Салыстырмалы' }, { id:'abs', n:3, title:'Абсолютті' },
-  { id:'mix', n:4, title:'Аралас' }, { id:'f4', n:5, title:'F4' }, { id:'cmp', n:6, title:'Салыстыру' }, { id:'sum', n:7, title:'Қорытынды' }
+  { id:'mix', n:4, title:'Аралас' }, { id:'f4', n:5, title:'F4' }, { id:'cmp', n:6, title:'Салыстыру' }, { id:'sum', n:7, title:'Қорытынды' }, { id:'work', n:8, title:'Жұмыс' }
 ] });
+window.Join.mount();
+window.XlWork.mount($('#xlHost'));
 })();
 </script>
 </body>

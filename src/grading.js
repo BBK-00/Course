@@ -9,7 +9,9 @@ export const TOPICS = {
     code: 'score 0-12. The student received a starter template (the system A, b, eps, x = 0 and TODO comments) and had to fill in the logic: the sum over the other unknowns (3), the formula new = (b[i] - s) / A[i][i] (3), the NEW value is used immediately by writing x[i] right away (3), the stopping criterion with tolerance (3). The code may be in another language. Partial credit allowed; 0 if the logic is empty or unrelated.'
   }
 };
-export const MAX = { 1: 24, 2: 24, 3: 12 };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
+export const MAX = { 1: 24, 2: 24, 3: 12 };
+export const MAXT = { '6': MAX, '10': { 1: 15, 2: 20, 3: 25 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -138,7 +140,24 @@ export async function aiGrade(env, task, topic, variant, p, sig, auto, tmin) {
 
 /* ---------- Жиынтық балл ----------
    tasks: submissions массиві; att: қатысым бар ма; result: оқытушының қорытынды баллы */
-export function compute(att, subs, result, bonus) {
+/* АКТ · Excel: 3 лист (15+20+25=60). Толық дұрыс жұмыс 59 балл береді (барлығы 99), жіберілген жұмыс 10 баллдан кем емес. */
+function compute10(att, subs, result, bonus) {
+  const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
+  const tasks = {}; let quality = 0;
+  [1, 2, 3].forEach(n => {
+    const s = by[n], max = MAXT['10'][n];
+    if (!s) { tasks[n] = { sent: false, pts: null, max }; return; }
+    const over = s.teacher_score !== null && s.teacher_score !== undefined, pts = over ? s.teacher_score : (s.auto_score || 0);
+    tasks[n] = { sent: true, pts, max, pending: false, edited: over, ai_pct: 0, flags: '', comment: '' };
+    quality += pts;
+  });
+  const sent = [1, 2, 3].some(n => tasks[n].sent), all = [1, 2, 3].every(n => tasks[n].sent);
+  const attendance = att ? 40 : 0, part = sent ? Math.max(10, Math.round(quality / 60 * 59)) : 0, auto = attendance + part;
+  const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
+  return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all, edited_total: base !== auto };
+}
+export function compute(att, subs, result, bonus, topic) {
+  if (String(topic) === '10') return compute10(att, subs, result, bonus);
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {};
   let quality = 0, aiSum = 0;

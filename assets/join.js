@@ -87,7 +87,7 @@ function openJoin(){
   const { box, close } = dialog();
   box.append(el('h3', { text:'Сабаққа кіру' }));
   if (S.me){
-    box.append(el('p', { html:'<b>' + S.me.student.name + '</b> · ' + S.me.student.group }), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : 'Нұсқаң: №' + S.me.variant + '. Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
+    box.append(el('p', { html:'<b>' + S.me.student.name + '</b> · ' + S.me.student.group }), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : (S.me.session && S.me.session.topic === '10' ? '' : 'Нұсқаң: №' + S.me.variant + '. ') + 'Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
     const out = el('button', { type:'button', class:'btn ghost', text:S.me.guest ? 'Шығу' : 'Шығу (басқа құрылғыға ауысу үшін оқытушыға айт)' });
     out.addEventListener('click', () => { saveToken(''); S.me = null; sync(); close(); });
     box.append(el('div', { class:'stepbar' }, [el('button', { type:'button', class:'btn primary', text:'Жабу', onclick:close }), out]));
@@ -112,6 +112,7 @@ function lock(on){
 
 window.Join = {
   get: () => S.me, on(fn){ S.fns.push(fn); }, refresh, open:openJoin, api,
+  raw: (path, init) => fetch('/api/' + path, { ...(init || {}), headers:{ ...((init && init.headers) || {}), ...(S.token ? { Authorization:'Bearer ' + S.token } : {}) } }),
   serverNow: () => Date.now() + S.skew,
   mount(o){
     S.gate = !!(o && o.gate);

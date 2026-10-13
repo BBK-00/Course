@@ -1,6 +1,7 @@
 /* Сабақ жүйесінің API-ы (Cloudflare Worker + D1). Статикалық сайтты ASSETS беріп тұрады. */
 import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
-import { TOPICS, MAX, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
+import { dataFor, stampOf, buildFile, gradeFile } from './excel.js';
+import { TOPICS, MAX, MAXT, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN } from './plan.js';
@@ -29,7 +30,7 @@ async function body(request) { try { return await request.json(); } catch (e) { 
 
 async function route(request, env, ctx, url) {
   const path = url.pathname.slice(5), method = request.method, DB = env.DB;
-  const b = method === 'GET' ? {} : await body(request);
+  const b = method === 'GET' || path === 'xl/upload' ? {} : await body(request);
 
   /* ---------------- Студент: ашық жол ---------------- */
   if (path === 'public/roster' && method === 'GET') {
@@ -63,6 +64,40 @@ async function route(request, env, ctx, url) {
     }
     const token = await sign(env, { r: 's', st: sid, ses: ses.id }, 12 * 3600);
     return json({ ok: true, token });
+  }
+
+  /* АКТ · Excel жұмысы: студентке жеке файл беріледі, толтырылған файл жүктеледі */
+  if (path === 'xl/file' && method === 'GET') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+    if (!ses || ses.status !== 'open' || ses.topic !== '10') return err('closed', 403);
+    if (!ses.work_until) return err('not_started', 403);
+    if (now() > ses.work_until + 90) return err('time_over', 403);
+    const st = await DB.prepare('SELECT s.full_name, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(p.st).first();
+    if (!st) return err('auth', 401);
+    await DB.prepare('INSERT OR IGNORE INTO task_starts (session_id, student_id, task, started_at) VALUES (?,?,?,?)').bind(p.ses, p.st, 1, now()).run();
+    const bytes = buildFile(dataFor(p.st, p.ses), 'Студент: ' + st.full_name + ' · ' + st.gname + ' · ID ' + await stampOf(env, p.st, p.ses));
+    return new Response(bytes, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="akt10-excel.xlsx"', 'Cache-Control': 'no-store' } });
+  }
+  if (path === 'xl/upload' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+    if (!ses || ses.status !== 'open' || ses.topic !== '10') return err('closed', 403);
+    if (!ses.work_until) return err('not_started', 403);
+    if (now() > ses.work_until + 90) return err('time_over', 403);
+    const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
+    if (busy.n >= 6) return err('wait', 429);
+    await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
+    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength || buf.byteLength > 3e6) return err('bad_file');
+    const res = await gradeFile(dataFor(p.st, p.ses), buf, await stampOf(env, p.st, p.ses));
+    if (res.error) return err(res.error);
+    const t0 = now();
+    await DB.batch(res.sheets.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, match: res.match }), '{}', sh.pts, t0)));
+    return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: res.sheets });
   }
 
   /* Сабақ жоспары: тек мұғалімдерге (қонақ мұғалім токені немесе оқытушы панелі) */
@@ -223,7 +258,7 @@ async function studentState(env, ses_id, st_id) {
   const st = await DB.prepare('SELECT s.full_name, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(st_id).first();
   const { att, subs, res, bonus } = await loadFor(DB, ses_id, st_id);
   if (!ses || !st || !att) return { ok: false, error: 'auth' };
-  const c = compute(att, subs, res, bonus);
+  const c = compute(att, subs, res, bonus, ses && ses.topic);
   const fbk = await DB.prepare('SELECT 1 AS x FROM feedback WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first();
   const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
@@ -323,7 +358,7 @@ async function teacher(path, method, b, env, ctx, url) {
     groups.forEach(g => g.students.forEach(s => {
       const a = A.get(s.id);
       s.present = !!a; s.joined_at = a ? a.joined_at : null; s.variant = a ? a.variant : null; s.device = a ? !!a.device_id : false; s.manual = a ? !!a.manual : false;
-      const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0);
+      const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0, ses.topic);
       s.bonus = c.bonus; s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
@@ -336,14 +371,15 @@ async function teacher(path, method, b, env, ctx, url) {
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(sid).first();
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
-    const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus);
-    const ex = att ? variantOf(ses.topic, att.variant) : null;
+    const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
+    const x10 = ses.topic === '10', ex = att && !x10 ? variantOf(ses.topic, att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
-      sys: att ? sysText(ses.topic, att.variant) : '', note: ex ? ex.noteKk : '', result: res || null, calc: c,
+      sys: att && !x10 ? sysText(ses.topic, att.variant) : '', note: ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
   }
   if (path === 'task_grade' && method === 'POST') {
-    const sc = (b.score === '' || b.score === null || b.score === undefined) ? null : Math.max(0, Math.min(MAX[Number(b.task)] || 0, Math.round(Number(b.score))));
+    const tp = await DB.prepare('SELECT s.topic FROM submissions x JOIN sessions s ON s.id=x.session_id WHERE x.id=?').bind(Number(b.id)).first();
+    const sc = (b.score === '' || b.score === null || b.score === undefined) ? null : Math.max(0, Math.min((MAXT[tp ? tp.topic : '6'] || MAX)[Number(b.task)] || 0, Math.round(Number(b.score))));
     await DB.prepare('UPDATE submissions SET teacher_score=?, teacher_comment=? WHERE id=?').bind(sc, String(b.comment || '').slice(0, 1000), Number(b.id)).run();
     return json({ ok: true });
   }
@@ -363,7 +399,9 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   if (path === 'reopen' && method === 'POST') {
     const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
-    if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
+    const ot = old ? await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(old.session_id).first() : null;
+    if (old && ot && ot.topic === '10') await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
+    else if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
   }
 
@@ -379,7 +417,7 @@ async function teacher(path, method, b, env, ctx, url) {
     ]);
     const R = new Map(ress.map(r => [r.student_id, r])), BN = new Map(bns.map(r => [r.student_id, r.n])), S = {}; subs.forEach(s => { (S[s.student_id] = S[s.student_id] || []).push(s); });
     const SN = new Map(studs.map(s => [s.id, s]));
-    const rows = atts.filter(a => SN.has(a.student_id)).map(a => { const c = compute(a, S[a.student_id] || [], R.get(a.student_id), BN.get(a.student_id) || 0), st = SN.get(a.student_id); return { id: a.student_id, name: st.full_name, group: st.gname, total: c.final, bonus: c.bonus }; });
+    const rows = atts.filter(a => SN.has(a.student_id)).map(a => { const c = compute(a, S[a.student_id] || [], R.get(a.student_id), BN.get(a.student_id) || 0, ses.topic), st = SN.get(a.student_id); return { id: a.student_id, name: st.full_name, group: st.gname, total: c.final, bonus: c.bonus }; });
     rows.sort((x, y) => x.total - y.total || x.name.localeCompare(y.name, 'kk'));
     return json({ ok: true, session: { id: ses.id, topic: ses.topic, status: ses.status }, present: rows.length, low: rows.slice(0, 10), log });
   }
@@ -414,7 +452,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const S = {}; subs.forEach(s => { (S[key(s.session_id, s.student_id)] = S[key(s.session_id, s.student_id)] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
       s.scores = {};
-      topics.forEach(t => { const se = latest[t], k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0); s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, sent: [1, 2, 3].filter(n => c.tasks[n].sent).length, edited: c.edited_total }; });
+      topics.forEach(t => { const se = latest[t], k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t); s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, sent: [1, 2, 3].filter(n => c.tasks[n].sent).length, edited: c.edited_total }; });
     }));
     return json({ ok: true, topics, titles: Object.fromEntries(topics.map(t => [t, (TOPICS[t] || {}).title || t])), groups });
   }

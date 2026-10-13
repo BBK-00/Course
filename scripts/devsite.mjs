@@ -6,5 +6,5 @@ const copy = (from, to) => {
   const b = readFileSync(from);
   if (!existsSync(to) || !readFileSync(to).equals(b)) writeFileSync(to, b);
 };
-['index.html', 'assets', 'sandyq-adister', 'teacher'].forEach(p => copy(p, '.dev-site/' + p));
+['index.html', 'assets', 'sandyq-adister', 'akt', 'teacher'].forEach(p => copy(p, '.dev-site/' + p));
 console.log('dev-site дайын');
