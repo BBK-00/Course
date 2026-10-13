@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10-тақырып: Microsoft Excel бағдарламасындағы сілтеме түрлері — АКТ</title>
+<meta name="description" content="Excel: салыстырмалы, абсолютті және аралас сілтеме. Анимациямен түсіндіру.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+.topic-box{display:block;width:fit-content;max-width:min(560px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.45}
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.sheet{border-collapse:collapse;font-family:var(--mono);font-size:1rem;margin:4px 0}
+.sheet th{background:var(--surface-2);color:var(--muted);font-weight:600;padding:4px 10px;border:1px solid var(--line);min-width:3.4em}
+.sheet td{border:1px solid var(--line);padding:6px 10px;min-width:5em;text-align:right;background:#fff;transition:background .3s;vertical-align:middle}
+.sheet td.t{text-align:left}
+.sheet td small{display:block;font-size:.72rem;color:var(--primary-2);font-weight:600}
+.sheet td.sel{outline:3px solid var(--primary);outline-offset:-2px;background:var(--primary-soft)}
+.sheet td.src{background:var(--info-bg)}
+.sheet td.fix{background:var(--pivot-bg);box-shadow:inset 0 0 0 2px var(--pivot-ring)}
+.sheet td.pick{cursor:pointer}.sheet td.pick:hover{background:var(--primary-soft)}
+.sheet-wrap{overflow-x:auto;max-width:100%}
+.fbar{display:flex;align-items:center;gap:10px;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;margin-bottom:8px;min-height:40px}
+.fbar b{color:var(--primary)}.fbar span.v{color:var(--muted)}
+.blk{margin-top:26px}
+.blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
+.blk-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
+.tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}
+.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:12px 0}
+.cards3>div{background:var(--surface-2);border-radius:14px;padding:14px 16px}
+.cards3 h4{margin:0 0 6px;color:var(--primary)}.cards3 p{margin:0}
+.big-ref{font-family:var(--mono);font-size:2.6rem;font-weight:800;text-align:center;letter-spacing:.04em;margin:8px 0}
+.big-ref .lk{color:var(--pivot);background:var(--pivot-bg);border-radius:8px;padding:0 6px}
+.cmp{width:100%;border-collapse:collapse;margin:8px 0}
+.cmp th,.cmp td{border:1px solid var(--line);padding:10px 12px;text-align:left}.cmp th{background:var(--surface-2)}
+.cmp td code{font-weight:700}
+.rule2{font-size:1.25rem;font-weight:700;text-align:center;background:var(--pivot-bg);border:2px solid var(--pivot-ring);border-radius:14px;padding:14px 18px;margin:12px 0}
+code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;padding:1px 6px}
+</style>
+</head>
+<body>
+<main id="main">
+
+<section id="hero" class="hero" data-sec="hero"><div class="wrap">
+  <div class="topic-box"><b>Тақырып:</b> <i>Microsoft Excel бағдарламасындағы сілтеме түрлері.</i></div>
+  <h1>Сілтеме түрлері</h1>
+  <p class="lead">Формуланы көшіргенде не өзгеріп, не өзгермейтінін үйренеміз.</p>
+  <div class="hero-actions"><a class="btn primary big" href="#ref">Сабақты бастау →</a></div>
+</div></section>
+
+<!-- 1 -->
+<section id="ref" class="lesson" data-sec="ref"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Сілтеме дегеніміз не?</h2></div>
+  <p class="learn">Бұл бөлімде ұяшықтың адресін оқуды және формулада қолдануды үйренесің.</p>
+  <p><dfn>Сілтеме</dfn> — Excel-дегі ұяшықтың адресі. Ол <b>бағанның әрпі</b> мен <b>жолдың нөмірінен</b> тұрады. Формулада сандардың орнына ұяшықтардың адрестерін жазамыз.</p>
+  <div class="cards3"><div><h4>A1</h4><p>A бағаны, 1-жол</p></div><div><h4>B5</h4><p>B бағаны, 5-жол</p></div><div><h4>C10</h4><p>C бағаны, 10-жол</p></div></div>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag do">2 · ӨЗІҢ ОРЫНДА</span> Кез келген ұяшықты бас.</h3>
+    <div class="fbar"><b>Адресі:</b><span id="pickAddr">—</span><span class="v" id="pickNote">Ұяшықты таңда</span></div>
+    <div class="sheet-wrap" id="shPick"></div>
+  </div>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Формулада адрес қолдану.</h3>
+    <p>A1 ұяшығында 10, B1 ұяшығында 20 болса, C1 ұяшығына <code>=A1+B1</code> жазамыз. Нәтижесі 30 болады.</p>
+    <div class="sheet-wrap" id="shSum"></div>
+  </div>
+  <div class="tip info"><b>3</b><span>Excel-де сілтеменің 3 түрі бар: салыстырмалы, абсолютті және аралас.</span></div>
+</div></div></section>
+
+<!-- 2 -->
+<section id="rel" class="lesson" data-sec="rel"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Салыстырмалы сілтеме (A1)</h2></div>
+  <p class="learn">Бұл бөлімде формуланы көшіргенде адрестің қалай өзгеретінін үйренесің.</p>
+  <p><dfn>Салыстырмалы сілтеме</dfn> — формуланы басқа ұяшыққа көшіргенде <b>автоматты түрде өзгеретін</b> сілтеме. Оның жазылуында <code>$</code> белгісі болмайды.</p>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Формуланы төменге көшіреміз.</h3>
+    <div class="demo"><div class="stage"><div class="fbar" id="fb1"></div><div class="sheet-wrap" id="sh1"></div></div><div class="side"><div id="ex1"></div><div id="bar1"></div></div></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Салыстырмалы сілтемеде формуладағы адрестердің бәрі көшірілген жағына қарай жылжиды.</p></div>
+</div></div></section>
+
+<!-- 3 -->
+<section id="abs" class="lesson" data-sec="abs"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Абсолютті сілтеме ($A$1)</h2></div>
+  <p class="learn">Бұл бөлімде формуланы көшіргенде өзгермейтін сілтемені үйренесің.</p>
+  <p><dfn>Абсолютті сілтеме</dfn> — формуланы басқа жерге көшіргенде <b>өзгермейтін</b> сілтеме. Мысалы, дүкендегі барлық тауарға 10% жеңілдік берілді. Жеңілдік мөлшері E1 ұяшығында тұр.</p>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Жеңілдікті есептейміз.</h3>
+    <div class="demo"><div class="stage"><div class="fbar" id="fb2"></div><div class="sheet-wrap" id="sh2"></div></div><div class="side"><div id="ex2"></div><div id="bar2"></div></div></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p><code>$</code> белгісі бағанды да, жолды да бекітеді. <code>$A$1</code> — баған мен жол толық бекітілген.</p></div>
+</div></div></section>
+
+<!-- 4 -->
+<section id="mix" class="lesson" data-sec="mix"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">4</span><h2>Аралас сілтеме ($A1 немесе A$1)</h2></div>
+  <p class="learn">Бұл бөлімде бағаны немесе жолды ғана бекітуді үйренесің.</p>
+  <p><dfn>Аралас сілтеме</dfn> — баған немесе жолдың <b>біреуі ғана</b> бекітілетін сілтеме. Оның екі түрі бар:</p>
+  <div class="cards3">
+    <div><h4>$A1</h4><p>A бағаны бекітілген, жол өзгереді. Төменге көшіргенде: $A1 → $A2 → $A3</p></div>
+    <div><h4>A$1</h4><p>1-жол бекітілген, баған өзгереді. Оңға көшіргенде: A$1 → B$1 → C$1</p></div>
+  </div>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Көбейту кестесін құрамыз.</h3>
+    <p>Аралас сілтеме көбейту кестесін құру кезінде өте пайдалы: бірінші баған мен бірінші жол бекітіледі. Бір ғана формула <code>=$A2*B$1</code> бүкіл кестені толтырады.</p>
+    <div class="demo"><div class="stage"><div class="fbar" id="fb3"></div><div class="sheet-wrap" id="sh3"></div></div><div class="side"><div id="ex3"></div><div id="bar3"></div></div></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p><code>$</code> қай әріптің немесе санның алдында тұрса, тек сол бөлік бекітіледі.</p></div>
+</div></div></section>
+
+<!-- 5 -->
+<section id="f4" class="lesson" data-sec="f4"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">5</span><h2>Сілтеме түрін қалай ауыстырамыз?</h2></div>
+  <p class="learn">Бұл бөлімде <code>$</code> белгісін F4 пернесімен қоюды үйренесің.</p>
+  <p>Сілтеме түрін қолмен жазуға болады, бірақ жылдамырақ жолы бар: формуладағы адресті таңдап, <b>F4</b> пернесін басасың. Кейбір ноутбуктерде <b>Fn + F4</b> қолданылады.</p>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag do">2 · ӨЗІҢ ОРЫНДА</span> F4 батырмасын бас.</h3>
+    <div class="big-ref" id="f4Ref"></div>
+    <p id="f4Note" style="text-align:center;min-height:3em" role="status"></p>
+    <div class="stepbar" style="justify-content:center"><button type="button" class="btn primary big" id="f4Btn">F4</button></div>
+  </div>
+  <div class="tip info"><b>↻</b><span>F4 пернесін төртінші рет бассаң, сілтеме бастапқы A1 түріне оралады.</span></div>
+</div></div></section>
+
+<!-- 6 -->
+<section id="cmp" class="lesson" data-sec="cmp"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">6</span><h2>Үш сілтеменің айырмашылығы</h2></div>
+  <p class="learn">Бұл бөлімде үш түрлі сілтемені салыстырасың.</p>
+  <div class="sheet-wrap"><table class="cmp">
+    <thead><tr><th>Сілтеме</th><th>Белгіленуі</th><th>Қасиеті</th></tr></thead>
+    <tbody>
+      <tr><td>Салыстырмалы</td><td><code>A1</code></td><td>Баған да, жол да өзгереді</td></tr>
+      <tr><td>Абсолютті</td><td><code>$A$1</code></td><td>Ешқайсысы өзгермейді</td></tr>
+      <tr><td>Аралас</td><td><code>$A1</code></td><td>Баған бекітіледі</td></tr>
+      <tr><td>Аралас</td><td><code>A$1</code></td><td>Жол бекітіледі</td></tr>
+    </tbody>
+  </table></div>
+</div></div></section>
+
+<!-- 7 -->
+<section id="sum" class="lesson" data-sec="sum"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">7</span><h2>Қорытынды</h2></div>
+  <p>Сілтеме түрлері Excel-де формулаларды дұрыс көшіру үшін қолданылады.</p>
+  <div class="rule2"><code>$</code> белгісі қай жерде тұрса, сол бөлік бекітіледі.</div>
+  <div class="cards3">
+    <div><h4>Салыстырмалы</h4><p>Қарапайым есептеулерге.</p></div>
+    <div><h4>Абсолютті</h4><p>Тұрақты мәндерді қолдануға.</p></div>
+    <div><h4>Аралас</h4><p>Жолдар мен бағандар бойынша күрделі есептеулерге.</p></div>
+  </div>
+</div></div></section>
+</main>
+<footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">АКТ</a></div></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script>
+(function(){
+'use strict';
+const { $, el, Stepper, ExplainPanel, Course } = L;
+
+/* ===== Excel: шын сілтеме есептеу ===== */
+const COLS = 'ABCDEFGH';
+const parse = r => { const m = /^(\$?)([A-H])(\$?)(\d+)$/.exec(r); return { ca:!!m[1], col:COLS.indexOf(m[2]), ra:!!m[3], row:+m[4] }; };
+const fmtRef = o => (o.ca ? '$' : '') + COLS[o.col] + (o.ra ? '$' : '') + o.row;
+const shift = (r, dr, dc) => { const o = parse(r); if (!o.ra) o.row += dr; if (!o.ca) o.col += dc; return fmtRef(o); };
+const RE = /\$?[A-H]\$?\d+/g;
+const shiftF = (f, dr, dc) => f.replace(RE, m => shift(m, dr, dc));
+const refsOf = f => (f.match(RE) || []);
+const plain = r => r.replace(/\$/g, '');
+const rc = r => { const o = parse(r); return [o.row, o.col]; };
+function value(f, vals){
+  const e = f.slice(1).replace(/\$?([A-H])\$?(\d+)/g, (m, c, r) => '(' + (+vals[c + r] || 0) + ')');
+  return Function('"use strict";return (' + e + ')')();
+}
+const show = (v, fmt) => fmt === 'pct' ? Math.round(v * 100) + '%' : (typeof v === 'number' ? String(Math.round(v * 1e6) / 1e6).replace('.', ',') : v);
+/* sheet: { cols, rows, cells:{ref:{v|f,fmt}}, sel, fixed:[refs], mark:[refs] } */
+function draw(host, sh){
+  const vals = {};
+  Object.entries(sh.cells).forEach(([r, c]) => { if (c.v !== undefined && typeof c.v === 'number') vals[r] = c.v; });
+  Object.entries(sh.cells).forEach(([r, c]) => { if (c.f) vals[r] = value(c.f, vals); });
+  const t = el('table', { class:'sheet' }), hr = el('tr', null, [el('th')]);
+  sh.cols.forEach(c => hr.append(el('th', { text:c }))); t.append(hr);
+  for (let i = 1; i <= sh.rows; i++){
+    const tr = el('tr', null, [el('th', { text:String(i) })]);
+    sh.cols.forEach(c => {
+      const r = c + i, cell = sh.cells[r], td = el('td');
+      if (cell){
+        if (cell.f){ td.append(show(vals[r], cell.fmt)); td.append(el('small', { text:cell.f })); }
+        else { td.textContent = show(cell.v, cell.fmt); if (typeof cell.v === 'string') td.classList.add('t'); }
+      }
+      if (sh.sel === r) td.classList.add('sel');
+      (sh.mark || []).forEach(m => { if (plain(m) === r) td.classList.add('src'); });
+      (sh.fixed || []).forEach(m => { if (plain(m) === r) td.classList.add('fix'); });
+      tr.append(td);
+    });
+    t.append(tr);
+  }
+  host.innerHTML = ''; host.append(t);
+  return vals;
+}
+function bar(host, sel, f){ host.innerHTML = '<b>' + (sel || '—') + '</b><span class="v">fx</span><span>' + (f || '') + '</span>'; }
+
+/* 1. Адрес таңдау */
+(function(){
+  const cols = ['A', 'B', 'C', 'D', 'E'], names = {};
+  const t = el('table', { class:'sheet' }), hr = el('tr', null, [el('th')]);
+  cols.forEach(c => hr.append(el('th', { text:c }))); t.append(hr);
+  let cur = null;
+  for (let i = 1; i <= 6; i++){ const tr = el('tr', null, [el('th', { text:String(i) })]); cols.forEach(c => { const td = el('td', { class:'pick', text:'' }); td.addEventListener('click', () => { if (cur) cur.classList.remove('sel'); cur = td; td.classList.add('sel'); $('#pickAddr').textContent = c + i; $('#pickNote').textContent = c + ' бағаны, ' + i + '-жол'; }); tr.append(td); }); t.append(tr); }
+  $('#shPick').append(t);
+  draw($('#shSum'), { cols:['A', 'B', 'C'], rows:1, cells:{ A1:{ v:10 }, B1:{ v:20 }, C1:{ f:'=A1+B1' } }, sel:'C1', mark:['A1', 'B1'] });
+})();
+
+/* Көшіру демосы: формула нақты жылжиды */
+function copyDemo(n, cfg){
+  const ex = new ExplainPanel($('#ex' + n)), fb = $('#fb' + n), host = $('#sh' + n);
+  const steps = cfg.steps;
+  function apply(s){
+    const st = steps[s], cells = Object.assign({}, cfg.base);
+    for (let i = 0; i <= s; i++) { const x = steps[i]; (x.put || []).forEach(p => { cells[p.ref] = { f:p.f, fmt:cfg.fmt }; }); }
+    const fx = st.f, refs = fx ? refsOf(fx) : [];
+    draw(host, { cols:cfg.cols, rows:cfg.rows, cells, sel:st.sel, mark:refs.filter(r => !/\$/.test(r)), fixed:refs.filter(r => /\$/.test(r)) });
+    bar(fb, st.sel, fx);
+    ex.set(st.t);
+  }
+  const stepper = new Stepper({ count:steps.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(300); }, barHost:$('#bar' + n) });
+  Course.register(cfg.id, { stepper, reset(){ stepper.reset(); } });
+  stepper.init();
+}
+const how = (f0, f1, dr, dc) => refsOf(f0).map((r, i) => { const n = refsOf(f1)[i]; return r === n ? r + ' → ' + n + ' (өзгерген жоқ)' : r + ' → ' + n; }).join(',  ');
+const move = (dr, dc) => (dr ? dr + ' жол төмен' : '') + (dc ? dc + ' баған оңға' : '');
+
+/* 2. Салыстырмалы */
+(function(){
+  const f0 = '=A1+B1', base = { A1:{ v:10 }, B1:{ v:5 }, A2:{ v:20 }, B2:{ v:8 }, A3:{ v:30 }, B3:{ v:12 } };
+  const st = (ref, dr, t) => { const f = shiftF(f0, dr, 0); return { sel:ref, f, put:[{ ref, f }], t:Object.assign({ how:how(f0, f) }, t) }; };
+  copyDemo(1, { id:'rel', cols:['A', 'B', 'C'], rows:3, base, steps:[
+    { sel:'C1', f:f0, put:[{ ref:'C1', f:f0 }], t:{ now:'C1 ұяшығына формуланы жазамыз: ' + f0 + '. Нәтижесі 15.', why:'Формула A1 және B1 ұяшықтарын қосады (көк түспен белгіленген).', how:'Енді формуланы төменге көшіреміз.' } },
+    st('C2', 1, { now:'Формуланы C2 ұяшығына көшірдік: ' + shiftF(f0, 1, 0) + '.', why:'Формула 1 жол төмен көшті, сондықтан адрестердің жол нөмірлері 1-ге артты.' }),
+    st('C3', 2, { now:'Формуланы C3 ұяшығына көшірдік: ' + shiftF(f0, 2, 0) + '.', why:'Формула 2 жол төмен көшті, сондықтан жол нөмірлері 2-ге артты.', after:'Салыстырмалы сілтемеде $ жоқ, сондықтан адрес автоматты өзгереді.' })
+  ] });
+})();
+
+/* 3. Абсолютті */
+(function(){
+  const f0 = '=B2*(1-$E$1)', wrong = '=B3*(1-E2)';
+  const base = { A1:{ v:'Тауар' }, B1:{ v:'Бағасы' }, C1:{ v:'Жеңілдіктен кейін' }, E1:{ v:0.1, fmt:'pct' }, A2:{ v:'Дәптер' }, B2:{ v:500 }, A3:{ v:'Қалам' }, B3:{ v:300 }, A4:{ v:'Кітап' }, B4:{ v:2000 } };
+  const mk = (ref, dr, t) => { const f = shiftF(f0, dr, 0); return { sel:ref, f, put:[{ ref, f }], t:Object.assign({ how:how(f0, f) }, t) }; };
+  copyDemo(2, { id:'abs', cols:['A', 'B', 'C', 'D', 'E'], rows:4, base, steps:[
+    { sel:'C2', f:f0, put:[{ ref:'C2', f:f0 }], t:{ now:'C2 ұяшығына формуланы жазамыз: ' + f0 + '.', why:'$E$1 — жеңілдік мөлшері (сары түспен белгіленген). Ол бекітілген.', how:'500 × (1 − 10%) = 450. Енді формуланы төменге көшіреміз.' } },
+    mk('C3', 1, { now:'Формуланы C3 ұяшығына көшірдік: ' + shiftF(f0, 1, 0) + '.', why:'B2 → B3 өзгерді, ал $E$1 өзгермеді, себебі $ белгісі бағанды да, жолды да бекітеді.' }),
+    mk('C4', 2, { now:'Формуланы C4 ұяшығына көшірдік: ' + shiftF(f0, 2, 0) + '.', why:'Тағы да $E$1 өзгеріссіз қалды, барлық тауар үшін жеңілдік дұрыс есептелді.', after:'Абсолютті сілтеме тұрақты мәнді (жеңілдікті) бекітеді.' }),
+    { sel:'C3', f:wrong, put:[{ ref:'C3', f:wrong }], t:{ now:'Ал егер $ белгісін қоймасақ ше? C3 формуласы ' + wrong + ' болады.', why:'E1 адресі де 1 жол төмен жылжиды: E2 ұяшығы бос, ол 0 деп саналады.', how:'Нәтиже 300 болады: жеңілдік есепке алынбады. Бұл — қате.', after:'Сондықтан тұрақты мәнге $E$1 деп жазамыз.' } }
+  ] });
+})();
+
+/* 4. Аралас: көбейту кестесі */
+(function(){
+  const f0 = '=$A2*B$1', cols = ['A', 'B', 'C', 'D', 'E'], base = {};
+  [1, 2, 3, 4].forEach(i => { base['A' + (i + 1)] = { v:i }; base[COLS[i] + '1'] = { v:i }; });
+  const ref = (c, r) => COLS[c] + r;
+  const all = []; for (let r = 2; r <= 5; r++) for (let c = 1; c <= 4; c++) all.push({ ref:ref(c, r), f:shiftF(f0, r - 2, c - 1) });
+  copyDemo(3, { id:'mix', cols, rows:5, base, steps:[
+    { sel:'B2', f:f0, put:[{ ref:'B2', f:f0 }], t:{ now:'B2 ұяшығына формуланы жазамыз: ' + f0 + '.', why:'$A2 — A бағаны бекітілген, B$1 — 1-жол бекітілген (сары түспен белгіленген).', how:'1 × 1 = 1. Енді формуланы оңға және төменге көшіреміз.' } },
+    { sel:'C2', f:shiftF(f0, 0, 1), put:[{ ref:'C2', f:shiftF(f0, 0, 1) }], t:{ now:'Формуланы C2 ұяшығына (оңға) көшірдік: ' + shiftF(f0, 0, 1) + '.', why:'Оңға көшкенде баған өзгереді: B$1 → C$1. A бағаны бекітілгендіктен $A2 өзгермеді.', how:how(f0, shiftF(f0, 0, 1)) } },
+    { sel:'B3', f:shiftF(f0, 1, 0), put:[{ ref:'B3', f:shiftF(f0, 1, 0) }], t:{ now:'Формуланы B3 ұяшығына (төмен) көшірдік: ' + shiftF(f0, 1, 0) + '.', why:'Төмен көшкенде жол өзгереді: $A2 → $A3. 1-жол бекітілгендіктен B$1 өзгермеді.', how:how(f0, shiftF(f0, 1, 0)) } },
+    { sel:'E5', f:shiftF(f0, 3, 3), put:all, t:{ now:'Формуланы бүкіл аумаққа көшірдік. Мысалы, E5 ұяшығында: ' + shiftF(f0, 3, 3) + '.', why:'Бір ғана формула бүкіл көбейту кестесін толтырды.', how:how(f0, shiftF(f0, 3, 3)), after:'Аралас сілтеме жолдар мен бағандар бойынша есептеулер үшін өте ыңғайлы.' } }
+  ] });
+})();
+
+/* 5. F4 */
+(function(){
+  const S = [['A1', 'Салыстырмалы: баған да, жол да өзгереді.'], ['$A$1', 'Абсолютті: баған да, жол да бекітілген.'], ['A$1', 'Аралас: жол бекітілген, баған өзгереді.'], ['$A1', 'Аралас: баған бекітілген, жол өзгереді.']];
+  let i = 0; const ref = $('#f4Ref'), note = $('#f4Note');
+  const paint = () => { const [r, t] = S[i]; ref.innerHTML = '=' + r.replace(/\$/g, '<span class="lk">$</span>'); note.textContent = t; };
+  $('#f4Btn').addEventListener('click', () => { i = (i + 1) % S.length; paint(); }); paint();
+})();
+
+Course.init({ back:{ href:'index.html', text:'← АКТ' }, title:[10, 'Сілтеме түрлері'], sections:[
+  { id:'ref', n:1, title:'Сілтеме' }, { id:'rel', n:2, title:'Салыстырмалы' }, { id:'abs', n:3, title:'Абсолютті' },
+  { id:'mix', n:4, title:'Аралас' }, { id:'f4', n:5, title:'F4' }, { id:'cmp', n:6, title:'Салыстыру' }, { id:'sum', n:7, title:'Қорытынды' }
+] });
+})();
+</script>
+</body>
+</html>
