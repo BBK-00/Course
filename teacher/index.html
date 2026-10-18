@@ -143,13 +143,13 @@ setInterval(() => { if (LIVE && LIVE.session && TAB === 'live') tickTimer(); }, 
 const lessonPath = () => LIVE && LIVE.session && LIVE.session.topic === '10' ? '/akt/10-silteme-turleri' : LIVE && LIVE.session && LIVE.session.topic === '7' ? '/sandyq-adister/07-approksimaciya' : '/sandyq-adister/06-gauss-seidel';
 function openPj(){ const u = location.origin + lessonPath(); $('#pjUrl').textContent = u; $('#pj').hidden = false; document.body.style.overflow = 'hidden'; fillPj(); }
 function closePj(){ $('#pj').hidden = true; document.body.style.overflow = ''; }
-function fillPj(){ if ($('#pj').hidden || !LIVE || !LIVE.session) return; $('#pjCode').textContent = LIVE.session.code || ''; $('#pjTtl').textContent = 'Код ' + (60 - (Math.floor(Date.now() / 1000 + skew) % 60)) + ' секундтан кейін өзгереді'; }
+function fillPj(){ if ($('#pj').hidden || !LIVE || !LIVE.session) return; $('#pjCode').textContent = LIVE.session.code || ''; $('#pjTtl').textContent = 'Код ' + mmss(600 - (Math.floor(Date.now() / 1000 + skew) % 600)) + ' минуттан кейін өзгереді'; }
 $('#pjX').addEventListener('click', closePj); document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pj').hidden) closePj(); });
 function tickTimer(){
   fillPj();
   const t = $('#timer');
   if (t && LIVE.session.work_until) { const left = Math.floor(LIVE.session.work_until - (Date.now() / 1000 + skew)); t.textContent = left > 0 ? '⏱ ' + mmss(left) : '⏱ Уақыт бітті'; t.classList.toggle('late', left <= 300); }
-  const c = $('#codettl'); if (c) c.textContent = 'Код ' + (60 - (Math.floor(Date.now() / 1000 + skew) % 60)) + ' секундтан кейін өзгереді';
+  const c = $('#codettl'); if (c) c.textContent = 'Код ' + mmss(600 - (Math.floor(Date.now() / 1000 + skew) % 600)) + ' минуттан кейін өзгереді';
 }
 function renderLive(){
   const root = $('#s-live'), ses = LIVE.session; skew = LIVE.now - Date.now() / 1000;
@@ -174,7 +174,7 @@ function renderLive(){
       h('button', { class: 'btn sm', text: '⏹ Тоқтату', on: { click: async () => { await api('session/stopwork', {}); loadLive(true); } } }));
     ctl.append(h('span', { class: 'sp' }), h('button', { class: 'btn sm danger', text: 'Сабақты жабу', on: { click: async () => { if (confirm('Сабақты жабасыз ба? Студенттер енді кіре алмайды.')) { await api('session/close', {}); loadLive(true); } } } }));
     root.append(h('div', { class: 'grid2' }, [
-      h('div', { class: 'card' }, [h('h2', { text: 'Сабаққа кіру коды' }), h('div', { class: 'code', text: ses.code }), h('p', { class: 'sub', id: 'codettl', style: 'margin:4px 0 8px' }), h('p', { class: 'sub', text: 'Студенттер сабақ бетіндегі «Сабаққа кіру» батырмасын басып, топты, атын таңдап, осы кодты енгізеді. Код әр минут сайын өзгереді, сондықтан келмеген студентке жіберіп жібере алмайды. Кіргендерге 40 балл автоматты түседі.' }),
+      h('div', { class: 'card' }, [h('h2', { text: 'Сабаққа кіру коды' }), h('div', { class: 'code', text: ses.code }), h('p', { class: 'sub', id: 'codettl', style: 'margin:4px 0 8px' }), h('p', { class: 'sub', text: 'Студенттер сабақ бетіндегі «Сабаққа кіру» батырмасын басып, топты, атын таңдап, осы кодты енгізеді. Код әр 10 минут сайын өзгереді, сондықтан келмеген студентке жіберіп жібере алмайды. Кіргендерге 40 балл автоматты түседі.' }),
         h('button', { class: 'btn', style: 'margin-top:10px', text: '📺 Проекторға шығару', on: { click: openPj } }),
         h('p', { class: 'sub', style: 'margin:12px 0 0', text: 'Сабақ беті: ' + location.origin + lessonPath() })]),
       h('div', { class: 'card' }, [h('h2', { text: 'Сабақ барысы' }), h('div', { class: 'stats4' }, [['Бар', present], ['Жоқ', all.length - present], ['Жұмысты бітірді', done], ['Қонақ мұғалім', (LIVE.guests || []).length]].map(([l, v]) => h('div', { class: 'stat4' }, [h('b', { text: String(v) }), h('span', { text: l })]))), (LIVE.guests || []).length ? h('p', { class: 'sub', style: 'margin:10px 0 0', text: 'Қонақ мұғалімдер: ' + LIVE.guests.map(g => g.name).join(', ') }) : '', h('div', { style: 'margin-top:14px' }, ctl)])]));

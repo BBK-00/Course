@@ -29,7 +29,7 @@ const [s1, s2, s3] = r.j.groups.find(x => x.id === g.id).students.sort((a, b) =>
 console.log('Сабаққа кіру');
 r = await call('public/roster'); ok(r.j.open === false, 'сабақ ашылмаған: тізім жабық');
 r = await T('session/start', { body: { topic: '6' } }); ok(r.j.ok, 'сабақ басталды');
-let live = (await T('live')).j; const code = live.session.code; ok(/^\d{4}$/.test(code), 'сабақ коды 4 таңбалы: ' + code); ok(live.session.code_ttl > 0 && live.session.code_ttl <= 60, 'код әр минут сайын өзгереді, қалған уақыт: ' + live.session.code_ttl + ' сек');
+let live = (await T('live')).j; const code = live.session.code; ok(/^\d{4}$/.test(code), 'сабақ коды 4 таңбалы: ' + code); ok(live.session.code_ttl > 0 && live.session.code_ttl <= 600, 'код әр 10 минут сайын өзгереді, қалған уақыт: ' + live.session.code_ttl + ' сек');
 r = await call('join', { body: { student_id: s1.id, code: code === '0000' ? '1111' : '0000', device: 'devA' } }); ok(r.j.error === 'bad_code', 'қате код қабылданбайды');
 r = await call('join', { body: { student_id: s1.id, code, device: 'devA' } }); const tok1 = r.j.token; ok(!!tok1, 'дұрыс код → кірді');
 r = await call('join', { body: { student_id: s1.id, code, device: 'devB' } }); ok(r.s === 409 && r.j.error === 'taken', 'басқа құрылғыдан сол атпен кіру жоқ');
