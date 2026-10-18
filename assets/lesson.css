@@ -303,3 +303,42 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
 .role-tabs{display:flex;gap:8px;margin:8px 0 12px}
 .role-tabs button{flex:1;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font:inherit;font-weight:600;cursor:pointer}
 .role-tabs button.on{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-2)}
+
+/* ===== Код редакторы (VS Code үлгісінде) ===== */
+.ce{display:flex;position:relative;background:#1e1e1e;color:#d4d4d4;border:1px solid #333;border-radius:12px;overflow:hidden;font:14px/21px var(--mono);height:min(58vh,440px);min-height:260px;margin:8px 0}
+.ce.off{opacity:.65}
+.ce-gut{margin:0;padding:10px 10px 10px 14px;min-width:46px;text-align:right;color:#858585;border-right:1px solid #2d2d2d;overflow:hidden;user-select:none;font:inherit;background:#1e1e1e}
+.ce-wrap{position:relative;flex:1;min-width:0}
+.ce-hl,.ce-ta{position:absolute;inset:0;margin:0;padding:10px 14px 10px 14px;font:inherit;white-space:pre;tab-size:4;letter-spacing:0;border:0;word-spacing:0;font-variant-ligatures:none}
+.ce-hl{overflow:hidden;color:#d4d4d4;pointer-events:none}
+.ce-ta{overflow:auto;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:#fff;resize:none;outline:none;scrollbar-width:none}
+.ce-ta::-webkit-scrollbar{display:none}
+.ce-ta::selection{background:#264f78;-webkit-text-fill-color:transparent}
+.ce:focus-within{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.25)}
+.ce-k{color:#569cd6}.ce-s{color:#ce9178}.ce-n{color:#b5cea8}.ce-c{color:#6a9955;font-style:italic}.ce-f{color:#dcdcaa}
+.ce-pop{position:absolute;z-index:5;min-width:230px;max-width:min(360px,92%);background:#252526;border:1px solid #454545;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.45);padding:3px;font:13px/1.2 var(--mono)}
+.ce-pop[hidden]{display:none}
+.ce-it{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;cursor:pointer;color:#cccccc}
+.ce-it.on{background:#04395e;color:#fff}
+.ce-it b{color:#4fc1ff;font-weight:700}
+.ce-ic{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:4px;font-size:11px;font-weight:700;flex:none}
+.ce-is{background:#5a4a1b;color:#ffd866}.ce-ik{background:#1b3a5a;color:#7fbfff}.ce-if,.ce-im{background:#3b2b5a;color:#d2a8ff}.ce-iv{background:#1f4a3a;color:#7ee0b0}
+.ce-lb{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ce-dt{color:#858585;font-size:11px;flex:none}
+.w7-toast{background:var(--bad-bg);border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:8px 12px;margin:6px 0;font-weight:600}
+.w7-toast[hidden]{display:none}
+.w7-rules{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:8px 0 12px}
+.w7-rules h4{margin:0 0 6px}
+.w7-clock{position:sticky;top:104px;z-index:6;text-align:center;font-weight:700;font-size:1.15rem;padding:10px 14px;border-radius:12px;background:var(--info-bg);color:var(--primary-2);border:1px solid #BFDBFE;margin-bottom:10px}
+.w7-clock[hidden]{display:none}
+.w7-clock.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--pivot-ring)}
+.w7-clock.over{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.w7-task{border:1px solid var(--line);background:var(--surface-2)}
+.w7-lvl{font-size:.78rem;font-weight:800;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+.w7-l1{background:var(--ok-bg);color:var(--ok)}.w7-l2,.w7-l3{background:var(--warn-bg);color:var(--warn)}
+.w7-given{border:2px dashed var(--primary);border-radius:14px;padding:12px 16px;margin:10px 0;background:var(--surface)}
+.w7-gh{font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;font-size:.82rem;margin-bottom:6px}
+.w7-f{font-size:1.1rem;white-space:normal;margin:10px 0;text-align:left}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--math);font-size:1rem;padding:4px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+@media (max-width:600px){.ce{font-size:13px;height:min(60vh,420px)}.ce-gut{min-width:36px;padding-left:8px}.w7-clock{top:96px}}

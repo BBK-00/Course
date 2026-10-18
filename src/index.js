@@ -5,6 +5,7 @@ import { TOPICS, MAX, MAXT, autoScore, aiGrade, compute, variantOf, sysText, out
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN } from './plan.js';
+import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); ready = true; }
@@ -142,6 +143,12 @@ async function route(request, env, ctx, url) {
     if (![1, 2, 3].includes(task)) return err('bad_task');
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
     if (!ses || ses.status !== 'open') return err('closed', 403);
+    if (ses.topic === '7') {   /* 7-тақырып: үш тапсырмаға бір таймер, мерзімнен кейін де жіберуге болады (балл азаяды) */
+      if (!ses.work_until) return err('not_started', 403);
+      const t = now();
+      await DB.batch([1, 2, 3].map(n => DB.prepare('INSERT OR IGNORE INTO task_starts (session_id, student_id, task, started_at) VALUES (?,?,?,?)').bind(p.ses, p.st, n, t)));
+      return json({ ok: true, ...(await studentState(env, p.ses, p.st)) });
+    }
     if (!ses.work_until || now() > ses.work_until + 90) return err(ses.work_until ? 'time_over' : 'not_started', 403);
     await DB.prepare('INSERT OR IGNORE INTO task_starts (session_id, student_id, task, started_at) VALUES (?,?,?,?)').bind(p.ses, p.st, task, now()).run();
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)) });
@@ -177,12 +184,24 @@ async function route(request, env, ctx, url) {
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
     if (!ses || ses.status !== 'open') return err('closed', 403);
     if (!ses.work_until) return err('not_started', 403);
-    if (now() > ses.work_until + 90) return err('time_over', 403);
+    const x7 = ses.topic === '7';
+    if (!x7 && now() > ses.work_until + 90) return err('time_over', 403);
     const st0 = await DB.prepare('SELECT started_at FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(p.ses, p.st, task).first();
     if (!st0) return err('task_not_started', 403);
-    if (now() > st0.started_at + TOPICS[ses.topic].limits[task] * 60 + 45) return err('task_time_over', 403);
+    if (!x7 && now() > st0.started_at + TOPICS[ses.topic].limits[task] * 60 + 45) return err('task_time_over', 403);
     const att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
     if (!att) return err('auth', 401);
+    if (x7) {   /* код тапсырмасы: мерзімнен кеш — балл азаяды, көшіріп қойса — 0 */
+      const sg = b.signals && typeof b.signals === 'object' ? b.signals : {}, pl = sanitize(2, b.payload || {}), N = v => Math.max(0, Math.min(1e6, Number(v) || 0));
+      const pasted = N(sg.pasted), typed = N(sg.typed), assist = N(sg.assist), tpl = N(sg.tpl);
+      pl.late = Math.round(Math.max(0, (now() - (st0.started_at + LIMIT7 * 60)) / 60) * 10) / 10;
+      pl.zero = pasted >= 40 ? 'paste' : (pl.code.length > tpl + typed + assist + 60 ? 'typed' : '');
+      const clean = { away: N(sg.away), paste: N(sg.paste), pasted, typed, assist, tpl };
+      const ins7 = await DB.prepare('INSERT OR IGNORE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, task, JSON.stringify(pl), JSON.stringify(clean), 0, now()).run();
+      if (!ins7.meta.changes) return err('already', 409);
+      await gradeCode7(env, DB, p.ses, p.st, ses, att.variant, task, pl, clean);
+      return json({ ok: true, ...(await studentState(env, p.ses, p.st)), task });
+    }
     const payload = sanitize(task, b.payload || {});
     const sig = JSON.stringify(b.signals || {}).slice(0, 4000), auto = autoScore(task, ses.topic, att.variant, payload);
     const ins = await DB.prepare('INSERT OR IGNORE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, task, JSON.stringify(payload), sig, auto, now()).run();
@@ -236,6 +255,18 @@ async function gradeCode(env, DB, ses_id, st_id, ses, variant, payload, sig, tmi
   await gradeRow(env, DB, ses_id, st_id, 2, ses, variant, p2, sig, auto, tmin);
 }
 
+/* 7-тақырып: код сервердe нақты орындалады, нәтиже дұрыс жауаппен салыстырылады, ЖИ логиканы бағалайды */
+async function gradeCode7(env, DB, ses_id, st_id, ses, variant, task, payload, sig) {
+  const res = await runCode(env, payload.lang || 'python', payload.code, '');
+  const a = auto7(task, variant, res.stdout);
+  const p2 = { ...payload, run: { ok: res.ok, stdout: res.stdout, stderr: res.stderr, status: res.status, backend: res.backend || '' }, items: a.items };
+  const auto = res.infra ? 0 : a.pts;
+  await DB.prepare('UPDATE submissions SET payload=?, auto_score=? WHERE session_id=? AND student_id=? AND task=?').bind(JSON.stringify(p2), auto, ses_id, st_id, task).run();
+  if (payload.zero) { await DB.prepare('UPDATE submissions SET ai_score=0, ai_pct=0, flags=?, ai_comment=? WHERE session_id=? AND student_id=? AND task=?').bind('🔴 ' + (payload.zero === 'paste' ? 'код сырттан көшіріліп қойылған' : 'код терілмей пайда болған') + ' → 0 балл', 'Көшіру анықталды, тапсырмаға 0 балл қойылды.', ses_id, st_id, task).run(); return; }
+  if (res.infra) { await DB.prepare('UPDATE submissions SET ai_score=NULL, ai_pct=NULL, flags=?, ai_comment=? WHERE session_id=? AND student_id=? AND task=?').bind('⚠ орындау қызметі жауап бермеді', 'Бағдарламаны іске қосу мүмкін болмады. «ЖИ-мен қайта» батырмасымен кейін қайта тексеріңіз.', ses_id, st_id, task).run(); return; }
+  await gradeRow(env, DB, ses_id, st_id, task, ses, variant, p2, sig, auto, null);
+}
+
 async function gradeRow(env, DB, ses_id, st_id, task, ses, variant, payload, sig, auto, elapsed) {
   const g = await aiGrade(env, task, ses.topic, variant, payload, sig, auto, elapsed === undefined ? null : elapsed);
   await DB.prepare('UPDATE submissions SET ai_score=?, ai_pct=?, flags=?, ai_comment=? WHERE session_id=? AND student_id=? AND task=?').bind(g.score, g.ai_pct, g.flags, g.comment, ses_id, st_id, task).run();
@@ -262,8 +293,9 @@ async function studentState(env, ses_id, st_id) {
   const fbk = await DB.prepare('SELECT 1 AS x FROM feedback WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first();
   const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
-  [1, 2, 3].forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: TOPICS[ses.topic].limits[n] }; });
-  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete };
+  [1, 2, 3].forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: TOPICS[ses.topic].limits[n], zero: t.zero || '', late: t.late || 0, lf: t.late_factor || 1 }; });
+  const data = ses.topic === '7' ? data7(att.variant) : undefined;
+  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, data, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete };
 }
 
 /* ---------------- Оқытушы маршруттары ---------------- */
@@ -372,9 +404,9 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ses.topic === '10', ex = att && !x10 ? variantOf(ses.topic, att.variant) : null;
+    const x10 = ses.topic === '10', x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
-      sys: att && !x10 ? sysText(ses.topic, att.variant) : '', note: ex ? ex.noteKk : '', result: res || null, calc: c,
+      sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
   }
   if (path === 'task_grade' && method === 'POST') {
@@ -390,17 +422,20 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   if (path === 'regrade' && method === 'POST') {
     const s = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
-    if (!s || s.task === 3) return err('not_found', 404);
+    if (!s) return err('not_found', 404);
+    { const t0 = await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(s.session_id).first(); if (s.task === 3 && !(t0 && t0.topic === '7')) return err('not_found', 404); }
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(s.session_id).first(), att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(s.session_id, s.student_id).first();
     const pl = JSON.parse(s.payload), sg = s.signals ? JSON.parse(s.signals) : {};
-    if (s.task === 2) await gradeCode(env, DB, s.session_id, s.student_id, ses, att ? att.variant : 1, pl, sg, null);
+    if (ses.topic === '7') await gradeCode7(env, DB, s.session_id, s.student_id, ses, att ? att.variant : 1, s.task, pl, sg);
+    else if (s.task === 2) await gradeCode(env, DB, s.session_id, s.student_id, ses, att ? att.variant : 1, pl, sg, null);
     else await gradeRow(env, DB, s.session_id, s.student_id, s.task, ses, att ? att.variant : 1, pl, sg, s.auto_score || 0, null);
     return json({ ok: true });
   }
   if (path === 'reopen' && method === 'POST') {
     const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     const ot = old ? await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(old.session_id).first() : null;
-    if (old && ot && ot.topic === '10') await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
+    if (old && ot && ot.topic === '7') await DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id).run();
+    else if (old && ot && ot.topic === '10') await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
     else if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
   }

@@ -6,7 +6,7 @@
 'use strict';
 const { el } = window.L;
 const TK = 'bbk-join-token', DK = 'bbk-device';
-const S = { token:'', me:null, open:false, topic:'', fns:[], skew:0, gate:false };
+const S = { token:'', me:null, open:false, topic:'', fns:[], skew:0, gate:false, title:'6-тақырып: Гаусс–Зейдель әдісі' };
 try { S.token = localStorage.getItem(TK) || ''; } catch (e) {}
 const device = () => { let d = ''; try { d = localStorage.getItem(DK); if (!d){ d = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(DK, d); } } catch (e) {} return d || 'nolocal'; };
 const emit = () => S.fns.forEach(f => { try { f(S.me); } catch (e) {} });
@@ -102,7 +102,7 @@ function renderGate(){ if (gateBox) buildForm(gateBox.body, null, null); }
 function openGate(){
   if (gateOv) return;
   const body = el('div'); gateBox = { body };
-  gateOv = el('div', { class:'modal gate' }, el('div', { class:'modal-box' }, [el('h3', { text:'🔒 Сабақ жабық' }), el('p', { class:'muted', text:'6-тақырып: Гаусс–Зейдель әдісі. Сабаққа оқытушы көрсеткен кодпен кіресің.' }), body]));
+  gateOv = el('div', { class:'modal gate' }, el('div', { class:'modal-box' }, [el('h3', { text:'🔒 Сабақ жабық' }), el('p', { class:'muted', text:S.title + '. Сабаққа оқытушы көрсеткен кодпен кіресің.' }), body]));
   document.body.append(gateOv); renderGate();
 }
 function lock(on){
@@ -115,7 +115,7 @@ window.Join = {
   raw: (path, init) => fetch('/api/' + path, { ...(init || {}), headers:{ ...((init && init.headers) || {}), ...(S.token ? { Authorization:'Bearer ' + S.token } : {}) } }),
   serverNow: () => Date.now() + S.skew,
   mount(o){
-    S.gate = !!(o && o.gate);
+    S.gate = !!(o && o.gate); if (o && o.title) S.title = o.title;
     const m = /[#&]t=([^&]+)/.exec(location.hash || '');
     if (m){ saveToken(decodeURIComponent(m[1])); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     const bar = document.querySelector('.topbar-in');

@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7-тақырып: Функцияны аппроксимациялау — Сандық әдістер</title>
+<meta name="description" content="Аппроксимация және интерполяция: түйіндер, интерполяциялаушы көпмүшелік, шеткі айырымдар, сызықтық және квадраттық интерполяция, сплайндар. Анимациялар және үш бағдарлама тапсырмасы.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/config.js"></script>
+<style>
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.topic-box{display:block;width:fit-content;max-width:min(560px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.45}
+.topic-box b{font-weight:700}.topic-box i{font-style:italic}
+.hero-art{display:block;width:min(520px,92%);height:auto;margin:6px auto 4px}
+.blk{margin-top:26px}
+.blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
+.blk-h .ic{min-width:34px;height:34px;padding:0 6px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
+.tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}
+.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.goal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px}
+.goal-grid>div{background:var(--surface-2);border-radius:14px;padding:16px 18px}
+.goal-grid h4{margin:0 0 6px;color:var(--primary)}.goal-grid ul{margin:0;padding-left:1.1em}.goal-grid li{margin:3px 0}.goal-grid p{margin:0}
+.fgrid{display:grid;gap:4px;justify-items:center}
+.f.l{text-align:left}
+.cmp{border-collapse:collapse;width:100%;margin:10px 0;font-size:1rem;display:block;overflow-x:auto}
+.cmp th,.cmp td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+.cmp th{background:var(--surface-2)}.cmp td:first-child{font-weight:600;background:var(--surface-2);white-space:nowrap}
+.cmp th.a,.cmp td.a{background:#EEF4FF}.cmp th.i,.cmp td.i{background:#ECFDF3}
+.nodes{border-collapse:collapse;margin:8px auto;font-family:var(--math);font-size:1.25rem}
+.nodes th,.nodes td{border:1px solid var(--line);padding:8px 16px;text-align:center}.nodes th{background:var(--primary-soft);color:var(--primary-2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.pl{width:100%;height:auto;display:block;border-radius:12px;background:var(--surface);border:1px solid var(--line);margin-top:8px}
+.pl text{font:12.5px var(--font);fill:var(--muted)}
+.pl .al{font-size:12px;font-style:italic}
+.pl .gl{stroke:#E8EDF4;stroke-width:1}
+.pl .ax{stroke:#94A3B8;stroke-width:1.6}
+.pl .ax0{stroke:#CBD5E1;stroke-width:1}
+.pl .pt{transform-box:fill-box;transform-origin:center}
+.tmp{border-collapse:collapse;margin:0 0 6px;width:100%;background:var(--surface);overflow:hidden;font-family:var(--math);font-size:1.05rem}
+.tmp th,.tmp td{border:1px solid var(--line);padding:6px 10px;text-align:center}
+.tmp th{background:var(--primary-soft);text-align:left;font-family:var(--font);font-size:.9rem}
+.tmp .q{background:var(--bad-bg);color:var(--bad);font-weight:700}
+.dt{border-collapse:collapse;margin:6px auto;background:var(--surface);font-family:var(--math);font-size:1.2rem}
+.dt th{padding:8px 16px;background:var(--primary-soft);color:var(--primary-2)}
+.dt td{padding:9px 18px;border:1px solid var(--line);text-align:center;min-width:64px;transition:background .3s}
+.dt td.empty{background:var(--surface-2)}
+.dt td.hot{background:var(--pivot-bg);color:var(--pivot);font-weight:700}
+.rng{display:grid;gap:6px;margin-top:10px}.rng input{width:100%;accent-color:var(--primary)}
+.rng-out{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:8px;font-family:var(--math);font-size:1.1rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-family:var(--font);font-size:.85rem;font-weight:700}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.lv{display:flex;gap:8px;flex-wrap:wrap}
+.lv button{font:inherit;min-height:56px;min-width:84px;padding:6px 10px;border-radius:12px;border:2px solid var(--line);background:var(--surface);cursor:pointer;font-size:1.6rem;line-height:1.1}
+.lv button small{display:block;font-size:.72rem;color:var(--muted)}
+.lv button.on{border-color:var(--primary);background:var(--primary-soft)}
+.opts{display:flex;gap:8px 18px;flex-wrap:wrap}
+.opts label{display:flex;gap:8px;align-items:center;min-height:42px;cursor:pointer}
+.opts input{width:20px;height:20px;accent-color:var(--primary)}
+.ol2{counter-reset:s;list-style:none;margin:0;padding:0}
+.ol2 li{counter-increment:s;position:relative;padding:10px 14px 10px 58px;margin:0 0 8px;border-radius:12px;background:var(--surface-2)}
+.ol2 li::before{content:counter(s);position:absolute;left:12px;top:10px;width:30px;height:30px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:800;font-size:.95rem}
+.ol2 b{display:block}
+@media (max-width:600px){.tmp{font-size:.92rem}.dt td{padding:7px 8px;min-width:44px}.dt th{padding:6px 8px}.nodes th,.nodes td{padding:6px 8px}}
+</style>
+</head>
+<body class="locked">
+<main id="main">
+
+<!-- ================= ТАҚЫРЫП ================= -->
+<section id="hero" class="hero" data-sec="hero"><div class="wrap">
+  <div class="topic-box"><b>Тақырып:</b> <i>Функцияны аппроксимациялау.</i></div>
+  <h1>Аппроксимация және интерполяция</h1>
+  <p class="lead">Кестеде жоқ мәнді берілген нүктелер арқылы табуды үйренеміз.</p>
+  <svg class="hero-art" id="heroArt" viewBox="0 0 520 190" role="img" aria-label="Нүктелер арқылы өтетін қисық"></svg>
+  <div class="hero-actions"><a class="btn primary big" href="#aim">Сабақты бастау →</a></div>
+</div></section>
+
+<!-- ================= МАҚСАТ ================= -->
+<section id="aim" class="lesson" data-sec="aim"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">★</span><h2>Сабақтың мақсаты</h2></div>
+  <div class="goal-grid">
+    <div><h4>Сабақ мақсаты</h4><p>Функцияны аппроксимациялау мен интерполяцияның мәнін түсіндіріп, шеткі айырымдар арқылы сызықтық және квадраттық интерполяцияны орындауға үйрету.</p></div>
+    <div><h4>Міндеттері</h4><ul><li>аппроксимация мен интерполяцияның айырмасын түсіндіру;</li><li>интерполяция есебін қою: түйіндер, интерполяциялаушы көпмүшелік;</li><li>шеткі айырымдар кестесін құру;</li><li>сызықтық және квадраттық интерполяцияны қолдану;</li><li>сплайн идеясын түсіну.</li></ul></div>
+    <div><h4>Күтілетін нәтиже</h4><p>Сабақ соңында студент интерполяция есебін дұрыс қояды, айырымдар кестесін құрады, берілген нүктедегі мәнді табады және осыны бағдарламамен орындайды.</p></div>
+  </div>
+</div></div></section>
+
+<!-- ================= 1. МӘСЕЛЕ ЖӘНЕ ИДЕЯ ================= -->
+<section id="idea" class="lesson" data-sec="idea"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Мәселе: кестеден аралық мәнге</h2></div>
+  <p class="learn">Бұл бөлімде функцияны жуықтау не үшін керек екенін және аппроксимацияның негізгі идеясын үйренесің.</p>
+  <p>Техникада да, экономикада да y = f(x) функциясының мәні кестедегі аргументтерден өзгеше x нүктесінде керек болады. Мысалы, температураны сағат сайын өлшедік делік. 13:30-дағы мән кестеде жоқ, ал өлшеуді қайталай алмаймыз. Бізде тек бірнеше нүкте бар. Осы нүктелерге қарап, олардың арасындағы мәнді болжауымыз керек.</p>
+  <div class="phase" style="margin-top:6px">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> «Алға →» батырмасымен қадам сайын жүр.</h3>
+    <div class="demo"><div class="stage" id="dtStage"></div><div class="side"><div id="dtSide"></div><div id="dtBar"></div></div></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">≈</span>Аппроксимация деген не</h3>
+    <p style="margin:0 0 8px"><dfn>Аппроксимация</dfn> (жуықтау) — берілген f(x) функциясын қарапайым F(x) функциясымен ауыстыру. F(x) функциясы f(x)-тен мүмкіндігінше аз ауытқуы керек.</p>
+    <div class="cards2">
+      <div><h4>Кесте түрінде берілген</h4><p>Функцияның формуласы жоқ, тек жеке нүктелер бар.</p></div>
+      <div><h4>Формуласы күрделі</h4><p>Функцияны тікелей есептеу немесе талдау қиын.</p></div>
+      <div><h4>Есептеу ауыр</h4><p>Қарапайым функция жылдам есептеледі.</p></div>
+    </div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">F</span>F(x) ретінде не аламыз</h3>
+    <p style="margin:0 0 6px">Тәжірибеде жуықтаушы функция ретінде көбінесе <b>көпмүшелікті</b> алады:</p>
+    <div class="f box">F(x) = a<sub>0</sub> + a<sub>1</sub>x + a<sub>2</sub>x<sup>2</sup> + … + a<sub>m</sub>x<sup>m</sup></div>
+    <p style="margin:0">Көпмүшелікті есептеу оңай: қосу мен көбейту ғана керек. Оның туындысы мен интегралын да оңай табады. Коэффициенттер a<sub>0</sub>, a<sub>1</sub>, …, a<sub>m</sub> ауытқу мейлінше аз болатындай таңдалады.</p>
+    <div class="tip info"><b>ℹ</b><span>Жуықтау берілген дискретті нүктелер жиынтығы {x<sub>i</sub>} бойынша құрылса, оны <dfn>нүктелік аппроксимация</dfn> дейді.</span></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Аппроксимация күрделі немесе белгісіз функцияны қарапайым функциямен (көбінесе көпмүшелікпен) ауыстырады. Қарапайым функция берілген функциядан мүмкіндігінше аз ауытқуы керек.</p></div>
+</div></div></section>
+
+<!-- ================= 2. АППРОКСИМАЦИЯ ЖӘНЕ ИНТЕРПОЛЯЦИЯ ================= -->
+<section id="approx" class="lesson" data-sec="approx"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Аппроксимация және интерполяция</h2></div>
+  <p class="learn">Бұл бөлімде аппроксимацияның екі түрін, олардың айырмасын және қателікті қалай өлшейтінімізді үйренесің.</p>
+  <p>Берілген f(x) функциясын F(x) функциясымен ауыстырсақ, әрқашан аздаған айырма қалады. Оны <dfn>қалдық мүше</dfn> немесе аппроксимация қателігі деп атайды.</p>
+  <div class="f box">f(x) = F(x) + R(x)</div>
+  <p>R(x) = f(x) − F(x) — нақты функция мен жуықтау функциясының ауытқуы. Ауытқу неғұрлым аз болса, жуықтау соғұрлым жақсы.</p>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Екі тәсілді салыстыр.</h3>
+    <div class="demo"><div class="stage" id="dbStage"></div><div class="side"><div id="dbSide"></div><div id="dbBar"></div></div></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">⇄</span>Айырмасы неде</h3>
+    <table class="cmp"><thead><tr><th></th><th class="a">Аппроксимация</th><th class="i">Интерполяция</th></tr></thead><tbody>
+      <tr><td>Қисық нүктелерден</td><td class="a">жақын жүреді, өтпеуі мүмкін</td><td class="i">әр нүктеден дәл өтеді</td></tr>
+      <tr><td>Негізгі шарт</td><td class="a">ауытқу R(x) мейлінше аз</td><td class="i">F(x<sub>i</sub>) = y<sub>i</sub> барлық түйінде</td></tr>
+      <tr><td>Деректер</td><td class="a">өлшеу қатесі бар деп есептеледі</td><td class="i">дәл деп есептеледі</td></tr>
+      <tr><td>Қашан қолданады</td><td class="a">шашыраңқы тәжірибелік деректер</td><td class="i">дәл кесте мәндері</td></tr>
+    </tbody></table>
+    <div class="tip ok"><b>✓</b><span>Интерполяция — нүктелік аппроксимацияның ерекше түрі.</span></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Аппроксимацияда қисық нүктелерге жақын жүреді. Интерполяцияда қисық берілген барлық нүктеден өтеді, яғни түйіндерде қателік нөлге тең.</p></div>
+</div></div></section>
+
+<!-- ================= 3. ИНТЕРПОЛЯЦИЯ ЕСЕБІ ================= -->
+<section id="interp" class="lesson" data-sec="interp"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Интерполяция есебі</h2></div>
+  <p class="learn">Бұл бөлімде интерполяция есебінің қойылымын, интерполяциялаушы көпмүшеліктің жалғыздығын және интерполяция мен экстраполяцияның айырмасын үйренесің.</p>
+  <div class="blk" style="margin-top:6px"><h3 class="blk-h"><span class="ic">1</span>Есептің қойылымы</h3>
+    <p style="margin:0 0 6px">[a; b] кесіндісінде n + 1 нүкте x<sub>0</sub>, x<sub>1</sub>, …, x<sub>n</sub> және функцияның осы нүктелердегі мәндері берілсін. Бұл нүктелерді <dfn>интерполяция түйіндері</dfn> деп атайды.</p>
+    <table class="nodes"><tr><th>x</th><td>x<sub>0</sub></td><td>x<sub>1</sub></td><td>…</td><td>x<sub>n</sub></td></tr><tr><th>y</th><td>y<sub>0</sub></td><td>y<sub>1</sub></td><td>…</td><td>y<sub>n</sub></td></tr></table>
+    <p style="margin:0 0 6px">Мұндай F(x) функциясын табу керек:</p>
+    <div class="f box">F(x<sub>i</sub>) = f(x<sub>i</sub>) = y<sub>i</sub>,  i = 0, 1, …, n</div>
+    <p style="margin:0">Түйіндердің x-координаталары әртүрлі болуы шарт: x<sub>i</sub> ≠ x<sub>j</sub>, i ≠ j. Табылған F(x) көпмүшелігі <dfn>интерполяциялаушы көпмүшелік</dfn> деп, ал оның формуласы <dfn>интерполяциялаушы формула</dfn> деп аталады. Геометриялық мағынасы: (x<sub>0</sub>; y<sub>0</sub>), …, (x<sub>n</sub>; y<sub>n</sub>) нүктелерінен өтетін қисықты табу.</p>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Көпмүшелік жалғыз</h3>
+    <p style="margin:0 0 8px">Дәрежесі n-нен аспайтын көпмүшелік n + 1 түйін арқылы <b>жалғыз</b> өтеді. Екі нүкте арқылы бір ғана түзу, үш нүкте арқылы бір ғана парабола өтеді.</p>
+    <div class="demo"><div class="stage" id="duStage"></div><div class="side"><div id="duSide"></div><div id="duBar"></div></div></div>
+    <div class="tip info"><b>ℹ</b><span>Неге жалғыз? F(x) = a<sub>0</sub> + a<sub>1</sub>x + … + a<sub>n</sub>x<sup>n</sup> үшін F(x<sub>i</sub>) = y<sub>i</sub> шарты n + 1 белгісізі бар n + 1 сызықтық теңдеу береді. Түйіндер әртүрлі болса, жүйенің анықтауышы (Вандермонд анықтауышы) нөлден өзгеше, сондықтан шешім жалғыз.</span></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">3</span>Глобалды және локалды интерполяция</h3>
+    <div class="cards2">
+      <div><h4>Глобалды</h4><p>Бүкіл [a; b] кесіндісі үшін дәрежесі n болатын бір көпмүшелік F(x) = a<sub>0</sub> + a<sub>1</sub>x + … + a<sub>n</sub>x<sup>n</sup> қолданылады.</p></div>
+      <div><h4>Локалды</h4><p>Кесіндіні бөліктерге бөліп, әр бөлікке өз интерполяциялаушы көпмүшелігі алынады. Сплайндар осы тәсілге жатады.</p></div>
+    </div>
+    <p style="margin:8px 0 0">Көпмүшелік дәрежелік функция түрінде алынса, интерполяция <dfn>параболалық</dfn> деп аталады. Функция периодты болса, тригонометриялық функциялар класын алады. Кейде рационал функцияны да қолданады.</p>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">4</span>Интерполяция және экстраполяция</h3>
+    <p style="margin:0 0 6px">x нүктесі түйіндер жататын [x<sub>0</sub>; x<sub>n</sub>] кесіндісінің <b>ішінде</b> болса, мәнді табу <dfn>интерполяция</dfn> деп аталады. x нүктесі кесіндіден <b>тыс</b> болса, ол <dfn>экстраполяция</dfn>. Төмендегі графикте x-ті жылжытып, қателік қалай өзгеретінін қара.</p>
+    <div class="demo"><div class="stage"><div id="dcStage"></div></div><div class="side">
+      <div class="explain"><div class="ex-block now"><span class="ex-tag">ҚАЗІР</span><p>Сұр сызық — нақты функция f(x) = sin x, көк сызық — 5 түйін арқылы өтетін көпмүшелік.</p></div>
+      <div class="ex-block why"><span class="ex-tag">НЕГЕ ОРЫНДАЛАДЫ</span><p>Көпмүшелік тек түйіндер аймағында функцияға жақын. Одан тыс жерде ол тез алыстайды.</p></div>
+      <div class="ex-block how"><span class="ex-tag">ҚАЛАЙ ОРЫНДАЛАДЫ</span><p>Жүгірткіні жылжыт немесе батырмаларды бас. Жасыл аймақ — интерполяция, қызыл аймақ — экстраполяция.</p></div></div></div></div>
+    <div class="tip warn"><b>⚠</b><span>Экстраполяция әлдеқайда сенімсіз: біз білмейтін аймаққа шығамыз, сондықтан қателік тез өседі.</span></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">5</span>Есепті шешу қадамдары</h3>
+    <ol class="ol2">
+      <li><b>Әдісті таңда.</b>Әр нақты жағдайға интерполяциялық функцияны құрудың ыңғайлы әдісін таңдаймыз.</li>
+      <li><b>Қателікті баға.</b>F(x) пен f(x) тек түйіндерде беттеседі. [a; b] кесіндісінде f(x)-ті F(x)-пен ауыстырғандағы қателікті бағалаймыз.</li>
+      <li><b>Түйіндерді тиімді таңда.</b>Қателік мейлінше аз болуы үшін түйіндерді дұрыс орналастырамыз.</li>
+    </ol>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>n + 1 әртүрлі түйін арқылы дәрежесі n-нен аспайтын жалғыз көпмүшелік өтеді. x түйіндер аймағының ішінде болса — интерполяция, сыртында болса — экстраполяция.</p></div>
+</div></div></section>
+
+<!-- ================= 4. ШЕТКІ АЙЫРЫМДАР ================= -->
+<section id="diff" class="lesson" data-sec="diff"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">4</span><h2>Шеткі айырымдар</h2></div>
+  <p class="learn">Бұл бөлімде бірдей қадамдағы түйіндер үшін шеткі айырымдар кестесін құруды және оның формулаларын үйренесің.</p>
+  <p>Көбінесе түйіндер бір-бірінен бірдей <b>h</b> қадаммен орналасады:</p>
+  <div class="f box">x<sub>i</sub> = x<sub>0</sub> + i·h,  i = 0, 1, …, n</div>
+  <p>Мұнда интерполяциялаушы көпмүшелікті құру жеңіл. Формулаларды жазу үшін <dfn>шеткі айырым</dfn> ұғымы керек: бұл көрші мәндердің айырмасы.</p>
+  <div class="blk"><h3 class="blk-h"><span class="ic">Δ</span>Анықтамасы</h3>
+    <div class="f box fgrid"><span>Δy<sub>i</sub> = y<sub>i+1</sub> − y<sub>i</sub> &nbsp;&nbsp; (1-ретті)</span><span>Δ<sup>2</sup>y<sub>i</sub> = Δy<sub>i+1</sub> − Δy<sub>i</sub> &nbsp;&nbsp; (2-ретті)</span><span>Δ<sup>k</sup>y<sub>i</sub> = Δ<sup>k−1</sup>y<sub>i+1</sub> − Δ<sup>k−1</sup>y<sub>i</sub> &nbsp;&nbsp; (k-ретті)</span></div>
+    <p style="margin:0">Әр келесі ретті айырымды алдыңғы ретті айырымдардан аламыз. Нәтижесінде үшбұрыш түріндегі кесте шығады.</p>
+  </div>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Айырымдар кестесін қадам сайын құрамыз.</h3>
+    <div class="demo"><div class="stage" id="deStage"></div><div class="side"><div id="deSide"></div><div id="deBar"></div></div></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">y</span>Айырымды мәндер арқылы жазу</h3>
+    <p style="margin:0 0 6px">Әр айырымды функцияның өзінің мәндері арқылы өрнектеуге болады:</p>
+    <div class="f box fgrid"><span>Δ<sup>2</sup>y<sub>0</sub> = y<sub>2</sub> − 2y<sub>1</sub> + y<sub>0</sub></span><span>Δ<sup>3</sup>y<sub>0</sub> = y<sub>3</sub> − 3y<sub>2</sub> + 3y<sub>1</sub> − y<sub>0</sub></span></div>
+    <p style="margin:0 0 6px">Жалпы түрде коэффициенттер биномдық коэффициенттер болады:</p>
+    <div class="f box">Δ<sup>k</sup>y<sub>0</sub> = y<sub>k</sub> − k·y<sub>k−1</sub> + <span class="frac"><span>k(k − 1)</span><span>2!</span></span>·y<sub>k−2</sub> − … + (−1)<sup>k</sup>y<sub>0</sub></div>
+    <p style="margin:0 0 6px">Кері формула: айырымдар белгілі болса, функцияның кез келген мәнін қалпына келтіруге болады:</p>
+    <div class="f box">y<sub>k</sub> = y<sub>0</sub> + k·Δy<sub>0</sub> + <span class="frac"><span>k(k − 1)</span><span>2!</span></span>·Δ<sup>2</sup>y<sub>0</sub> + … + Δ<sup>k</sup>y<sub>0</sub></div>
+    <div class="tip ok"><b>✓</b><span>Кестедегі мысалда тексереміз: Δ³y<sub>0</sub> = 22 − 3·5 + 3·0 − 1 = 6. Кері формула: y<sub>3</sub> = 1 + 3·(−1) + 3·6 + 6 = 22.</span></div>
+    <div class="tip info"><b>ℹ</b><span>Дәрежесі m көпмүшеліктің m-ретті айырымы тұрақты, ал (m + 1)-ретті айырымы нөлге тең. Сондықтан айырымдар кестесіне қарап, деректер қандай дәрежелі көпмүшелікке ұқсайтынын білуге болады.</span></div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Шеткі айырымдар көрші мәндердің айырмасынан құрылады: Δ<sup>k</sup>y<sub>i</sub> = Δ<sup>k−1</sup>y<sub>i+1</sub> − Δ<sup>k−1</sup>y<sub>i</sub>. Әр келесі бағанда мән бір азаяды.</p></div>
+</div></div></section>
+
+<!-- ================= 5. СЫЗЫҚТЫҚ ЖӘНЕ КВАДРАТТЫҚ ИНТЕРПОЛЯЦИЯ ================= -->
+<section id="lin" class="lesson" data-sec="lin"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">5</span><h2>Сызықтық және квадраттық интерполяция</h2></div>
+  <p class="learn">Бұл бөлімде екі және үш түйін бойынша мәнді табуды және әдістердің дәлдігін салыстыруды үйренесің.</p>
+  <p>Айырымдарды қолдану ыңғайлы болуы үшін <b>q</b> айнымалысын енгіземіз: ол x нүктесі x<sub>0</sub>-ден неше қадам қашықтықта екенін көрсетеді.</p>
+  <div class="f box">q = <span class="frac"><span>x − x<sub>0</sub></span><span>h</span></span></div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">1</span>Сызықтық интерполяция</h3>
+    <p style="margin:0 0 6px">Екі көрші түйінді түзумен қосамыз:</p>
+    <div class="f box">P<sub>1</sub>(x) = y<sub>0</sub> + q·Δy<sub>0</sub> = y<sub>0</sub> + <span class="frac"><span>y<sub>1</sub> − y<sub>0</sub></span><span>x<sub>1</sub> − x<sub>0</sub></span></span>·(x − x<sub>0</sub>)</div>
+    <p style="margin:0 0 6px">Мағынасы: бастапқы мәнге бір қадамдағы өсімді неше қадам өткенімізге көбейтіп қосамыз. Температура мысалында: 23 + 0,5·2 = 24°.</p>
+    <div class="cards2">
+      <div><h4>Артықшылығы</h4><p>Өте жеңіл және түсінікті.</p></div>
+      <div><h4>Кемшілігі</h4><p>Нақты процесс түзу бойымен өзгермейді, сондықтан функция қатты иілген жерде қателік көбірек.</p></div>
+    </div>
+    <p style="margin:8px 0 6px">Түйіндер жиірек болса, түзу функцияға жақындай түседі. Төмендегі графикте бөлік санын өзгертіп көр: қадамды екі есе кішірейтсек, қателік шамамен төрт есе азаяды.</p>
+    <div class="stage" id="dhStage"></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Квадраттық интерполяция</h3>
+    <p style="margin:0 0 6px">Үш түйін аламыз және олар арқылы парабола жүргіземіз. Түзу тек «қанша өсті» дегенді біледі, ал парабола қисаюды да ескереді, яғни өсу үдей ме, әлде баяулай ма:</p>
+    <div class="f box">P<sub>2</sub>(x) = y<sub>0</sub> + q·Δy<sub>0</sub> + <span class="frac"><span>q(q − 1)</span><span>2!</span></span>·Δ<sup>2</sup>y<sub>0</sub></div>
+    <div class="tip info"><b>ℹ</b><span>Бұл — Ньютонның интерполяциялық формуласының n = 2 жағдайы. Оның жалпы түрін келесі сабақтарда оқимыз.</span></div>
+    <div class="phase" style="margin-top:14px">
+      <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Мысал: x = 2,5 нүктесіндегі мән.</h3>
+      <div class="demo"><div class="stage" id="dfStage"></div><div class="side"><div id="dfSide"></div><div id="dfBar"></div></div></div>
+    </div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">?</span>Қайсысын таңдаймыз</h3>
+    <div class="cards2">
+      <div><h4>Түзуге жақын функция</h4><p>Түйіндер арасында функция түзуге жақын болса, сызықтық интерполяция жеткілікті.</p></div>
+      <div><h4>Анық иілген функция</h4><p>Функция анық иілген болса, квадраттық интерполяция дәлірек.</p></div>
+    </div>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Алдымен q = (x − x<sub>0</sub>)/h және айырымдарды табамыз. Сызықтық: P<sub>1</sub> = y<sub>0</sub> + q·Δy<sub>0</sub>. Квадраттық: P<sub>2</sub> = P<sub>1</sub> + q(q − 1)/2 · Δ²y<sub>0</sub>.</p></div>
+</div></div></section>
+
+<!-- ================= 6. СПЛАЙНДАР ================= -->
+<section id="spline" class="lesson" data-sec="spline"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">6</span><h2>Сплайндар</h2></div>
+  <p class="learn">Бұл бөлімде түйін көп болғанда бір көпмүшелік неге жарамайтынын және сплайн идеясын үйренесің.</p>
+  <p>Түйін көп болса, мысалы 20 нүкте, олардың бәрін бір көпмүшелікпен өткізуге болады. Бірақ дәрежесі 19 көпмүшелік <b>қатты тербеліп кетеді</b>, әсіресе кесіндінің шеттерінде. Бұл құбылыс <dfn>Рунге құбылысы</dfn> деп аталады. Шешімі — локалды интерполяция: бір үлкен көпмүшелік алмай, әр екі көрші нүктенің арасына кішкентай қарапайым қисық саламыз да, оларды түйіндерде тегіс жалғаймыз. Мұндай бөлік-бөлік қисықты <dfn>сплайн</dfn> дейді.</p>
+  <div class="phase">
+    <h3 class="phase-h"><span class="phase-tag kara">1 · ТҮСІНДІРУ</span> Бір көпмүшелік пен сплайнды салыстыр.</h3>
+    <div class="demo"><div class="stage" id="dsStage"></div><div class="side"><div id="dsSide"></div><div id="dsBar"></div></div></div>
+  </div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">3</span>Сплайн түрлері</h3>
+    <table class="cmp"><thead><tr><th>Түрі</th><th>Әр бөлікте</th><th>Түйіндердегі тегістік</th></tr></thead><tbody>
+      <tr><td>Сызықтық</td><td>түзу</td><td>қисық үзілмейді, бірақ түйіндерде сынады</td></tr>
+      <tr><td>Квадраттық</td><td>парабола</td><td>қисық тегіс жалғасады, бағыты кенеттен өзгермейді</td></tr>
+      <tr><td>Кубтық</td><td>3-дәрежелі көпмүшелік</td><td>өте тегіс, иілісі де үзілмейді</td></tr>
+    </tbody></table>
+    <div class="tip info"><b>ℹ</b><span>Ең жиі кубтық сплайн қолданылады: компьютерлік графикада, жобалау бағдарламаларында (CAD) және шрифттерде. Оның формулаларын жаттаудың қажеті жоқ, идеясын түсіну жеткілікті. Есептеуді Python (scipy.interpolate) немесе Excel орындайды.</span></div>
+    <table class="cmp"><thead><tr><th></th><th>Бір үлкен көпмүшелік</th><th>Сплайн</th></tr></thead><tbody>
+      <tr><td>Қалай жасалады</td><td>барлық нүктеге бір қисық</td><td>әр бөлікке кішкентай қисық</td></tr>
+      <tr><td>Нүкте көп болса</td><td>тербеледі</td><td>тұрақты</td></tr>
+      <tr><td>Қолданылуы</td><td>нүкте аз кезде</td><td>нүкте көп кезде, графикада</td></tr>
+    </tbody></table>
+  </div>
+  <div class="remember"><h4>Есте сақта</h4><p>Түйін көп болғанда бір үлкен көпмүшелік тербеледі (Рунге құбылысы). Сондықтан әр бөлікке өз қарапайым қисығын салып, түйіндерде тегіс жалғаймыз: бұл сплайн.</p></div>
+</div></div></section>
+
+<!-- ================= 7. ПРАКТИКАЛЫҚ ТАПСЫРМАЛАР ================= -->
+<section id="work" class="lesson" data-sec="work"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">7</span><h2>Практикалық тапсырмалар</h2></div>
+  <p class="learn">Бұл бөлімде үйренгеніңді қолданып, үш бағдарлама жазасың. Барлығына 35 минут беріледі. Кодты осы беттегі редакторға өзің жазасың.</p>
+  <div id="wHost"></div>
+</div></div></section>
+
+<!-- ================= 8. ҚОРЫТЫНДЫ ================= -->
+<section id="fb" class="lesson" data-sec="fb"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">8</span><h2>Қорытынды және рефлексия</h2></div>
+  <p class="learn">Бұл бөлімде бүгінгі сабақты қорытындылап, өз түсінуіңді бағалайсың.</p>
+  <ul class="goals">
+    <li>Аппроксимация күрделі функцияны қарапайым функциямен ауыстырады, ал интерполяцияда қисық барлық түйіннен өтеді.</li>
+    <li>n + 1 әртүрлі түйін арқылы дәрежесі n-нен аспайтын жалғыз көпмүшелік өтеді.</li>
+    <li>x түйіндер аймағының ішінде болса — интерполяция, сыртында болса — экстраполяция.</li>
+    <li>Шеткі айырымдар: Δ<sup>k</sup>y<sub>i</sub> = Δ<sup>k−1</sup>y<sub>i+1</sub> − Δ<sup>k−1</sup>y<sub>i</sub>.</li>
+    <li>Сызықтық және квадраттық интерполяция q және айырымдар арқылы есептеледі.</li>
+    <li>Түйін көп болғанда сплайн қолданылады.</li>
+  </ul>
+  <div class="tip info"><b>?</b><span>Бекіту кезінде оқытушы 3 жалпы сұрақ қояды. Жауап беретін студентті кездейсоқ таңдайды, дұрыс жауап бонус балл әкеліп, жалпы баллға қосылады.</span></div>
+  <div class="blk"><h3 class="blk-h"><span class="ic">✎</span>Кері байланыс</h3><div id="fbHost"></div></div>
+</div></div></section>
+</main>
+<footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Сандық әдістер</a></div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/work7.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/approx-demos.js"></script>
+<script>
+(function(){
+'use strict';
+const { $, el, Course } = L;
+const A = window.ApproxDemos;
+
+/* Бет басындағы сурет: нүктелер арқылы өтетін қисық (қозғалыссыз) */
+(function(){
+  const svg = $('#heroArt'), xs = [0, 1, 2, 3, 4, 5], ys = [1.2, 2.6, 1.9, 3.4, 2.4, 3.9], f = A.naturalSpline(xs, ys);
+  const X = x => 30 + x * 92, Y = y => 170 - y * 38;
+  let d = ''; for (let i = 0; i <= 120; i++){ const x = 5 * i / 120; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(f(x)).toFixed(1); }
+  svg.innerHTML = '<line x1="20" y1="176" x2="500" y2="176" stroke="#94A3B8" stroke-width="1.5"/><line x1="20" y1="14" x2="20" y2="176" stroke="#94A3B8" stroke-width="1.5"/><path d="' + d + '" fill="none" stroke="var(--info)" stroke-width="4" stroke-linecap="round"/>'
+    + xs.map((x, i) => '<line x1="' + X(x) + '" y1="' + Y(ys[i]) + '" x2="' + X(x) + '" y2="176" stroke="#CBD5E1" stroke-dasharray="4 5"/><circle cx="' + X(x) + '" cy="' + Y(ys[i]) + '" r="8" fill="var(--primary)" stroke="#fff" stroke-width="3"/>').join('')
+    + '<circle cx="' + X(2.5) + '" cy="' + Y(f(2.5)) + '" r="9" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="3"/><text x="' + X(2.5) + '" y="' + (Y(f(2.5)) + 5) + '" text-anchor="middle" font-size="15" font-weight="800" fill="var(--bad)">?</text>';
+})();
+
+A.demoTemp(); A.demoApprox(); A.demoUnique(); A.demoRange(); A.demoDiff(); A.demoLinQuad(); A.demoStep(); A.demoSpline();
+CourseWork7.mount($('#wHost'), { key:'approx-work-v1', sectionId:'work' });
+
+/* ===== Рефлексия мен кері байланыс ===== */
+(function(){
+  const host = $('#fbHost'); let key = '';
+  const LEVELS = [['😟', 'Түсінбедім'], ['😕', 'Аз түсіндім'], ['😐', 'Жартылай'], ['🙂', 'Жақсы'], ['😀', 'Толық']];
+  const LEARNED = ['Аппроксимация мен интерполяцияны', 'Шеткі айырымдарды', 'Сызықтық және квадраттық интерполяцияны', 'Сплайндарды'];
+  const HARD = ['Теория', 'Шеткі айырымдар', 'Квадраттық интерполяция', 'Бағдарлама жазу', 'Қиын болмады'];
+  function render(me){
+    host.innerHTML = '';
+    if (me && me.guest){ host.append(el('p', { class:'notice', text:'Кері байланысты студенттер толтырады.' })); return; }
+    if (!me){ host.append(el('p', { class:'notice', text:'Кері байланыс жіберу үшін сабаққа кір.' }), el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру', onclick:() => window.Join.open() })); return; }
+    if (me.feedback){ host.append(el('div', { class:'score-box' }, [el('div', { class:'big', text:'✓' }), el('p', { text:'Кері байланысың жіберілді. Рахмет!' })])); return; }
+    let level = 0; const learned = new Set(); let hard = '';
+    const lv = el('div', { class:'lv' }), btns = LEVELS.map(([e, t], i) => { const b = el('button', { type:'button', title:t }, [e, el('small', { text:t })]); b.addEventListener('click', () => { level = i + 1; btns.forEach((x, k) => x.classList.toggle('on', k === i)); }); lv.append(b); return b; });
+    const l1 = el('div', { class:'opts' }, LEARNED.map(t => { const c = el('input', { type:'checkbox' }); c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); }); return el('label', null, [c, ' ' + t]); }));
+    const l2 = el('div', { class:'opts' }, HARD.map(t => { const r = el('input', { type:'radio', name:'fbhard' }); r.addEventListener('change', () => { hard = t; }); return el('label', null, [r, ' ' + t]); }));
+    const cm = el('textarea', { rows:'3', placeholder:'Пікіріңді жаз (міндетті емес)', 'aria-label':'Пікір' }), msg = el('div', { role:'status' }), go = el('button', { type:'button', class:'btn primary', text:'📤 Жіберу' });
+    go.addEventListener('click', async () => {
+      if (!level){ msg.innerHTML = ''; msg.append(el('p', { class:'notice', text:'Түсіну деңгейіңді таңда.' })); return; }
+      go.disabled = true; const j = await window.Join.api('feedback', { level, learned:[...learned], hard, comment:cm.value });
+      if (j.ok) await window.Join.refresh(); else { go.disabled = false; msg.innerHTML = ''; msg.append(el('p', { class:'errbox', text:'Жіберу мүмкін болмады. Қайта көр.' })); }
+    });
+    host.append(el('p', { html:'<b>1. Сабақты қаншалықты түсіндің?</b>' }), lv, el('p', { html:'<b>2. Нені түсіндің?</b>', style:'margin-top:16px' }), l1, el('p', { html:'<b>3. Не қиын болды?</b>', style:'margin-top:16px' }), l2, el('p', { html:'<b>4. Пікір</b>', style:'margin-top:16px' }), cm, el('div', { class:'stepbar' }, go), msg);
+  }
+  window.Join.on(me => { const k = me ? me.student.name + (me.guest ? 'g' : '') + (me.feedback ? '1' : '0') : ''; if (k !== key){ key = k; render(me); } });
+  render(null);
+})();
+
+Course.init({ back:{ href:'index.html', text:'← Сандық әдістер' }, title:[7, 'Аппроксимация'], sections:[
+  { id:'aim', n:'★', title:'Мақсаты' }, { id:'idea', n:1, title:'Мәселе' }, { id:'approx', n:2, title:'Аппроксимация' }, { id:'interp', n:3, title:'Интерполяция' }, { id:'diff', n:4, title:'Айырымдар' },
+  { id:'lin', n:5, title:'Сызықтық және квадраттық' }, { id:'spline', n:6, title:'Сплайндар' }, { id:'work', n:7, title:'Практика' }, { id:'fb', n:8, title:'Қорытынды' }
+] });
+window.Join.mount({ gate:true, title:'7-тақырып: Функцияны аппроксимациялау' });
+})();
+</script>
+</body>
+</html>

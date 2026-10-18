@@ -1,5 +1,6 @@
 /* Тапсырмаларды бағалау: тест, қолмен есеп, бағдарлама (Gemini) және жиынтық балл. 6-тақырып. */
 import { V6 } from './variants.js';
+import { V7, MAX7, AI7, LIMIT7, prompt7 } from './approx.js';
 
 export const TOPICS = {
   '6': {
@@ -10,8 +11,9 @@ export const TOPICS = {
   }
 };
 TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
+TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '10': { 1: 15, 2: 20, 3: 25 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -129,6 +131,7 @@ async function callGemini(env, text, task, image) {
 
 /* 1-тапсырма (қолмен: шешу /15, фото) және 2-тапсырма (бағдарлама: код /18) */
 export async function aiGrade(env, task, topic, variant, p, sig, auto, tmin) {
+  if (String(topic) === '7') return aiGrade7(env, task, variant, p, sig, auto);
   let ai = null, note = '';
   const image = task === 1 && p.photo ? { mime: p.photo_mime || 'image/jpeg', data: p.photo } : null;
   try { ai = await callGemini(env, prompt(task, topic, variant, p, sig, auto), task, image); } catch (e) { note = 'ЖИ бағалауы орындалмады: ' + e.message; }
@@ -136,6 +139,17 @@ export async function aiGrade(env, task, topic, variant, p, sig, auto, tmin) {
   const max = task === 1 ? 15 : 12;
   const capped = ai ? (task === 2 && !auto ? Math.min(clamp(ai.score, 0, max), 3) : clamp(ai.score, 0, max)) : null;   /* шығыс қате болса, код балы 3-тен аспайды */
   return { score: capped, ai_pct: ai ? fl.ai : null, flags: (fl.ai >= 70 ? '🔴 ' : fl.ai >= 45 ? '🟠 ' : '') + fl.why.join('; '), comment: ai ? ai.comment : note };
+}
+
+/* 7-тақырып: үш тапсырма да код. Нәтиже сервердe тексерілген (auto), ЖИ логиканы бағалайды. */
+async function aiGrade7(env, task, variant, p, sig, auto) {
+  let ai = null, note = '';
+  try { ai = await callGemini(env, prompt7(task, variant, p, sig, auto), 2, null); } catch (e) { note = 'ЖИ бағалауы орындалмады: ' + e.message; }
+  const s = sig || {}, why = [], gem = ai ? clamp(ai.ai_suspicion, 0, 100) : 0;
+  if (gem >= 45) why.push('Gemini бағасы: ' + gem + '%');
+  if ((s.away || 0) >= 10) why.push('беттен ' + s.away + ' рет шыққан');
+  const max = AI7[task], got = ai ? (auto ? clamp(ai.score, 0, max) : Math.min(clamp(ai.score, 0, max), 3)) : null;   /* нәтиже дұрыс болмаса, код балы 3-тен аспайды */
+  return { score: got, ai_pct: ai ? gem : null, flags: (gem >= 70 ? '🔴 ' : gem >= 45 ? '🟠 ' : '') + why.join('; '), comment: ai ? ai.comment : note };
 }
 
 /* ---------- Жиынтық балл ----------
@@ -156,8 +170,30 @@ function compute10(att, subs, result, bonus) {
   const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all, edited_total: base !== auto };
 }
+/* 7-тақырып: әр тапсырма = нәтиже балы + ЖИ балы. Көшіріп қойса — 0, мерзімнен кеш жіберсе — әр минутқа ~3% азаяды (ең көбі 60%). */
+export function lateFactor7(lateMin) { return lateMin <= 1 ? 1 : Math.max(0.4, 1 - 0.03 * (lateMin - 1)); }
+function compute7(att, subs, result, bonus) {
+  const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
+  const tasks = {}; let quality = 0, aiSum = 0;
+  [1, 2, 3].forEach(n => {
+    const s = by[n], max = MAX7[n];
+    if (!s) { tasks[n] = { sent: false, pts: null, max }; return; }
+    let pl = {}; try { pl = typeof s.payload === 'string' ? JSON.parse(s.payload) : (s.payload || {}); } catch (e) {}
+    const over = s.teacher_score !== null && s.teacher_score !== undefined, zero = pl.zero || '', late = Number(pl.late) || 0, lf = lateFactor7(late);
+    const pending = !over && !zero && (s.ai_score === null || s.ai_score === undefined);
+    const raw = (s.auto_score || 0) + (s.ai_score || 0), pts = over ? s.teacher_score : zero ? 0 : Math.round(raw * lf * 10) / 10;
+    tasks[n] = { sent: true, pts, max, pending, edited: over, zero, late: Math.round(late * 10) / 10, late_factor: Math.round(lf * 100) / 100, ai_pct: over || zero ? 0 : (s.ai_pct === undefined ? null : s.ai_pct), flags: s.flags || '', comment: s.ai_comment || '' };
+    quality += pts; if (!over && !zero && s.ai_pct) aiSum += s.ai_pct;
+  });
+  const aiPct = Math.round(aiSum / 3), all = [1, 2, 3].every(n => tasks[n].sent), anyPending = [1, 2, 3].some(n => tasks[n].pending);
+  const k = 1 - 0.8 * Math.min(1, Math.max(0, (aiPct - 20) / 40)), part = Math.round(quality * k), attendance = att ? 40 : 0;
+  const auto = attendance + (all && !anyPending ? Math.max(Math.min(10, quality), part) : part);
+  const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
+  return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all && !anyPending, edited_total: base !== auto };
+}
 export function compute(att, subs, result, bonus, topic) {
   if (String(topic) === '10') return compute10(att, subs, result, bonus);
+  if (String(topic) === '7') return compute7(att, subs, result, bonus);
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {};
   let quality = 0, aiSum = 0;
