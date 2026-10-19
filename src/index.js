@@ -4,7 +4,8 @@ import { dataFor, stampOf, buildFile, gradeFile } from './excel.js';
 import { TOPICS, MAX, MAXT, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
-import { PLAN } from './plan.js';
+import { PLAN, PLANS } from './plan.js';
+import { gradeSb3 } from './scratch.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 
 let ready = false;
@@ -31,7 +32,7 @@ async function body(request) { try { return await request.json(); } catch (e) { 
 
 async function route(request, env, ctx, url) {
   const path = url.pathname.slice(5), method = request.method, DB = env.DB;
-  const b = method === 'GET' || path === 'xl/upload' ? {} : await body(request);
+  const b = method === 'GET' || path === 'xl/upload' || path === 'sb/upload' ? {} : await body(request);
 
   /* ---------------- Студент: ашық жол ---------------- */
   if (path === 'public/roster' && method === 'GET') {
@@ -101,12 +102,40 @@ async function route(request, env, ctx, url) {
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: res.sheets });
   }
 
+  /* Scratch 7: .sb3 ойын жобасы жүктеледі, блоктар автоматты талданады */
+  if (path === 'sb/upload' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+    if (!ses || ses.status !== 'open' || ses.topic !== 'S7') return err('closed', 403);
+    if (!ses.work_until) return err('not_started', 403);
+    if (now() > ses.work_until + 90) return err('time_over', 403);
+    const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
+    if (busy.n >= 6) return err('wait', 429);
+    await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
+    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength || buf.byteLength > 25e6) return err('bad_file');
+    const res = await gradeSb3(buf, String(new URL(request.url).searchParams.get('e') || '').slice(0, 800));
+    if (res.error) return err(res.error);
+    let dup = '';
+    if (res.fp) {
+      const o = await all(DB.prepare("SELECT x.payload, s.full_name FROM submissions x JOIN students s ON s.id=x.student_id WHERE x.session_id=? AND x.student_id!=? AND x.task=1").bind(p.ses, p.st));
+      const hit = o.find(r => { try { return JSON.parse(r.payload).fp === res.fp; } catch (e) { return false; } });
+      if (hit) dup = hit.full_name;
+    }
+    const t0 = now();
+    await DB.batch(res.sheets.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, fp: res.fp, dup, blocks: res.blocks }), '{}', dup ? 0 : sh.pts, t0, dup ? '🔴 Бұл жоба «' + dup + '» студентінің жобасымен бірдей (көшірілген). Балл 0.' : '')));
+    return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: res.sheets.map(s => ({ items: s.items, pts: dup ? 0 : s.pts })), dup: !!dup });
+  }
+
   /* Сабақ жоспары: тек мұғалімдерге (қонақ мұғалім токені немесе оқытушы панелі) */
   if (path === 'plan' && method === 'GET') {
     const p = await verify(env, bearer(request));
     if (!p) return err('auth', 401);
     if (p.r !== 'g' && p.r !== 't') return err('forbidden', 403);
-    return json({ ok: true, title: PLAN.title, html: PLAN.html });
+    const pl = PLANS[url.searchParams.get('topic')] || PLAN;
+    return json({ ok: true, title: pl.title, html: pl.html, topics: url.searchParams.get('all') ? Object.entries(PLANS).filter(([k]) => k !== '6' || PLAN.html.indexOf('жүктелмеген') < 0).map(([k, v]) => ({ topic: k, title: v.title, html: v.html })) : undefined });
   }
 
   if (path === 'join_guest' && method === 'POST') {
@@ -404,7 +433,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ses.topic === '10', x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    const x10 = ses.topic === '10' || ses.topic === 'S7', x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
@@ -435,7 +464,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     const ot = old ? await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(old.session_id).first() : null;
     if (old && ot && ot.topic === '7') await DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id).run();
-    else if (old && ot && ot.topic === '10') await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
+    else if (old && ot && (ot.topic === '10' || ot.topic === 'S7')) await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
     else if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
   }

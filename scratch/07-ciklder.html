@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7-тақырып: Циклдер және қайталанатын әрекеттер — Scratch</title>
+<meta name="description" content="Scratch: Repeat, Forever және «шарт орындалғанша қайталау» циклдері. «Кедергіден өт» ойынын жасау.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+.topic-box{display:block;width:fit-content;max-width:min(620px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.4}
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:12px 0}
+.cards3>div{background:var(--surface-2);border-radius:14px;padding:14px 16px}
+.cards3 h4{margin:0 0 6px;color:var(--primary)}.cards3 p{margin:0}
+.blk{margin-top:26px}
+.blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
+.blk-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
+.tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}
+.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.rule2{font-size:1.2rem;font-weight:700;text-align:center;background:var(--pivot-bg);border:2px solid var(--pivot-ring);border-radius:14px;padding:14px 18px;margin:12px 0}
+.cmp{width:100%;border-collapse:collapse;margin:8px 0}.cmp th,.cmp td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}.cmp th{background:var(--surface-2)}
+code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;padding:1px 6px}
+/* Сахна: Scratch координаттары (−240…240; −180…180) */
+.scr{position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(#e0f2fe,#fff 70%);border:2px solid var(--line);border-radius:14px;overflow:hidden}
+.scr .ground{position:absolute;left:0;right:0;height:0;border-top:2px dashed #94a3b8}
+.scr .sp{position:absolute;transform:translate(-50%,-50%);font-size:clamp(1.6rem,6vw,2.6rem);line-height:1;text-align:center;transition:left .35s,top .35s}
+.scr .sp small{display:block;font-size:.62rem;font-family:var(--mono);color:var(--muted);margin-top:2px;white-space:nowrap}
+.scr .say{position:absolute;transform:translate(-50%,-135%);background:#fff;border:2px solid #1f2937;border-radius:14px;padding:4px 10px;font-weight:700;font-size:.95rem;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.scr .ax{position:absolute;font-size:.62rem;color:#94a3b8;font-family:var(--mono)}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.pill2{border-radius:999px;padding:5px 12px;font-weight:700;font-size:.9rem;background:var(--surface-2);border:1px solid var(--line)}
+.pill2.t{background:#dcfce7;border-color:#86efac}.pill2.f{background:#fee2e2;border-color:#fca5a5}.pill2.n{background:#dbeafe;border-color:#93c5fd}
+/* Scratch блоктары */
+#sc4 .scr{max-width:560px;margin:0 auto}
+.sk{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px}.sk .st{min-width:230px;flex:1}
+.bk{padding:6px 12px;border-radius:7px;color:#fff;font-weight:700;font-size:.92rem;margin-top:2px;border:2px solid transparent}
+.bk.ev{background:#FFBF00;color:#4a3800}.bk.ct{background:#FFAB19}.bk.mo{background:#4C97FF}.bk.lk{background:#9966FF}.bk.sn{background:#CF63CF}.bk.se{background:#5CB1D6}
+.cb{margin-top:2px;border-left:16px solid var(--c);border-bottom:10px solid var(--c);border-radius:7px}
+.cb.ct{--c:#FFAB19}.cb .kids{padding-left:0}
+.bk.on{border-color:#111;box-shadow:0 0 0 3px #fde047,0 0 14px 4px rgba(250,204,21,.8)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}.chips i{font-style:normal;background:#4C97FF;color:#fff;border-radius:5px;padding:2px 7px;font-size:.78rem;font-weight:700}
+.rub{width:100%;border-collapse:collapse;margin:10px 0}.rub th,.rub td{border:1px solid var(--line);padding:8px 10px;text-align:left}.rub th{background:var(--surface-2)}.rub td.n{text-align:right;font-weight:700;white-space:nowrap}
+.stg{border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:12px 0}.stg h4{margin:0 0 6px;color:var(--primary)}.stg ul{margin:6px 0;padding-left:1.2em}.stg li{margin:3px 0}
+.faces{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.faces button{font-size:1.8rem;border:2px solid var(--line);background:#fff;border-radius:12px;padding:4px 10px;cursor:pointer}.faces button.on{border-color:var(--primary);background:var(--primary-soft)}
+.qa{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0}.qa summary{cursor:pointer;font-weight:700}
+.plan-doc{line-height:1.6}.plan-doc h3{font-size:1.15rem;margin:1em 0 .3em}.plan-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem;display:block;overflow-x:auto}
+.plan-doc th,.plan-doc td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}.plan-doc th{background:var(--surface-2)}
+</style>
+</head>
+<body>
+<main id="main">
+
+<section id="hero" class="hero" data-sec="hero"><div class="wrap">
+  <div class="topic-box"><b>Тақырып:</b> <i>Циклдер және қайталанатын әрекеттер. «Кедергіден өт» ойынын жасау.</i></div>
+  <h1>Циклдер</h1>
+  <p class="lead"><b>Сабақ мақсаты.</b> Өткен тақырыптардағы кейіпкер, оқиға, қозғалыс, анимация және дыбысты циклдермен біріктіріп, қарапайым ойын жасау.</p>
+  <div class="cards3">
+    <div><h4>1. Теория</h4><p>Үш цикл: «рет қайталау», «әрқашан қайталау», «шарт орындалғанша қайталау».</p></div>
+    <div><h4>2. Тапсырма</h4><p>«Кедергіден өт» ойынын жасап, .sb3 файлын жібересің. Ойын автоматты тексеріледі.</p></div>
+    <div><h4>3. Қорытынды</h4><p>Не үйренгенімізді бекітеміз және өзімізді бағалаймыз.</p></div>
+  </div>
+  <div class="hero-actions"><a class="btn primary big" href="#teo">Сабақты бастау →</a></div>
+</div></section>
+
+<!-- Сабақ жоспары (тек мұғалімдерге) -->
+<section id="plan" class="lesson" hidden><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">📄</span><h2 id="planTitle">Сабақ жоспары</h2></div>
+  <p class="learn">Бұл бөлім тек мұғалімдерге көрінеді.</p>
+  <div class="plan-doc" id="planBody"></div>
+</div></div></section>
+
+<!-- 1. ТЕОРИЯ -->
+<section id="teo" class="lesson" data-sec="teo"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Теория: циклдер</h2></div>
+  <p class="learn">Бұл бөлімде бір әрекетті қайта-қайта қайталатуды және оны қашан тоқтату керегін үйренесің.</p>
+  <p><dfn>Цикл</dfn> — блоктар тобын бірнеше рет орындататын блок. Кедергіні 200 қадам жоғары көтеру керек делік. Циклсіз «у-ті 10-ға өзгерту» блогын <b>20 рет</b> қойып шығу керек:</p>
+  <div class="chips" aria-hidden="true" id="chips"></div>
+  <p>Цикл бар болса, <b>бір</b> блок жеткілікті: «20 рет қайталау» ішіне бір рет қоямыз. Scratch-та үш цикл бар. Әрқайсысын жеке-жеке қарайық. Анимацияны «Алға» батырмасымен өзің басқарасың.</p>
+
+  <div class="blk">
+    <h3 class="blk-h"><span class="ic">1</span>«… рет қайталау» (repeat)</h3>
+    <p>Қанша рет қайталау керегі <b>алдын ала белгілі</b> болғанда қолданамыз. Кедергі (0; −100) нүктесінен 20 рет 10 қадам жоғары көтеріледі.</p>
+    <div class="demo"><div class="stage"><div id="sc1"></div><div class="pillrow" id="bg1"></div><div class="sk" id="sk1"></div></div><div class="side"><div id="ex1"></div><div id="bar1"></div></div></div>
+  </div>
+
+  <div class="blk">
+    <h3 class="blk-h"><span class="ic">2</span>«әрқашан қайталау» (forever)</h3>
+    <p>Ойын жүріп жатқанда <b>тоқтамай</b> қайталануы керек әрекет үшін қолданамыз. Екі «20 рет қайталау» циклін «әрқашан қайталау» ішіне саламыз: кедергі жоғары-төмен үздіксіз жүреді.</p>
+    <div class="demo"><div class="stage"><div id="sc2"></div><div class="pillrow" id="bg2"></div><div class="sk" id="sk2"></div></div><div class="side"><div id="ex2"></div><div id="bar2"></div></div></div>
+  </div>
+
+  <div class="blk">
+    <h3 class="blk-h"><span class="ic">3</span>«шарт орындалғанша қайталау» (repeat until)</h3>
+    <p>Қайталау саны белгісіз, бірақ <b>тоқтау шарты</b> белгілі болғанда қолданамыз: «ойыншы мәреге тигенше». Шарт <b>ақиқат</b> болғанда цикл аяқталады.</p>
+    <div class="demo"><div class="stage"><div id="sc3"></div><div class="pillrow" id="bg3"></div><div class="sk" id="sk3"></div></div><div class="side"><div id="ex3"></div><div id="bar3"></div></div></div>
+    <div class="tip warn"><b>!</b><span>Шарт цикл басталмай тұрып тексеріледі. Егер басында ақиқат болса, цикл бір рет те орындалмайды.</span></div>
+  </div>
+
+  <div class="blk">
+    <h3 class="blk-h"><span class="ic">≡</span>Үш цикл бір кестеде</h3>
+    <table class="cmp"><tr><th>Цикл</th><th>Қашан аяқталады</th><th>Ойынымызда</th></tr>
+      <tr><td><b>20 рет қайталау</b></td><td>Белгілі санға жеткенде</td><td>Кедергі 20 қадам жоғары / төмен жүреді</td></tr>
+      <tr><td><b>әрқашан қайталау</b></td><td>Ешқашан (тек «барлығын тоқтату» блогы тоқтатады)</td><td>Кедергі ойын бітпейінше жүре береді</td></tr>
+      <tr><td><b>шарт орындалғанша қайталау</b></td><td>Шарт ақиқат болғанда</td><td>Ойыншы мәреге не кедергіге тигенше күтеді</td></tr></table>
+  </div>
+
+  <div class="blk">
+    <h3 class="blk-h"><span class="ic">?</span>Өзіңді тексер</h3>
+    <div id="q1"></div><div id="q2"></div><div id="q3"></div>
+  </div>
+</div></div></section>
+
+<!-- 2. ТАПСЫРМА -->
+<section id="task" class="lesson" data-sec="task"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Тапсырма: «Кедергіден өт» ойыны</h2></div>
+  <p class="learn">Ойыншы кедергіге тимей, мәреге жетуі керек. Ойынды Scratch-та жасап, <b>.sb3</b> файлын жібересің. Блоктар автоматты тексеріліп, балл бірден шығады.</p>
+  <div id="sc4"></div>
+  <p class="muted" style="margin:6px 0 0">Ойынның түпкілікті көрінісі: ойыншы сол жақта, кедергі ортада жоғары-төмен жүреді, мәре оң жақта.</p>
+
+  <div class="stg"><h4>1-кезең · Ойыншыны басқару (15 минут)</h4><ul>
+    <li>Үш кейіпкер: <b>«Ойыншы»</b>, <b>«Кедергі»</b>, <b>«Мәре»</b>.</li>
+    <li>Ойыншы: жасыл ту басылғанда <code>x: −180, y: −100</code> нүктесіне барады.</li>
+    <li>Төрт пернемен басқарылады, әр перне <b>10 қадам</b> жылжытады: <code>↑</code> у-ті 10-ға, <code>↓</code> у-ті −10-ға, <code>→</code> x-ті 10-ға, <code>←</code> x-ті −10-ға өзгерту.</li>
+    <li>Мәре: <code>x: 180, y: −100</code>.</li></ul></div>
+  <div class="stg"><h4>2-кезең · Кедергінің қозғалысы (15 минут)</h4><ul>
+    <li>Кедергі жасыл ту басылғанда <code>x: 0, y: −100</code> нүктесіне барады.</li>
+    <li><b>әрқашан қайталау</b> ішінде екі цикл: <code>20 рет қайталау</code> (у-ті <b>10</b>-ға өзгерту) және <code>20 рет қайталау</code> (у-ті <b>−10</b>-ға өзгерту).</li>
+    <li>Әр циклдің ішінде <b>0,05 секунд күту</b> және <b>келесі костюм</b>. Кедергіге екі костюм қос.</li></ul></div>
+  <div class="stg"><h4>3-кезең · Жеңу, ұтылу және дыбыс (15 минут)</h4><ul>
+    <li>«Ойыншыда» <b>екі бөлек</b> тізбек, екеуі де жасыл туден басталады.</li>
+    <li>1-тізбек: <code>шарт орындалғанша қайталау</code> &lt;<b>Мәреге</b> тиді ме?&gt; ішінде 0,1 секунд күту. Содан кейін <code>«Жеңдің!» деп 1 секунд айту</code> → <code>дыбысты аяқталғанша ойнату</code> → <code>барлығын тоқтату</code>.</li>
+    <li>2-тізбек: сол сияқты, бірақ &lt;<b>Кедергіге</b> тиді ме?&gt; және хабар <b>«Қайта байқап көр!»</b>.</li>
+    <li>Дыбысты Scratch кітапханасынан қос (Дыбыстар → Дыбыс таңдау).</li></ul></div>
+
+  <div class="tip info"><b>i</b><span>Тексеру блоктардағы санға дейін дәл: <b>10, 20, 0,05, 0,1, 1</b>. Хабарлардағы сөздер: «Жеңдің!» және «Қайта байқап көр!». Басқа студенттің файлын жіберсең, жоба бірдей деп танылып, 0 балл қойылады.</span></div>
+
+  <h3 class="blk-h" style="margin-top:20px">Қалай бағаланады</h3>
+  <table class="rub"><tr><th>Өлшемшарт</th><th>Ұпай</th></tr>
+    <tr><td>Ойыншыны басқару: 3 кейіпкер, 4 перне, әр перне 10 қадам</td><td class="n">20</td></tr>
+    <tr><td>Екі циклмен кедергіні қозғалту: «әрқашан қайталау», екі «20 рет қайталау», +10 / −10, 0,05 с күту, бастапқы орын</td><td class="n">30</td></tr>
+    <tr><td>Екі шартты циклмен жеңу/ұтылуды анықтау: «тиді ме?», 0,1 с күту, хабарлар, «барлығын тоқтату»</td><td class="n">30</td></tr>
+    <tr><td>Анимация мен дыбыс: костюмдер, «келесі костюм», дыбыс ойнату</td><td class="n">10</td></tr>
+    <tr><td>Түсіндіру: үш циклдің қызметі (өз сөзіңмен 2–3 сөйлем)</td><td class="n">10</td></tr>
+    <tr><th>Барлығы</th><th class="n">100</th></tr></table>
+  <p class="muted">100 ұпай 60 балға келтіріледі, қатысымға 40 балл беріледі. Жіберілген жұмыс 50 баллдан кем болмайды.</p>
+
+  <h3 class="blk-h" style="margin-top:20px">Ойынды жіберу</h3>
+  <div id="sbHost"></div>
+</div></div></section>
+
+<!-- 3. ҚОРЫТЫНДЫ -->
+<section id="sum" class="lesson" data-sec="sum"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Қорытынды және бекіту</h2></div>
+  <div class="rule2">Қайталау саны белгілі болса — «рет қайталау», тоқтамау керек болса — «әрқашан», шартқа дейін болса — «шарт орындалғанша».</div>
+  <div class="cards3">
+    <div><h4>рет қайталау</h4><p>Кедергіні 20 қадам жылжытты.</p></div>
+    <div><h4>әрқашан қайталау</h4><p>Қозғалысты ойын бітпейінше үздіксіз етті.</p></div>
+    <div><h4>шарт орындалғанша</h4><p>Мәреге не кедергіге тигенін күтіп, жеңу/ұтылуды анықтады.</p></div>
+  </div>
+  <h3 class="blk-h" style="margin-top:18px">Бекіту сұрақтары</h3>
+  <details class="qa"><summary>Қай цикл не үшін қолданылды?</summary><p>«20 рет қайталау» — кедергінің жоғары және төмен қадамдары үшін. «Әрқашан қайталау» — осы екеуін үздіксіз қайталау үшін. «Шарт орындалғанша қайталау» — ойыншы мәреге не кедергіге тигенше күту үшін.</p></details>
+  <details class="qa"><summary>Қай блоктар өткен тақырыптардан алынды?</summary><p>Перне оқиғасы мен жасыл ту, қозғалыс және координата блоктары, костюм ауыстыру, дыбыс ойнату.</p></details>
+  <details class="qa"><summary>Жасыл ту қайта басылғанда не болады?</summary><p>Кейіпкерлер бастапқы орнына барады: ол үшін әр тізбектің басында «x, y орнына бару» блогы тұр.</p></details>
+  <div class="tip ok"><b>🏠</b><span><b>Үй тапсырмасы.</b> Ойынның фонын, кейіпкерін немесе дыбысын жетілдір. Жобаны сақта.</span></div>
+
+  <h3 class="blk-h" style="margin-top:18px">Өзін-өзі бағалау</h3>
+  <p>Бүгінгі тақырыпты қаншалықты түсіндің?</p>
+  <div class="faces" id="faces"></div>
+  <div id="learned"></div>
+  <div class="stepbar"><button type="button" class="btn primary" id="fbSend">Жіберу</button></div>
+  <div class="xl-msg" id="fbMsg" role="status"></div>
+</div></div></section>
+</main>
+<footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Scratch</a></div></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/sb-work.js"></script>
+<script>
+(function(){
+const { $, el, Stepper, ExplainPanel, Check, Course } = L;
+
+/* ---------- Сахна мен блоктар ---------- */
+const X = x => (x + 240) / 480 * 100, Y = y => (180 - y) / 360 * 100;
+function stage(host, o){
+  host.innerHTML = '';
+  const st = el('div', { class:'scr', role:'img', 'aria-label':'Scratch сахнасы' });
+  st.append(el('div', { class:'ground', style:'top:' + Y(-100) + '%' }), el('span', { class:'ax', style:'left:3px;top:' + (Y(-100) + 1) + '%', text:'y = −100' }));
+  const f = s => s.replace(/-/g, '−');
+  const mk = (e, p) => st.append(el('div', { class:'sp', style:'left:' + X(p.x) + '%;top:' + Y(p.y) + '%' }, [e, el('small', { text:f('(' + p.x + '; ' + p.y + ')') })]));
+  if (o.fin) mk('🏁', o.fin);
+  if (o.ob) mk('🧱', o.ob);
+  if (o.p) mk('🐱', o.p);
+  if (o.say && o.p) st.append(el('div', { class:'say', style:'left:' + X(o.p.x) + '%;top:' + Y(o.p.y) + '%', text:o.say }));
+  host.append(st);
+}
+/* Блок тізбегі: tree = {k, t, id, kids} */
+function node(n, act){
+  if (!n.kids) return el('div', { class:'bk ' + n.k + (n.id === act ? ' on' : ''), text:n.t });
+  return el('div', { class:'cb ' + n.k }, [el('div', { class:'bk ' + n.k + (n.id === act ? ' on' : ''), text:n.t }), el('div', { class:'kids' }, n.kids.map(c => node(c, act)))]);
+}
+function scripts(host, roots, act){ host.innerHTML = ''; roots.forEach(r => host.append(el('div', { class:'st' }, r.map(n => node(n, act))))); }
+const pills = (host, arr) => { host.innerHTML = ''; arr.forEach(([t, c]) => host.append(el('span', { class:'pill2 ' + (c || ''), text:t }))); };
+
+/* Демо құрастырғыш */
+function demo(n, cfg){
+  const ex = new ExplainPanel($('#ex' + n));
+  const apply = s => { const st = cfg.steps[s]; stage($('#sc' + n), st.stage); scripts($('#sk' + n), cfg.roots, st.act); pills($('#bg' + n), st.pills); ex.set(st.t); };
+  const stepper = new Stepper({ count:cfg.steps.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(300); }, barHost:$('#bar' + n) });
+  Course.register(cfg.id, { stepper, reset(){ stepper.reset(); } });
+  stepper.init();
+}
+(function(){ const c = $('#chips'); for (let i = 0; i < 20; i++) c.append(el('i', { text:'у +10' })); })();
+
+/* ---------- 1. repeat 20 ---------- */
+(function(){
+  const roots = [[{ k:'ev', t:'жасыл ту басылғанда', id:'ev' }, { k:'mo', t:'x: 0 у: −100 орнына бару', id:'go' }, { k:'ct', t:'20 рет қайталау', id:'r', kids:[{ k:'mo', t:'у-ті 10-ға өзгерту', id:'ch' }] }]];
+  const ks = [0, 1, 2, 5, 10, 20], T = k => {
+    const y = -100 + 10 * k;
+    if (k === 0) return { now:'Жасыл ту басылды. Кедергі <b>(0; −100)</b> нүктесіне барды.', why:'Цикл әлі басталған жоқ, санауыш 0.', how:'Енді «20 рет қайталау» басталады: ішіндегі блок 20 рет орындалады.' };
+    if (k === 20) return { now:'20-қайталау біткен соң: у = −100 + 10 · 20 = <b>100</b>. Кедергі ең жоғарыға жетті.', why:'Санауыш 20 / 20 болды, цикл <b>өзі тоқтады</b>.', how:'Бағдарлама циклден кейінгі блокқа өтеді. Төмен түсу үшін екінші цикл қажет.', calc:['у = −100 + 10 · 20 = 100'] };
+    return { now:k + '-қайталаудан кейін: у = −100 + 10 · ' + k + ' = <b>' + y + '</b>.', why:'Циклдің ішіндегі «у-ті 10-ға өзгерту» блогы әр айналымда бір рет орындалады.', how:'Санауыш ' + k + ' / 20. Қалғаны: ' + (20 - k) + ' қайталау.', calc:['у = −100 + 10 · ' + k + ' = ' + y] };
+  };
+  demo(1, { id:'rep', roots, steps:ks.map(k => ({ t:T(k), act:k === 0 ? 'go' : k === 20 ? 'r' : 'ch', stage:{ ob:{ x:0, y:-100 + 10 * k } }, pills:[['Қайталау: ' + k + ' / 20', 'n'], ['у = ' + (-100 + 10 * k).toString().replace('-', '−')]] })) });
+})();
+
+/* ---------- 2. forever ---------- */
+(function(){
+  const roots = [[{ k:'ev', t:'жасыл ту басылғанда', id:'ev' }, { k:'ct', t:'әрқашан қайталау', id:'f', kids:[
+    { k:'ct', t:'20 рет қайталау', id:'r1', kids:[{ k:'mo', t:'у-ті 10-ға өзгерту', id:'m1' }, { k:'ct', t:'0,05 секунд күту', id:'w1' }, { k:'lk', t:'келесі костюм', id:'c1' }] },
+    { k:'ct', t:'20 рет қайталау', id:'r2', kids:[{ k:'mo', t:'у-ті −10-ға өзгерту', id:'m2' }, { k:'ct', t:'0,05 секунд күту', id:'w2' }, { k:'lk', t:'келесі костюм', id:'c2' }] }] }]];
+  const S = [
+    ['Әрқашан қайталау басталды. Кедергі (0; −100) нүктесінде.', 'Бұл цикл <b>ешқашан аяқталмайды</b>.', 'Бағдарлама оның ішіндегі блоктарды бірінен соң бірін орындайды.', 'f', -100, 'Айналым 1', 'Цикл —'],
+    ['1-цикл: 10 қайталаудан кейін у = 0.', 'Жоғары жүру үшін у-ті +10 өзгертеміз.', 'Әр қайталауда 0,05 секунд күтеміз, сондықтан қозғалыс көзге көрінеді. Костюм да ауысады.', 'm1', 0, 'Айналым 1', '1-цикл: 10 / 20'],
+    ['1-цикл біткен: у = 100.', '20 қайталау орындалды, цикл тоқтады.', 'Бағдарлама келесі блокқа, яғни 2-циклге өтеді.', 'r1', 100, 'Айналым 1', '1-цикл: 20 / 20 ✓'],
+    ['2-цикл: 10 қайталаудан кейін у = 0.', 'Енді төмен түсеміз: у-ті −10 өзгертеміз.', 'Қозғалыс бағыты өзгерді, бірақ принцип сол.', 'm2', 0, 'Айналым 1', '2-цикл: 10 / 20'],
+    ['2-цикл біткен: у = −100. Кедергі басына оралды.', 'Екі цикл де орындалды, «әрқашан қайталау» ішіндегі блоктар біткен.', 'Бағдарлама «әрқашан қайталау» басына оралады.', 'r2', -100, 'Айналым 1', '2-цикл: 20 / 20 ✓'],
+    ['2-айналым басталды: кедергі тағы жоғары көтеріледі.', '«Әрқашан қайталау» өздігінен тоқтамайды, айналым саны шексіз.', 'Осылай кедергі ойын бітпейінше жоғары-төмен жүре береді.', 'f', 0, 'Айналым 2', '1-цикл: 10 / 20'],
+    ['Қалай тоқтатамыз?', 'Шексіз циклды тек <b>«барлығын тоқтату»</b> блогы тоқтатады.', 'Біздің ойында ол мәреге не кедергіге тигенде шақырылады (3-цикл).', 'f', 0, 'Айналым 2', 'Тоқтату: «барлығын тоқтату»']
+  ];
+  demo(2, { id:'forever', roots, steps:S.map(s => ({ t:{ now:s[0], why:s[1], how:s[2] }, act:s[3], stage:{ ob:{ x:0, y:s[4] } }, pills:[[s[5], 'n'], [s[6]], ['у = ' + String(s[4]).replace('-', '−')]] })) });
+})();
+
+/* ---------- 3. repeat until ---------- */
+(function(){
+  const roots = [
+    [{ k:'ev', t:'жасыл ту басылғанда', id:'a0' }, { k:'ct', t:'шарт орындалғанша қайталау  ⟨Мәреге тиді ме?⟩', id:'au', kids:[{ k:'ct', t:'0,1 секунд күту', id:'aw' }] }, { k:'lk', t:'«Жеңдің!» деп 1 секунд айту', id:'as' }, { k:'sn', t:'дыбысты аяқталғанша ойнату', id:'ad' }, { k:'ct', t:'барлығын тоқтату', id:'ax' }],
+    [{ k:'ev', t:'жасыл ту басылғанда', id:'b0' }, { k:'ct', t:'шарт орындалғанша қайталау  ⟨Кедергіге тиді ме?⟩', id:'bu', kids:[{ k:'ct', t:'0,1 секунд күту', id:'bw' }] }, { k:'lk', t:'«Қайта байқап көр!» деп 1 секунд айту', id:'bs' }, { k:'sn', t:'дыбысты аяқталғанша ойнату', id:'bd' }, { k:'ct', t:'барлығын тоқтату', id:'bx' }]];
+  const FIN = { x:180, y:-100 };
+  const S = [
+    { t:{ now:'Ойын басталды. Ойыншы (−180; −100) нүктесінде. 1-цикл шартты тексереді: «Мәреге тиді ме?»', why:'Шарт <b>жалған</b> (жоқ), сондықтан цикл жалғасады.', how:'Цикл 0,1 секунд күтеді де, шартты қайта тексереді.' }, act:'au', p:{ x:-180, y:-100 }, ob:{ x:0, y:100 }, pl:[['Мәреге тиді ме? — жоқ', 'f']] },
+    { t:{ now:'Ойыншы → пернесін басып келеді: x = −100.', why:'Шарт әлі <b>жалған</b>: ойыншы мәреден алыс.', how:'Цикл әр 0,1 секунд сайын тексеруді қайталайды. Бұл «рет қайталау» емес: қайталау санын алдын ала білмейміз.' }, act:'aw', p:{ x:-100, y:-100 }, ob:{ x:0, y:50 }, pl:[['Мәреге тиді ме? — жоқ', 'f']] },
+    { t:{ now:'Ойыншы ортада: x = 20.', why:'Шарт жалған, цикл жұмысын жалғастырады.', how:'Қанша қайталанатыны ойыншының жылдамдығына байланысты.' }, act:'au', p:{ x:20, y:-100 }, ob:{ x:0, y:20 }, pl:[['Мәреге тиді ме? — жоқ', 'f']] },
+    { t:{ now:'Ойыншы мәреге жақындады: x = 170.', why:'10 қадам қалды, ойыншы әлі мәреге <b>тиген жоқ</b>.', how:'Тағы бір басу — және шарт ақиқат болады.' }, act:'aw', p:{ x:170, y:-100 }, ob:{ x:0, y:80 }, pl:[['Мәреге тиді ме? — жоқ', 'f']] },
+    { t:{ now:'Ойыншы мәреге тиді: x = 180. Шарт <b>ақиқат</b>!', why:'Шарт ақиқат болғандықтан <b>цикл аяқталады</b>.', how:'Бағдарлама циклден кейінгі блоктарға өтеді: «Жеңдің!» 1 секунд айтылады, дыбыс ойнайды, «барлығын тоқтату» ойынды тоқтатады.' }, act:'as', p:{ x:180, y:-100 }, say:'Жеңдің!', ob:{ x:0, y:100 }, pl:[['Мәреге тиді ме? — ИӘ', 't'], ['♪ дыбыс ойнайды']] },
+    { t:{ now:'Басқа жағдай: шарт <b>басынан</b> ақиқат болса ше? Ойыншы мәреде тұр делік.', why:'Шарт цикл басталмай тұрып тексеріледі.', how:'Шарт ақиқат болғандықтан цикл ішіндегі «0,1 секунд күту» <b>бір рет те орындалмайды</b>, бағдарлама бірден «Жеңдің!» блогына өтеді.' }, act:'au', p:{ x:180, y:-100 }, ob:{ x:0, y:100 }, pl:[['Мәреге тиді ме? — ИӘ (басынан)', 't'], ['Цикл денесі: 0 рет', 'n']] },
+    { t:{ now:'2-тізбек параллель жұмыс істейді: «Кедергіге тиді ме?». Ойыншы x = 0, кедергі төмен түсті (0; −100).', why:'Кедергі мен ойыншы түйісті, шарт <b>ақиқат</b>.', how:'2-цикл аяқталып, «Қайта байқап көр!» айтылады, дыбыс ойнайды және ойын тоқтайды.' }, act:'bs', p:{ x:0, y:-100 }, say:'Қайта байқап көр!', ob:{ x:0, y:-100 }, pl:[['Кедергіге тиді ме? — ИӘ', 't'], ['♪ дыбыс ойнайды']] }
+  ];
+  demo(3, { id:'until', roots, steps:S.map(s => ({ t:s.t, act:s.act, stage:{ p:s.p, ob:s.ob, fin:FIN, say:s.say }, pills:s.pl })) });
+})();
+
+/* ---------- Тексеру сұрақтары ---------- */
+new Check($('#q1'), { label:'Кедергі (0; −100) нүктесінде тұр. «20 рет қайталау: у-ті 10-ға өзгерту» циклінен кейін у неге тең?', expected:100, hints:['Кедергі 20 рет 10 қадам жүреді. Барлығы неше қадам?', '20 · 10 = 200 қадам. Бастапқы у = −100.'], how:'у = −100 + 20 · 10 = 100', success:'Дұрыс: 20 рет 10 қадам = 200, −100 + 200 = 100.' });
+new Check($('#q2'), { label:'Екі цикл (жоғары 20, төмен 20) бір рет орындалғанда у-ті барлығы неше рет өзгертеді?', expected:40, hints:['Әр цикл у-ті 20 рет өзгертеді. Екі цикл бар.', '20 + 20.'], how:'20 + 20 = 40', success:'Дұрыс: 20 + 20 = 40 рет, кедергі басына оралады.' });
+new Check($('#q3'), { label:'Ойыншы x = −180 нүктесінде, әр басу 10 қадам. Мәреге (x = 180) жету үшін неше рет басу керек?', expected:36, hints:['Мәреге дейінгі қашықтықты тап: 180 − (−180).', 'Қашықтықты 10-ға бөл.'], how:'(180 − (−180)) / 10 = 360 / 10 = 36', success:'Дұрыс: 360 қадамды 10-ға бөлсек, 36 басу.' });
+
+/* ---------- Тапсырма сахнасы ---------- */
+stage($('#sc4'), { p:{ x:-180, y:-100 }, ob:{ x:0, y:0 }, fin:{ x:180, y:-100 } });
+
+/* ---------- Қорытынды: өзін-өзі бағалау ---------- */
+(function(){
+  let level = 0; const learned = new Set(), F = ['😟', '😕', '😐', '🙂', '😀'];
+  F.forEach((f, i) => { const b = el('button', { type:'button', text:f, 'aria-label':'Баға ' + (i + 1) }); b.addEventListener('click', () => { level = i + 1; [...$('#faces').children].forEach((x, j) => x.classList.toggle('on', j === i)); }); $('#faces').append(b); });
+  ['«рет қайталау»', '«әрқашан қайталау»', '«шарт орындалғанша қайталау»', 'кедергінің қозғалысы', 'жеңу/ұтылу шарты'].forEach(t => {
+    const id = 'l' + Math.random().toString(36).slice(2, 7), c = el('input', { type:'checkbox', id });
+    c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); });
+    $('#learned').append(el('label', { for:id, style:'display:block;margin:4px 0' }, [c, ' Үйрендім: ' + t]));
+  });
+  $('#fbSend').addEventListener('click', async () => {
+    const m = $('#fbMsg'), me = window.Join.get();
+    if (!me || me.guest){ m.className = 'xl-msg bad'; m.textContent = 'Алдымен студент ретінде сабаққа кіріңіз.'; return; }
+    if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
+    const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
+    m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
+  });
+})();
+
+/* ---------- Сабақ жоспары: тек қонақ мұғалімге ---------- */
+(function(){
+  const sec = $('#plan'); let loaded = false;
+  window.Join.on(async me => {
+    if (me && me.guest){
+      if (loaded) return; loaded = true;
+      const j = await window.Join.api('plan?topic=S7');
+      if (j.ok){ $('#planTitle').textContent = j.title; $('#planBody').innerHTML = j.html; sec.hidden = false; } else loaded = false;
+    } else { sec.hidden = true; $('#planBody').innerHTML = ''; loaded = false; }
+  });
+})();
+
+Course.init({ back:{ href:'index.html', text:'← Scratch' }, title:[7, 'Циклдер'], sections:[
+  { id:'teo', n:1, title:'Теория' }, { id:'task', n:2, title:'Тапсырма' }, { id:'sum', n:3, title:'Қорытынды' }
+] });
+window.Join.mount({ gate:true, title:'Scratch, 7-тақырып: Циклдер' });
+window.SbWork.mount($('#sbHost'));
+})();
+</script>
+</body>
+</html>

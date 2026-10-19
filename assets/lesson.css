@@ -342,3 +342,8 @@ footer{padding:30px 0 20px;color:var(--muted);font-size:.9rem}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-family:var(--math);font-size:1rem;padding:4px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 @media (max-width:600px){.ce{font-size:13px;height:min(60vh,420px)}.ce-gut{min-width:36px;padding-left:8px}.w7-clock{top:96px}}
+/* Файл жүктеу виджеттері (Excel, Scratch) */
+.xl-steps{padding-left:1.2em;line-height:1.7}.xl-steps li{margin:6px 0}.xl-up{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}.xl-up input{max-width:100%}
+.xl-timer{font-weight:700;font-size:1.2rem;margin:0 0 8px}.xl-timer.low{color:#b91c1c}.xl-msg{margin-top:10px}.xl-msg.bad{color:#b91c1c;font-weight:600}.xl-msg.ok{color:#15803d;font-weight:600}
+.xl-total{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:14px;background:#ecfdf5;border:1px solid #86efac;margin-bottom:12px}.xl-total b{font-size:1.4rem}.xl-total span{color:var(--muted)}
+.xl-sheet{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0}.xl-sheet summary{cursor:pointer;font-weight:700}.xl-sheet ul{list-style:none;padding:0;margin:8px 0 0}.xl-sheet li{padding:3px 0}.xl-sheet li.ok{color:#15803d}.xl-sheet li.mid{color:#b45309}.xl-sheet li.no{color:#b91c1c}
