@@ -107,23 +107,24 @@ async function route(request, env, ctx, url) {
   if (path === 'mm/upload' && method === 'POST') {
     const p = await verify(env, bearer(request));
     if (!p || p.r !== 's') return err('auth', 401);
+    const failUp = async (c, st) => { try { await DB.prepare('INSERT INTO up_fails (student_id, session_id, at, error) VALUES (?,?,?,?)').bind(p.st, p.ses, now(), c).run(); } catch (e) {} return err(c, st); };
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
-    if (!ses || ses.status !== 'open' || ses.topic !== 'A13') return err('closed', 403);
-    if (!ses.work_until) return err('not_started', 403);
-    if (now() > ses.work_until + 90) return err('time_over', 403);
+    if (!ses || ses.status !== 'open' || ses.topic !== 'A13') return failUp('closed', 403);
+    if (!ses.work_until) return failUp('not_started', 403);
+    if (now() > ses.work_until + 90) return failUp('time_over', 403);
     const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
-    if (busy.n >= 4) return err('wait', 429);
-    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
-    let fd; try { fd = await request.formData(); } catch (e) { return err('need_both'); }
+    if (busy.n >= 4) return failUp('wait', 429);
+    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return failUp('already', 409);
+    let fd; try { fd = await request.formData(); } catch (e) { return failUp('need_both'); }
     const pp = fd.get('pptx'), pf = fd.get('pdf');   /* PDF міндетті емес: жоқ болса, дизайн слайд құрылымынан бағаланады */
-    if (!pp || typeof pp.arrayBuffer !== 'function') return err('need_both');
+    if (!pp || typeof pp.arrayBuffer !== 'function') return failUp('need_both');
     const hasPdf = !!(pf && typeof pf.arrayBuffer === 'function' && pf.size > 0);
-    if (pp.size > 60e6 || (hasPdf && pf.size > 14e6)) return err('too_big');
+    if (pp.size > 60e6 || (hasPdf && pf.size > 14e6)) return failUp('too_big');
     const st = await DB.prepare('SELECT full_name FROM students WHERE id=?').bind(p.st).first();
     const g = await gradePptx(await pp.arrayBuffer(), st ? st.full_name : '');
     if (g.error) return err(g.error);
     const pdf = hasPdf ? await pf.arrayBuffer() : null;
-    if (pdf && new TextDecoder().decode(new Uint8Array(pdf, 0, 5)) !== '%PDF-') return err('bad_pdf');
+    if (pdf && new TextDecoder().decode(new Uint8Array(pdf, 0, 5)) !== '%PDF-') return failUp('bad_pdf');
     let dup = '';
     if (g.fp) {
       const o = await all(DB.prepare("SELECT x.payload, s.full_name FROM submissions x JOIN students s ON s.id=x.student_id WHERE x.session_id=? AND x.student_id!=? AND x.task=1").bind(p.ses, p.st));
