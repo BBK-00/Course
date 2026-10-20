@@ -6,7 +6,7 @@ import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
 import { gradeSb3 } from './scratch.js';
-import { gradePptx, designGrade, compose } from './mm.js';
+import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 
 let ready = false;
@@ -131,7 +131,8 @@ async function route(request, env, ctx, url) {
       if (hit) dup = hit.full_name;
     }
     await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
-    let design; try { design = await designGrade(env, pdf, pdf ? null : { deck: g.deck, slides: g.slides.map(s => s.missing ? { n: s.n, missing: true } : { n: s.n, text: String(s.text || '').slice(0, 220), ...s.facts }) }); } catch (e) { return err('ai_busy', 503); }
+    const facts = { deck: g.deck, slides: g.slides.map(s => s.missing ? { n: s.n, missing: true } : { n: s.n, text: String(s.text || '').slice(0, 220), ...s.facts }) };
+    let design; try { design = await designGrade(env, pdf, pdf ? null : facts); } catch (e) { design = heuristicDesign(facts); }
     const rows = compose(g, design), t0 = now();
     await DB.batch(rows.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, fp: g.fp, dup, summary: String(design.summary || '').slice(0, 300) }), '{}', dup ? 0 : sh.pts, t0, dup ? '🔴 Бұл презентация «' + dup + '» студентінің жұмысымен бірдей (көшірілген). Балл 0.' : (i === 2 ? 'Дизайн (ЖИ): ' + String(design.summary || '').slice(0, 200) : ''))));
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: rows.map(s => ({ items: s.items, pts: dup ? 0 : s.pts })), dup: !!dup, summary: design.summary || '' });

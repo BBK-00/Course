@@ -96,13 +96,14 @@ export async function designGrade(env, pdf, facts) {
     'Return JSON: slides = list of {n (1-10), score (design 0-2), q (quiz content 0-2), note (one short Kazakh sentence naming the main visual or content strength or flaw)}, summary = one Kazakh sentence about the overall style consistency.'].join('\n');
   const parts = pdf ? [{ text }, { inlineData: { mimeType: 'application/pdf', data: b64 } }] : [{ text: text.replace('(PDF export, one quiz task per slide, 10 slides)', '(you get LAYOUT FACTS as JSON, not images)') + '\nYou CANNOT see the slides. Judge the visual design ONLY from the layout facts, be strict: overlappingPairs > 0 or shapesOutsideSlide > 0 means a layout flaw (score 0 or 1); fontPt minimum below 18 is hard to read on a projector; chars above 350 means an overloaded slide; no own background and no colours means a plain default template (score at most 1); more than 2 fonts across the deck or very different slide styles means inconsistent design; give 2 only when the facts clearly show a deliberate, clean, consistent, balanced design with a sizeable picture. If a fact is "inherited default" assume the default template size (often small body text).\n\nLAYOUT FACTS (JSON):\n' + JSON.stringify(facts) }];
   let last = '';
-  const tries = Math.min(9, Math.max(5, keys.length * 3));
+  const tries = Math.min(9, Math.max(5, keys.length * 3)), t0 = Date.now();
   for (let t = 0; t < tries; t++) {
+    if (Date.now() - t0 > 18000) break;   /* ең көбі ~25 секунд: кешіксе, ережемен бағаланады */
     const key = keys[(good + t) % keys.length];
     try {
       const model = models[Math.floor(t / keys.length) % models.length];
       const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, signal: AbortSignal.timeout(12000),
         body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: SCHEMA, ...(model === 'gemini-2.5-flash' ? { thinkingConfig: { thinkingBudget: 0 } } : {}) } })
       });
       const j = await res.json();
@@ -112,6 +113,15 @@ export async function designGrade(env, pdf, facts) {
     await new Promise(r => setTimeout(r, t < keys.length ? 300 : 1500 * (t + 1 - keys.length)));
   }
   throw new Error(last);
+}
+
+/* Жасанды интеллект уақытында жауап бермесе: слайд құрылымы бойынша ережемен бағалау (консервативті, ең көбі 1) */
+export function heuristicDesign(facts) {
+  return { summary: 'Дизайн жасанды интеллектсіз, слайд құрылымы бойынша ережемен бағаланды (ең көбі 1 балл).', slides: (facts.slides || []).map(s => {
+    if (s.missing) return { n: s.n, score: 0, q: 0, note: 'слайд жоқ' };
+    const small = Array.isArray(s.fontPt) && s.fontPt[0] < 14, bad = s.overlappingPairs > 0 || s.shapesOutsideSlide > 0 || small || s.chars > 450 || s.chars < 5;
+    return { n: s.n, score: bad ? 0 : 1, q: 2, note: bad ? (s.overlappingPairs > 0 ? 'элементтер бір-бірін жауып тұр' : s.shapesOutsideSlide > 0 ? 'элемент слайдтан шығып кеткен' : small ? 'қаріп тым кіші' : 'мәтін тым көп не жоқ') : 'құрылым қалыпты' };
+  }) };
 }
 
 /* Нәтиже: 3 жол (сұрақ+жауап / медиа / рәсімдеу). Дизайн 2 балл тек слайд талаптары толық орындалғанда ғана беріледі, әйтпесе ең көбі 1 */
