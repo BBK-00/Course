@@ -383,6 +383,20 @@ async function teacher(path, method, b, env, ctx, url) {
     await DB.prepare("UPDATE sessions SET work_until=? WHERE status='open'").bind(now() - 120).run();
     return json({ ok: true });
   }
+  /* Кездейсоқ жабылған сабақты қайта ашу: ашық сабақ болса, ол жабылады; қатысым мен жұмыстар сақталады */
+  if (path === 'sessions' && method === 'GET') {
+    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 25"));
+    return json({ ok: true, now: now(), rows: rows.filter(r => r.att > 0) });
+  }
+  if (path === 'session/reopen' && method === 'POST') {
+    const id = Number(b.id), ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(id).first();
+    if (!ses) return err('not_found', 404);
+    const extra = Math.max(0, Math.min(120, Math.round(Number(b.minutes) || 0))), t = now();
+    const until = ses.work_until && extra ? Math.max(ses.work_until, t) + extra * 60 : ses.work_until;
+    await DB.prepare("UPDATE sessions SET status='closed' WHERE status='open' AND id!=?").bind(id).run();
+    await DB.prepare("UPDATE sessions SET status='open', work_until=? WHERE id=?").bind(until === undefined ? null : until, id).run();
+    return json({ ok: true });
+  }
   if (path === 'session/close' && method === 'POST') {
     await DB.prepare("UPDATE sessions SET status='closed' WHERE status='open'").run();
     return json({ ok: true });
