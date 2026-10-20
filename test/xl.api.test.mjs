@@ -54,7 +54,7 @@ me = (await call('me', {}, t2)).j; ok(!me.tasks[1].sent, 'қате әрекет�
 console.log('Дұрыс жұмыс');
 r = await upload(t1, full1); ok(r.j.ok && r.j.sheets.length === 3, 'студент 1 жүктеді');
 ok(r.j.tasks[1].pts === 14 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 25, 'листер: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' (сұрыптаусыз 14)');
-ok(r.j.total === 40 + 58, 'жиынтық 40 + 58 = ' + r.j.total);
+ok(r.j.total === 40 + 59, 'жиынтық 40 + 59 = ' + r.j.total);
 r = await upload(t1, full1); ok(r.s === 409 && r.j.error === 'already', 'екінші рет жіберуге болмайды');
 
 console.log('Бос жұмыс (ең төменгі балл)');
@@ -62,11 +62,11 @@ r = await upload(t3, f2 && (await getFile(t3))); ok(r.j.ok && r.j.total === 50, 
 
 console.log('Оқытушы панелі');
 const lv = (await T('live')).j, row = lv.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id);
-ok(row.total === 98 && row.tasks[1].pts === 14 && row.tasks[1].max === 15, 'панельде студент 1: ' + row.total + ', 1-лист ' + row.tasks[1].pts + '/15');
+ok(row.total === 99 && row.tasks[1].pts === 14 && row.tasks[1].max === 15, 'панельде студент 1: ' + row.total + ', 1-лист ' + row.tasks[1].pts + '/15');
 const w = (await T('work?session=' + sid + '&student=' + s1.id)).j;
 ok(w.ok && w.subs.length === 3 && Array.isArray(w.subs[0].payload.items), 'толық жұмыс: ' + w.subs.map(s => s.payload.items.length) + ' бөлім');
 r = await T('task_grade', { body: { id: w.subs[0].id, task: 1, score: 15, comment: 'жақсы' } });
-ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id).total === 99, 'оқытушы 1-листке 15 қойды → 99');
+ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id).total === 100, 'оқытушы 1-листке 15 қойды → 100');
 r = await T('task_grade', { body: { id: w.subs[0].id, task: 1, score: 99 } });
 ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id).tasks[1].pts === 15, 'ең көп балл 15-пен шектеледі');
 const j = (await T('journal')).j; ok(j.topics.includes('10') && /АКТ/.test(j.titles['10']), 'журналда АКТ бағаны: ' + j.titles['10']);

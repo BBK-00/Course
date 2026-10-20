@@ -1,7 +1,7 @@
-/* Scratch 7-тақырып: «Кедергіден өт» ойынын (.sb3) жасанды интеллектсіз, блоктарды талдау арқылы тексеру. Барлығы 100 ұпай: 3 бөлім 20 / 30 / 50. */
+/* Scratch 7-тақырып: «Кедергіден өт» ойынын (.sb3) жасанды интеллектсіз, блоктарды талдау арқылы тексеру. Барлығы 60 балл: 3 бөлім 12 / 18 / 30. */
 import { unzip } from './xlsx.js';
 
-export const SB_MAX = { 1: 20, 2: 30, 3: 50 };
+export const SB_MAX = { 1: 12, 2: 18, 3: 30 };
 export const SB_TITLE = { 1: 'Ойыншыны басқару', 2: 'Кедергінің қозғалысы', 3: 'Жеңу/ұтылу, анимация, дыбыс, түсіндіру' };
 
 const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
@@ -30,7 +30,7 @@ export async function gradeSb3(buf, explain) {
   const allBlocks = V.flatMap(x => x.v.list.map(b => ({ b, v: x.v, t: x.t })));
 
   /* 1) Ойыншыны басқару — 20 */
-  item(0, '1.1', 'Кейіпкерлер: Ойыншы, Кедергі, Мәре (3 спрайт)', 4, sprites.length >= 3 ? 4 : sprites.length === 2 ? 2 : 0);
+  item(0, '1.1', 'Кейіпкерлер: Ойыншы, Кедергі, Мәре (3 спрайт)', 2, sprites.length >= 3 ? 2 : sprites.length === 2 ? 1 : 0);
   const KEYS = ['up arrow', 'down arrow', 'left arrow', 'right arrow'], keyOk = {};
   let moveOk = 0;
   allBlocks.filter(x => x.b.opcode === 'event_whenkeypressed').forEach(x => {
@@ -39,8 +39,8 @@ export async function gradeSb3(buf, explain) {
     const chain = x.v.after(x.b);
     if (chain.some(c => (c.opcode === 'motion_changexby' && Math.abs(num(x.v.val(c, 'DX'))) === 10) || (c.opcode === 'motion_changeyby' && Math.abs(num(x.v.val(c, 'DY'))) === 10) || (c.opcode === 'motion_movesteps' && Math.abs(num(x.v.val(c, 'STEPS'))) === 10))) moveOk++;
   });
-  item(0, '1.2', 'Төрт бағыттауыш перне оқиғасы (↑ ↓ ← →)', 12, Object.keys(keyOk).length * 3);
-  item(0, '1.3', 'Әр перне 10 қадам жылжытады', 4, Math.min(4, moveOk));
+  item(0, '1.2', 'Төрт бағыттауыш перне оқиғасы (↑ ↓ ← →)', 8, Object.keys(keyOk).length * 2);
+  item(0, '1.3', 'Әр перне 10 қадам жылжытады', 2, moveOk >= 4 ? 2 : moveOk >= 2 ? 1 : 0);
 
   /* 2) Кедергінің қозғалысы — 30 (ең жақсы спрайт алынады) */
   let best = { sc: -1, it: [] };
@@ -49,15 +49,15 @@ export async function gradeSb3(buf, explain) {
     let f = 0, reps = 0, up = false, down = false, w = 0;
     forevers.forEach(fb => {
       const inn = x.v.inner(fb), rp = inn.filter(b => b.opcode === 'control_repeat' && num(x.v.val(b, 'TIMES')) === 20);
-      reps = Math.max(reps, rp.length); f = 5;
+      reps = Math.max(reps, rp.length); f = 3;
       rp.forEach(r => { const ri = x.v.inner(r); ri.forEach(c => { if (c.opcode === 'motion_changeyby') { const d = num(x.v.val(c, 'DY')); if (d === 10) up = true; if (d === -10) down = true; } if (c.opcode === 'control_wait' && Math.abs(num(x.v.val(c, 'DURATION')) - 0.05) < 1e-9) w++; }); });
     });
     const start = x.v.list.some(b => b.opcode === 'motion_gotoxy' && num(x.v.val(b, 'X')) === 0 && num(x.v.val(b, 'Y')) === -100);
-    const it = [['2.1', 'Кедергі «әрқашан қайталау» ішінде қозғалады', 5, f], ['2.2', 'Екі «20 рет қайталау» циклі', 10, Math.min(2, reps) * 5], ['2.3', 'у-ті +10 және −10-ға өзгерту', 6, (up ? 3 : 0) + (down ? 3 : 0)], ['2.4', 'Әр қадамнан кейін 0,05 секунд күту', 5, w >= 2 ? 5 : w === 1 ? 3 : 0], ['2.5', 'Бастапқы орын (0; −100)', 4, start ? 4 : 0]];
+    const it = [['2.1', 'Кедергі «әрқашан қайталау» ішінде қозғалады', 3, f], ['2.2', 'Екі «20 рет қайталау» циклі', 6, Math.min(2, reps) * 3], ['2.3', 'у-ті +10 және −10-ға өзгерту', 4, (up ? 2 : 0) + (down ? 2 : 0)], ['2.4', 'Әр қадамнан кейін 0,05 секунд күту', 3, w >= 2 ? 3 : w === 1 ? 1 : 0], ['2.5', 'Бастапқы орын (0; −100)', 2, start ? 2 : 0]];
     const sc = it.reduce((a, r) => a + r[3], 0);
     if (sc > best.sc) best = { sc, it };
   });
-  (best.it.length ? best.it : [['2.1', 'Кедергі «әрқашан қайталау» ішінде қозғалады', 5, 0], ['2.2', 'Екі «20 рет қайталау» циклі', 10, 0], ['2.3', 'у-ті +10 және −10-ға өзгерту', 6, 0], ['2.4', 'Әр қадамнан кейін 0,05 секунд күту', 5, 0], ['2.5', 'Бастапқы орын (0; −100)', 4, 0]]).forEach(r => item(1, r[0], r[1], r[2], r[3]));
+  (best.it.length ? best.it : [['2.1', 'Кедергі «әрқашан қайталау» ішінде қозғалады', 3, 0], ['2.2', 'Екі «20 рет қайталау» циклі', 6, 0], ['2.3', 'у-ті +10 және −10-ға өзгерту', 4, 0], ['2.4', 'Әр қадамнан кейін 0,05 секунд күту', 3, 0], ['2.5', 'Бастапқы орын (0; −100)', 2, 0]]).forEach(r => item(1, r[0], r[1], r[2], r[3]));
 
   /* 3) Жеңу/ұтылу — 30, анимация мен дыбыс — 10, түсіндіру — 10 */
   const until = allBlocks.filter(x => x.b.opcode === 'control_repeat_until').slice(0, 2);
@@ -76,16 +76,16 @@ export async function gradeSb3(buf, explain) {
   });
   touch = tgt.filter(Boolean).length; const sameT = tgt.length === 2 && tgt[0] && tgt[0] === tgt[1] && tgt[0] !== '?';
   const win = msgs.some(m => /жеңд/i.test(m)), lose = msgs.some(m => /қайта|байқап/i.test(m));
-  item(2, '3.1', 'Екі «шарт орындалғанша қайталау» циклі', 10, until.length * 5);
-  item(2, '3.2', 'Шарт: «кейіпкерге тиді ме?» (екі түрлі нысана)', 8, sameT ? touch * 2 : touch * 4);
-  item(2, '3.3', 'Цикл ішінде 0,1 секунд күту', 2, wait);
-  item(2, '3.4', 'Хабарлар: «Жеңдің!» және «Қайта байқап көр!»', 6, (win ? 3 : 0) + (lose ? 3 : 0));
-  item(2, '3.5', 'Хабар 1 секунд көрсетіледі', 2, Math.min(2, say1));
+  item(2, '3.1', 'Екі «шарт орындалғанша қайталау» циклі', 6, until.length * 3);
+  item(2, '3.2', 'Шарт: «кейіпкерге тиді ме?» (екі түрлі нысана)', 4, sameT ? touch : touch * 2);
+  item(2, '3.3', 'Екі циклдің ішінде 0,1 секунд күту', 1, wait >= 2 ? 1 : 0);
+  item(2, '3.4', 'Хабарлар: «Жеңдің!» және «Қайта байқап көр!»', 4, (win ? 2 : 0) + (lose ? 2 : 0));
+  item(2, '3.5', 'Хабар 1 секунд көрсетіледі', 1, say1 >= 2 ? 1 : 0);
   item(2, '3.6', 'Циклден кейін «барлығын тоқтату»', 2, Math.min(2, stop));
-  item(2, '3.7', 'Анимация: костюмдер және «келесі костюм»', 5, (sprites.some(s => (s.costumes || []).length >= 2) ? 3 : 0) + (allBlocks.some(x => x.b.opcode === 'looks_nextcostume' || x.b.opcode === 'looks_switchcostumeto') ? 2 : 0));
-  item(2, '3.8', 'Дыбыс: қосылған және ойнатылады', 5, (pj.targets.some(s => (s.sounds || []).length >= 1) ? 2 : 0) + (allBlocks.some(x => x.b.opcode === 'sound_playuntildone') ? 3 : allBlocks.some(x => x.b.opcode === 'sound_play') ? 2 : 0));
+  item(2, '3.7', 'Анимация: костюмдер және «келесі костюм»', 3, (sprites.some(s => (s.costumes || []).length >= 2) ? 2 : 0) + (allBlocks.some(x => x.b.opcode === 'looks_nextcostume' || x.b.opcode === 'looks_switchcostumeto') ? 1 : 0));
+  item(2, '3.8', 'Дыбыс: қосылған және ойнатылады', 3, (pj.targets.some(s => (s.sounds || []).length >= 1) ? 1 : 0) + (allBlocks.some(x => x.b.opcode === 'sound_playuntildone') ? 2 : allBlocks.some(x => x.b.opcode === 'sound_play') ? 1 : 0));
   const ex = String(explain || '').toLowerCase();
-  item(2, '3.9', 'Түсіндіру: үш циклдің қызметі', 10, (ex.length >= 60 ? 1 : 0) + (/рет қайталау|repeat|қайталау/.test(ex) ? 3 : 0) + (/әрқашан|forever|шексіз|үздіксіз/.test(ex) ? 3 : 0) + (/орындалғанша|until|тигенше|тиді|шарт/.test(ex) ? 3 : 0));
+  item(2, '3.9', 'Түсіндіру: үш циклдің қызметі', 6, (/рет қайталау|repeat|қайталау/.test(ex) ? 2 : 0) + (/әрқашан|forever|шексіз|үздіксіз/.test(ex) ? 2 : 0) + (/орындалғанша|until|тигенше|тиді|шарт/.test(ex) ? 2 : 0));
 
   /* Көшірілген жоба: блоктардың бірегей ID-лері бойынша саусақ ізі */
   const ids = allBlocks.length >= 15 ? Object.keys(Object.assign({}, ...V.map(x => x.v.B))).sort().join(',') : '';
