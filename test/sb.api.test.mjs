@@ -22,7 +22,7 @@ ok((await T('session/start', { body: { topic: 'S7' } })).j.ok, 'Scratch 7 саб
 const live = (await T('live')).j, code = live.session.code, sid = live.session.id;
 const join = async s => (await call('join', { body: { student_id: s.id, code, device: 'd' + s.id } })).j.token;
 const [t1, t2, t3] = [await join(s1), await join(s2), await join(s3)];
-let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 40 && me.tasks[1].max === 12 && me.tasks[2].max === 18 && me.tasks[3].max === 30, 'кірді: қатысым 40, бөлімдер 12/18/30');
+let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 40 && me.tasks[1].max === 5 && me.tasks[2].max === 20 && me.tasks[3].max === 35, 'кірді: қатысым 40, бөлімдер 5/20/35');
 r = await up(t1, sb3(project())); ok(r.j.error === 'not_started', 'жұмыс басталмай жүктеуге болмайды');
 await T('session/work', { body: { minutes: 50 } });
 r = await up(t1, new Uint8Array([1, 2, 3])); ok(r.j.error === 'bad_file', 'Scratch емес файл қабылданбайды');
@@ -31,7 +31,7 @@ r = await call('xl/file', {}, t1); ok(r.j.error === 'closed', 'Excel жолы б
 console.log('Дұрыс ойын');
 const FILE = sb3(project({ seed: 'a' }));
 r = await up(t1, FILE, EX);
-ok(r.j.ok && [1, 2, 3].map(n => r.j.tasks[n].pts).join() === '12,18,30', 'толық дұрыс: ' + (r.j.tasks ? [1, 2, 3].map(n => r.j.tasks[n].pts) : r.j.error));
+ok(r.j.ok && [1, 2, 3].map(n => r.j.tasks[n].pts).join() === '5,20,35', 'толық дұрыс: ' + (r.j.tasks ? [1, 2, 3].map(n => r.j.tasks[n].pts) : r.j.error));
 ok(r.j.total === 100, 'жиынтық 40 + 60 = ' + r.j.total);
 r = await up(t1, FILE, EX); ok(r.s === 409 && r.j.error === 'already', 'екінші рет жіберуге болмайды');
 
@@ -40,15 +40,15 @@ r = await up(t2, FILE, EX); ok(r.j.ok && r.j.dup === true && r.j.total === 50, '
 
 console.log('Жартылай және бос жұмыс');
 r = await up(t3, sb3(project({ seed: 'c', cut: ['until'] })), '');
-ok(r.j.ok && r.j.tasks[1].pts === 12 && r.j.tasks[2].pts === 18 && r.j.tasks[3].pts === 10, 'шартты циклсіз: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' → ' + r.j.total);
+ok(r.j.ok && r.j.tasks[1].pts === 5 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 14, 'шартты циклсіз: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' → ' + r.j.total);
 
 console.log('Оқытушы панелі');
 const lv = (await T('live')).j, row = lv.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id);
-ok(row.total === 100 && row.tasks[3].max === 30, 'панельде студент 1: ' + row.total);
+ok(row.total === 100 && row.tasks[3].max === 35, 'панельде студент 1: ' + row.total);
 const w = (await T('work?session=' + sid + '&student=' + s2.id)).j;
 ok(w.ok && /бірдей/.test(w.subs[0].flags || ''), 'көшірілген жоба туралы белгі панельде: ' + (w.subs[0].flags || '').slice(0, 40));
-r = await T('task_grade', { body: { id: w.subs[0].id, task: 1, score: 12, comment: 'тексерілді' } });
-ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s2.id).tasks[1].pts === 12, 'оқытушы 1-бөлімге 12 қойды');
+r = await T('task_grade', { body: { id: w.subs[0].id, task: 1, score: 5, comment: 'тексерілді' } });
+ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s2.id).tasks[1].pts === 5, 'оқытушы 1-бөлімге 5 қойды');
 r = await call('plan?topic=S7', {}, TT); ok(r.j.ok && /Кедергіден өт/.test(r.j.html), 'Scratch жоспары оқытушыға беріледі');
 r = await call('plan?topic=S7', {}, t1); ok(r.s === 403, 'студентке жоспар берілмейді');
 const j = (await T('journal')).j; ok(j.topics.includes('S7') && /Scratch/.test(j.titles.S7), 'журналда Scratch бағаны: ' + j.titles.S7);

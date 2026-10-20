@@ -10,11 +10,11 @@ export const TOPICS = {
     code: 'score 0-12. The student received a starter template (the system A, b, eps, x = 0 and TODO comments) and had to fill in the logic: the sum over the other unknowns (3), the formula new = (b[i] - s) / A[i][i] (3), the NEW value is used immediately by writing x[i] right away (3), the stopping criterion with tolerance (3). The code may be in another language. Partial credit allowed; 0 if the logic is empty or unrelated.'
   }
 };
-TOPICS['S7'] = { title: 'Scratch · 7-тақырып', variants: new Array(20).fill(0), limits: { 1: 45, 2: 45, 3: 45 }, xlsx: true };   /* Scratch ойыны: 1-3 = бөлімдер 12/18/30 */
+TOPICS['S7'] = { title: 'Scratch · 7-тақырып', variants: new Array(20).fill(0), limits: { 1: 45, 2: 45, 3: 45 }, xlsx: true };   /* Scratch ойыны: 1-3 = бөлімдер 5/20/35 */
 TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
 TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 12, 2: 18, 3: 30 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
