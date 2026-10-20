@@ -156,6 +156,15 @@ async function aiGrade7(env, task, variant, p, sig, auto) {
 /* ---------- Жиынтық балл ----------
    tasks: submissions массиві; att: қатысым бар ма; result: оқытушының қорытынды баллы */
 /* АКТ · Excel: 3 лист (15+20+25=60). Толық дұрыс жұмыс 59 балл береді (барлығы 99), жіберілген жұмыс 10 баллдан кем емес. */
+/* Scratch: баллдау шкаласы өзгергенге дейін жіберілген жұмыстардың ұпайын қазіргі салмаққа келтіреміз (элементтер бойынша) */
+const SB_W = { '1.1': 1, '1.2': 3, '1.3': 1, '2.1': 4, '2.2': 8, '2.3': 4, '2.4': 2, '2.5': 2, '3.1': 6, '3.2': 4, '3.3': 2, '3.4': 4, '3.5': 2, '3.6': 2, '3.7': 3, '3.8': 2, '3.9': 10 };
+export function sbPts(topic, s) {
+  if (String(topic) !== 'S7') return s.auto_score || 0;
+  let pl = {}; try { pl = typeof s.payload === 'string' ? JSON.parse(s.payload) : (s.payload || {}); } catch (e) {}
+  const items = pl.items || [];
+  if (pl.dup || !items.length || items.every(i => SB_W[i.id] === i.max)) return s.auto_score || 0;
+  return items.reduce((a, i) => { const w = SB_W[i.id]; if (!w) return a; return a + (i.id === '3.8' ? (i.got >= 4 ? 2 : i.got >= 2 ? 1 : 0) : w === 1 ? Math.floor(i.got / i.max * w + 1e-9) : Math.round(i.got / i.max * w)); }, 0);
+}
 function compute10(att, subs, result, bonus, topic) {
   const M = MAXT[topic] || MAXT['10'], tot = M[1] + M[2] + M[3];
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
@@ -163,7 +172,7 @@ function compute10(att, subs, result, bonus, topic) {
   [1, 2, 3].forEach(n => {
     const s = by[n], max = M[n];
     if (!s) { tasks[n] = { sent: false, pts: null, max }; return; }
-    const over = s.teacher_score !== null && s.teacher_score !== undefined, pts = over ? s.teacher_score : (s.auto_score || 0);
+    const over = s.teacher_score !== null && s.teacher_score !== undefined, pts = over ? s.teacher_score : sbPts(topic, s);
     tasks[n] = { sent: true, pts, max, pending: false, edited: over, ai_pct: 0, flags: '', comment: '' };
     quality += pts;
   });
