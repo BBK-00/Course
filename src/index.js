@@ -115,14 +115,15 @@ async function route(request, env, ctx, url) {
     if (busy.n >= 4) return err('wait', 429);
     if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
     let fd; try { fd = await request.formData(); } catch (e) { return err('need_both'); }
-    const pp = fd.get('pptx'), pf = fd.get('pdf');
-    if (!pp || !pf || typeof pp.arrayBuffer !== 'function' || typeof pf.arrayBuffer !== 'function') return err('need_both');
-    if (pp.size > 60e6 || pf.size > 14e6) return err('too_big');
+    const pp = fd.get('pptx'), pf = fd.get('pdf');   /* PDF міндетті емес: жоқ болса, дизайн слайд құрылымынан бағаланады */
+    if (!pp || typeof pp.arrayBuffer !== 'function') return err('need_both');
+    const hasPdf = !!(pf && typeof pf.arrayBuffer === 'function' && pf.size > 0);
+    if (pp.size > 60e6 || (hasPdf && pf.size > 14e6)) return err('too_big');
     const st = await DB.prepare('SELECT full_name FROM students WHERE id=?').bind(p.st).first();
     const g = await gradePptx(await pp.arrayBuffer(), st ? st.full_name : '');
     if (g.error) return err(g.error);
-    const pdf = await pf.arrayBuffer();
-    if (new TextDecoder().decode(new Uint8Array(pdf, 0, 5)) !== '%PDF-') return err('bad_pdf');
+    const pdf = hasPdf ? await pf.arrayBuffer() : null;
+    if (pdf && new TextDecoder().decode(new Uint8Array(pdf, 0, 5)) !== '%PDF-') return err('bad_pdf');
     let dup = '';
     if (g.fp) {
       const o = await all(DB.prepare("SELECT x.payload, s.full_name FROM submissions x JOIN students s ON s.id=x.student_id WHERE x.session_id=? AND x.student_id!=? AND x.task=1").bind(p.ses, p.st));
@@ -130,7 +131,7 @@ async function route(request, env, ctx, url) {
       if (hit) dup = hit.full_name;
     }
     await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
-    let design; try { design = await designGrade(env, pdf); } catch (e) { return err('ai_busy', 503); }
+    let design; try { design = await designGrade(env, pdf, pdf ? null : { deck: g.deck, slides: g.slides.map(s => s.missing ? { n: s.n, missing: true } : { n: s.n, text: String(s.text || '').slice(0, 220), ...s.facts }) }); } catch (e) { return err('ai_busy', 503); }
     const rows = compose(g, design), t0 = now();
     await DB.batch(rows.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, fp: g.fp, dup, summary: String(design.summary || '').slice(0, 300) }), '{}', dup ? 0 : sh.pts, t0, dup ? '🔴 Бұл презентация «' + dup + '» студентінің жұмысымен бірдей (көшірілген). Балл 0.' : (i === 2 ? 'Дизайн (ЖИ): ' + String(design.summary || '').slice(0, 200) : ''))));
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: rows.map(s => ({ items: s.items, pts: dup ? 0 : s.pts })), dup: !!dup, summary: design.summary || '' });
