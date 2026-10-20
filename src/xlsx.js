@@ -122,3 +122,17 @@ export async function readXlsx(buf) {
   }
   return out;
 }
+
+/* ZIP ішіндегі файлдар тізімі (аты, ашылған көлемі) — ашпай-ақ */
+export function zipList(buf) {
+  const u = new Uint8Array(buf), dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+  let e = u.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('zip');
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const out = [];
+  for (let i = 0; i < n; i++) {
+    if (p + 46 > u.length || dv.getUint32(p, true) !== 0x02014b50) throw new Error('zip');
+    const us = dv.getUint32(p + 24, true), nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    out.push({ name: dec.decode(u.subarray(p + 46, p + 46 + nl)), size: us }); p += 46 + nl + el + cl;
+  }
+  return out;
+}

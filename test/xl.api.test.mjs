@@ -1,3 +1,4 @@
+if (process.env.BASE && !/127.0.0.1|localhost/.test(process.env.BASE)) { console.log('Тікелей сайтта тест жүргізуге болмайды: ол студенттердің сабағын жауып тастайды.'); process.exit(2); }
 /* АКТ · Excel жұмысының API тесті. Жергілікті: wrangler dev (.dev.vars: TEACHER_PASSWORD=test123).
    Тікелей сайт: BASE=<сайт> PASS=<құпиясөз> node test/xl.api.test.mjs  (өзінің сынақ тобын жасап, соңында өшіреді) */
 import { readXlsx } from '../src/xlsx.js';

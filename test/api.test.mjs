@@ -1,3 +1,4 @@
+if (process.env.BASE && !/127.0.0.1|localhost/.test(process.env.BASE)) { console.log('Тікелей сайтта тест жүргізуге болмайды: ол студенттердің сабағын жауып тастайды.'); process.exit(2); }
 /* API тесті. Жергілікті: `npx wrangler dev -c wrangler.dev.jsonc --port 8787 --local` (.dev.vars: TEACHER_PASSWORD=test123, GEMINI_STUB=1).
    Тікелей сайт: BASE=<сайт> PASS=<құпиясөз> CLEAN=1 node test/api.test.mjs
    Тапсырмалар: 1 қолмен (фото) · 2 бағдарлама · 3 тест */

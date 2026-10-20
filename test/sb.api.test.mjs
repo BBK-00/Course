@@ -1,3 +1,4 @@
+if (process.env.BASE && !/127.0.0.1|localhost/.test(process.env.BASE)) { console.log('Тікелей сайтта тест жүргізуге болмайды: ол студенттердің сабағын жауып тастайды.'); process.exit(2); }
 /* Scratch 7 API тесті. Жергілікті: wrangler dev (.dev.vars: TEACHER_PASSWORD=test123).
    Тікелей сайт: BASE=<сайт> PASS=<құпиясөз> node test/sb.api.test.mjs */
 import { project, sb3 } from './sbproj.mjs';
@@ -40,7 +41,7 @@ r = await up(t2, FILE, EX); ok(r.j.ok && r.j.dup === true && r.j.total === 50, '
 
 console.log('Жартылай және бос жұмыс');
 r = await up(t3, sb3(project({ seed: 'c', cut: ['until'] })), '');
-ok(r.j.ok && r.j.tasks[1].pts === 5 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 14, 'шартты циклсіз: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' → ' + r.j.total);
+ok(r.j.ok && r.j.tasks[1].pts === 5 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 4, 'шартты циклсіз: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' → ' + r.j.total);
 
 console.log('Оқытушы панелі');
 const lv = (await T('live')).j, row = lv.groups.find(x => x.id === g.id).students.find(x => x.id === s1.id);
@@ -49,7 +50,7 @@ const w = (await T('work?session=' + sid + '&student=' + s2.id)).j;
 ok(w.ok && /бірдей/.test(w.subs[0].flags || ''), 'көшірілген жоба туралы белгі панельде: ' + (w.subs[0].flags || '').slice(0, 40));
 r = await T('task_grade', { body: { id: w.subs[0].id, task: 1, score: 5, comment: 'тексерілді' } });
 ok((await T('live')).j.groups.find(x => x.id === g.id).students.find(x => x.id === s2.id).tasks[1].pts === 5, 'оқытушы 1-бөлімге 5 қойды');
-r = await call('plan?topic=S7', {}, TT); ok(r.j.ok && /Кедергіден өт/.test(r.j.html), 'Scratch жоспары оқытушыға беріледі');
+r = await call('plan?topic=S7', {}, TT); ok(r.j.ok && /Циклдер/.test(r.j.html), 'Scratch жоспары оқытушыға беріледі');
 r = await call('plan?topic=S7', {}, t1); ok(r.s === 403, 'студентке жоспар берілмейді');
 const j = (await T('journal')).j; ok(j.topics.includes('S7') && /Scratch/.test(j.titles.S7), 'журналда Scratch бағаны: ' + j.titles.S7);
 r = await T('reopen', { body: { id: w.subs[0].id } }); me = (await call('me', {}, t2)).j; ok(!me.tasks[1].sent, 'қайта ашылды');

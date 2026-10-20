@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13-тақырып: Презентацияға мультимедиа енгізу — АКТ</title>
+<meta name="description" content="Презентацияға графикалық, дыбыстық және бейнематериалдарды енгізу. Куиз жасау.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+.topic-box{display:block;width:fit-content;max-width:min(680px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.4}
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:12px 0}
+.cards3>div{background:var(--surface-2);border-radius:14px;padding:14px 16px}.cards3 h4{margin:0 0 6px;color:var(--primary)}.cards3 p{margin:0}
+.blk{margin-top:26px}.blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
+.blk-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
+.tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.rule2{font-size:1.2rem;font-weight:700;text-align:center;background:var(--pivot-bg);border:2px solid var(--pivot-ring);border-radius:14px;padding:14px 18px;margin:12px 0}
+code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;padding:1px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chip{border-radius:999px;padding:5px 12px;font-weight:700;font-size:.9rem;background:var(--surface-2);border:1px solid var(--line);transition:.3s}
+.chip.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}.chip.bad{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}.chip.good{background:#dcfce7;border-color:#86efac;color:#15803d}
+/* Слайд макеті */
+.ms{position:relative;width:100%;aspect-ratio:16/9;background:#fff;border:2px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.1)}
+.ms .t{position:absolute;left:5%;top:7%;width:46%;font-weight:800;font-size:clamp(.8rem,2.6vw,1.3rem);line-height:1.3}
+.ms .t small{display:block;font-weight:500;color:var(--muted);font-size:.72em;margin-top:6px}
+.ms .pic{position:absolute;right:5%;top:12%;width:36%;height:54%;border-radius:10px;background:linear-gradient(#bae6fd 55%,#86efac 55%);display:grid;place-items:center;font-size:clamp(1.4rem,5vw,2.8rem);transition:all .5s;border:2px solid #38bdf8}
+.ms .pic.str{width:58%;height:30%;border-color:#ef4444}.ms .pic.cov{left:20%;right:auto;top:6%;width:56%;height:70%;opacity:.95;border-color:#ef4444}
+.ms .pic.str span{transform:scaleX(2)}
+.ms .aud,.ms .vid{position:absolute;display:grid;place-items:center;border-radius:12px;font-size:clamp(1.2rem,4vw,2rem);transition:all .5s}
+.ms .aud{left:5%;bottom:8%;width:12%;aspect-ratio:1;background:#ede9fe;border:2px solid #8b5cf6}
+.ms .vid{right:5%;bottom:8%;width:30%;height:26%;background:#111827;color:#fff;border:2px solid #f97316}
+.ms .ans{position:absolute;left:5%;bottom:12%;font-weight:700;color:#15803d;font-size:clamp(.7rem,2.2vw,1rem)}
+.ms .hd{opacity:0;transform:scale(.6)}.ms .sh{opacity:1;transform:none}
+.ms .band{position:absolute;left:0;right:0;top:0;height:6%;background:var(--primary)}
+.panel{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:10px 14px;font-size:.92rem}
+.panel b{color:var(--primary)}.panel .opt{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.panel .opt span{border:2px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px}.panel .opt span.sel{border-color:var(--primary);background:var(--primary-soft);font-weight:700}
+.trim{position:relative;height:18px;background:#e2e8f0;border-radius:99px;margin-top:8px;overflow:hidden}.trim i{position:absolute;top:0;bottom:0;background:#8b5cf6;transition:all .5s}
+.cmpbox{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:620px){.cmpbox{grid-template-columns:1fr}}
+.ms.bd .t{width:90%;font-size:clamp(.55rem,1.6vw,.8rem);font-weight:600;color:#be185d;font-family:"Comic Sans MS",cursive}.ms.bd{background:#fef08a}
+.ms.bd .pic{left:2%;right:auto;top:30%;width:70%;height:60%;border-color:#dc2626}
+.num{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:inline-grid;place-items:center;font-weight:800;margin-right:8px;flex:none}
+.tk{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0}.tk b{display:block}.tk small{color:var(--muted)}
+.rub{width:100%;border-collapse:collapse;margin:10px 0}.rub th,.rub td{border:1px solid var(--line);padding:8px 10px;text-align:left}.rub th{background:var(--surface-2)}.rub td.n{text-align:right;font-weight:700;white-space:nowrap}
+.mq{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0}.mq p{margin:0 0 8px;font-weight:700}.mq button{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 12px;border:2px solid var(--line);background:#fff;border-radius:10px;font:inherit;cursor:pointer}
+.mq button.ok{border-color:#16a34a;background:#dcfce7}.mq button.no{border-color:#dc2626;background:#fee2e2}.mq .fb{margin-top:6px;font-size:.92rem}
+.infog{width:100%;height:auto;border-radius:14px;border:1px solid var(--line)}
+.faces{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.faces button{font-size:1.8rem;border:2px solid var(--line);background:#fff;border-radius:12px;padding:4px 10px;cursor:pointer}.faces button.on{border-color:var(--primary);background:var(--primary-soft)}
+.plan-doc{line-height:1.6}.plan-doc h3{font-size:1.15rem;margin:1em 0 .3em}.plan-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem;display:block;overflow-x:auto}
+.plan-doc th,.plan-doc td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}.plan-doc th{background:var(--surface-2)}
+</style>
+</head>
+<body>
+<main id="main">
+
+<section id="hero" class="hero" data-sec="hero"><div class="wrap">
+  <div class="topic-box"><b>Тақырып:</b> <i>Презентацияға графикалық, дыбыстық және бейнематериалдарды енгізу.</i></div>
+  <h1>Презентацияға мультимедиа</h1>
+  <p class="lead"><b>Сабақ мақсаты.</b> Презентация мазмұнына сай графикалық, дыбыстық және бейнематериалдарды таңдап, слайдқа енгізуді, олардың орналасуы мен ойнатылуын баптауды және танымдық викторинада қолдануды үйрену.</p>
+  <div class="cards3">
+    <div><h4>1. Теория</h4><p>Сурет, дыбыс және бейнені слайдқа қалай енгізіп, қалай баптаймыз.</p></div>
+    <div><h4>2. Тапсырма</h4><p>10 слайдтан тұратын куиз жасап, .pptx және PDF жібересің.</p></div>
+    <div><h4>3. Қорытынды</h4><p>Негізгі ережені бекітіп, өзімізді бағалаймыз.</p></div>
+  </div>
+  <div class="hero-actions"><a class="btn primary big" href="#teo">Сабақты бастау →</a></div>
+</div></section>
+
+<!-- Сабақ жоспары (тек мұғалімдерге) -->
+<section id="plan" class="lesson" hidden><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">📄</span><h2 id="planTitle">Сабақ жоспары</h2></div>
+  <p class="learn">Бұл бөлім тек мұғалімдерге көрінеді.</p>
+  <div class="plan-doc" id="planBody"></div>
+</div></div></section>
+
+<!-- 1. ТЕОРИЯ -->
+<section id="teo" class="lesson" data-sec="teo"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Теория: мультимедиа</h2></div>
+  <p class="learn">Бұл бөлімде мультимедиа не екенін, суретті, дыбысты және бейнені слайдқа қалай енгізіп баптауды үйренесің.</p>
+  <p><dfn>Мультимедиа</dfn> — мәтін, сурет, дыбыс, бейне және анимацияны біріктіріп ақпарат ұсыну тәсілі. Ол презентацияны көрнекі, қызықты және түсінікті етеді. Әр түрін жеке-жеке, анимациямен қарайық. «Алға» батырмасын өзің басасың.</p>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">1</span>Мультимедиа дегеніміз не?</h3>
+    <div class="demo"><div class="stage"><div id="m1"></div><div class="chips" id="c1"></div></div><div class="side"><div id="ex1"></div><div id="bar1"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Графикалық материалдар</h3>
+    <p>Сурет, фото, сызба, диаграмма. Негізгі форматтар: <b>JPG, PNG, GIF</b>. Кірістіру жолы: <code>Кірістіру → Суреттер</code>.</p>
+    <div class="demo"><div class="stage"><div id="m2"></div><div class="chips" id="c2"></div></div><div class="side"><div id="ex2"></div><div id="bar2"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">3</span>Дыбыстық материалдар</h3>
+    <p>Форматтар: <b>MP3, WAV, M4A</b>. Кірістіру жолы: <code>Кірістіру → Дыбыс</code>.</p>
+    <div class="demo"><div class="stage"><div id="m3"></div><div id="p3"></div><div class="chips" id="c3"></div></div><div class="side"><div id="ex3"></div><div id="bar3"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">4</span>Бейнематериалдар</h3>
+    <p>Негізгі формат: <b>MP4</b>. Кірістіру жолы: <code>Кірістіру → Бейне</code>.</p>
+    <div class="demo"><div class="stage"><div id="m4"></div><div class="chips" id="c4"></div></div><div class="side"><div id="ex4"></div><div id="bar4"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">5</span>Тиімді презентация ережелері</h3>
+    <p>Екі слайдты салыстыр. Айырмашылықты өзің тап.</p>
+    <div class="cmpbox"><div><p style="margin:0 0 6px"><span class="chip bad">✕ Нашар</span></p><div class="ms bd"><div class="t">Слайдтағы мәтін өте көп және өте ұсақ, фон шатасады, мәтін мен сурет бір-бірін жауып тұр, түстер әртүрлі…</div><div class="pic">🏔️</div></div></div>
+      <div><p style="margin:0 0 6px"><span class="chip good">✓ Жақсы</span></p><div class="ms"><div class="band"></div><div class="t">Қай қала?<small>Суретке қарап жауап бер</small></div><div class="pic">🏔️</div><div class="aud">🔊</div></div></div></div>
+    <div class="cards3">
+      <div><h4>Мазмұнға сай</h4><p>Медиа тақырыпты түсіндіруі керек, әшекей емес.</p></div>
+      <div><h4>Анық сурет пен дыбыс</h4><p>Сапалы сурет, анық дыбыс қолдан.</p></div>
+      <div><h4>Бір слайдқа тым көп қоспа</h4><p>Мәтін аз, медиа бірнеше ғана.</p></div>
+      <div><h4>Дизайн бірізді</h4><p>Бір түс, бір қаріп, бір стиль.</p></div>
+      <div><h4>Авторлық құқық</h4><p>Дереккөзді жаз, өзгенің еңбегін құрметте.</p></div>
+      <div><h4>Алдын ала тексер</h4><p>Көрсетілім режимінде дыбыс пен бейне ойналатынын көр.</p></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">?</span>Өзіңді тексер</h3><div id="quiz"></div></div>
+</div></div></section>
+
+<!-- 2. ТАПСЫРМА -->
+<section id="task" class="lesson" data-sec="task"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Тапсырма: куиз жасау</h2></div>
+  <p class="learn">10 тапсырмадан тұратын куиз жаса: <b>әр тапсырма — жеке слайд</b>. Бірінші слайдқа автордың (өзіңнің) аты-жөнін жаз. Әр слайдта сұрақ, медиа және басқанда ашылатын дұрыс жауап болсын.</p>
+  <div id="tasks"></div>
+  <div class="tip info"><b>i</b><span><b>Жауап басқанда қалай ашылады?</b> Жауап мәтінін таңда → <code>Анимация</code> → <code>Пайда болу</code> → «Бастау: Басқанда». Не жауап жазылған түймеге «Слайдқа гиперсілтеме» жаса.</span></div>
+  <div class="tip warn"><b>!</b><span>Фото, аудио және <b>кемінде бір бейне</b> қолдан. Дереккөзді (сайт, автор) слайдтың төменгі жағына жаз. ЖИ көмекшісінен идея алуға болады, бірақ жауабын тексеріп, өз сөзіңмен жаз.</span></div>
+
+  <h3 class="blk-h" style="margin-top:20px">Қалай бағаланады</h3>
+  <table class="rub"><tr><th>Өлшемшарт</th><th>Балл</th></tr>
+    <tr><td>Сабаққа қатысым: сабаққа кіргенде автоматты түседі</td><td class="n">30</td></tr>
+    <tr><td>Әр тапсырмада сұрақ пен басқанда ашылатын дұрыс жауап: 10 × 2</td><td class="n">20</td></tr>
+    <tr><td>Әр тапсырмада тиісті медиа слайдта тұр: 10 × 3 (фото, аудио, бейне)</td><td class="n">30</td></tr>
+    <tr><td>Түсінікті рәсімдеу, дизайн: 10 × 2</td><td class="n">20</td></tr>
+    <tr><th>Барлығы</th><th class="n">100</th></tr></table>
+  <div class="tip warn"><b>★</b><span><b>Дизайнды қатаң бағалайды.</b> Рәсімдеуге 2 балл тек слайд шынымен әдемі (бірізді стиль, үлкен оқылатын мәтін, анық сурет, ештеңе жабылмаған) және слайдтың барлық талабы орындалғанда ғана беріледі. Әйтпесе 1 немесе 0 балл. Жай ақ фонға жазылған слайд ең жоғары баға алмайды.</span></div>
+
+  <h3 class="blk-h" style="margin-top:20px">Куизді жіберу</h3>
+  <div id="mmHost"></div>
+</div></div></section>
+
+<!-- 3. ҚОРЫТЫНДЫ -->
+<section id="sum" class="lesson" data-sec="sum"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Қорытынды және бекіту</h2></div>
+  <img class="infog" src="../assets/multimedia-infografika.png" alt="Инфографика: презентацияға графикалық, дыбыстық және бейнематериалдарды енгізу" loading="lazy">
+  <div class="rule2">Графика — көрнекілік береді, дыбыс — әсер қосады, бейне — түсіндіруді жеңілдетеді. Үшеуін орнымен қолдансаң, презентация сапалы болады.</div>
+  <h3 class="blk-h" style="margin-top:18px">Бекіту сұрақтары</h3>
+  <details class="qa"><summary>Қай материалды енгізу қиын болды?</summary><p>Бұл сұраққа өз жауабыңды айт: суретті орналастыру, дыбысты баптау немесе бейнені тексеру.</p></details>
+  <div class="tip ok"><b>🏠</b><span><b>Үй тапсырмасы.</b> Куизді толықтыр және көрсетілім режимінде ойнатылуын қайта тексер. Медиа файлдар бөлек байланыстырылса, оларды презентациямен бірге бір бумаға жина.</span></div>
+  <h3 class="blk-h" style="margin-top:18px">Өзін-өзі бағалау</h3>
+  <p>Бүгінгі тақырыпты қаншалықты түсіндің?</p>
+  <div class="faces" id="faces"></div><div id="learned"></div>
+  <div class="stepbar"><button type="button" class="btn primary" id="fbSend">Жіберу</button></div>
+  <div class="xl-msg" id="fbMsg" role="status"></div>
+</div></div></section>
+</main>
+<footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">АКТ</a></div></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/mm-work.js"></script>
+<script>
+(function(){
+const { $, el, Stepper, ExplainPanel, Course } = L;
+
+/* ---------- Слайд макеті ---------- */
+function mock(host, o){
+  host.innerHTML = '';
+  const s = el('div', { class:'ms', role:'img', 'aria-label':'Слайд макеті' });
+  s.append(el('div', { class:'band' }), el('div', { class:'t', html:(o.title || 'Қай қала?') + '<small>Суретке қарап жауап бер</small>' }));
+  if (o.pic) s.append(el('div', { class:'pic ' + (o.pic === true ? '' : o.pic) }, el('span', { text:'🏔️' })));
+  if (o.aud) s.append(el('div', { class:'aud', text:'🔊' }));
+  if (o.vid) s.append(el('div', { class:'vid', text:'▶' }));
+  if (o.ans) s.append(el('div', { class:'ans', text:'Жауап: Алматы' }));
+  host.append(s);
+}
+const chips = (host, arr) => { host.innerHTML = ''; arr.forEach(([t, c]) => host.append(el('span', { class:'chip ' + (c || ''), text:t }))); };
+function demo(n, steps, id){
+  const ex = new ExplainPanel($('#ex' + n));
+  const apply = s => { const st = steps[s]; mock($('#m' + n), st.m); chips($('#c' + n), st.c || []); if ($('#p' + n)) $('#p' + n).innerHTML = st.p || ''; ex.set(st.t); };
+  const stepper = new Stepper({ count:steps.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(300); }, barHost:$('#bar' + n) });
+  Course.register(id, { stepper, reset(){ stepper.reset(); } });
+  stepper.init();
+}
+const T = (now, why, how) => ({ now, why, how });
+
+demo(1, [
+  { m:{}, c:[['Мәтін', 'on']], t:T('Слайдта тек <b>мәтін</b> бар.', 'Мәтін ақпаратты береді, бірақ жалғыз өзі жалықтырады.', 'Енді оған басқа түрлерін қосамыз.') },
+  { m:{ pic:true }, c:[['Мәтін'], ['Сурет', 'on']], t:T('<b>Сурет</b> қосылды.', 'Сурет көрнекілік береді: ақпарат тез қабылданады.', 'Кірістіру → Суреттер.') },
+  { m:{ pic:true, aud:true }, c:[['Мәтін'], ['Сурет'], ['Дыбыс', 'on']], t:T('<b>Дыбыс</b> қосылды (динамик белгісі).', 'Дыбыс әсер қосады және есте сақтауға көмектеседі.', 'Кірістіру → Дыбыс.') },
+  { m:{ pic:true, aud:true, vid:true }, c:[['Мәтін'], ['Сурет'], ['Дыбыс'], ['Бейне', 'on']], t:T('<b>Бейне</b> қосылды.', 'Бейне процесті, тәжірибені, нұсқауды көрсетуге ыңғайлы.', 'Кірістіру → Бейне.') },
+  { m:{ pic:true, aud:true, vid:true, ans:true }, c:[['Мәтін'], ['Сурет'], ['Дыбыс'], ['Бейне'], ['Анимация: жауап басқанда ашылады', 'good']], t:T('Бәрі біріктірілді: <b>мультимедиа</b>.', 'Мәтін, сурет, дыбыс, бейне және анимацияны біріктіріп ақпарат ұсыну — мультимедиа.', 'Біздің куизде жауап басқанда анимациямен ашылады.') }
+], 'mm1');
+
+demo(2, [
+  { m:{}, c:[['Кірістіру → Суреттер', 'on']], t:T('Суретті слайдқа қосамыз: <b>Кірістіру → Суреттер</b>.', 'Файл JPG, PNG немесе GIF болуы керек.', 'Файлды таңдап «Кірістіру» басасың.') },
+  { m:{ pic:true }, c:[['Сурет қосылды', 'good']], t:T('Сурет слайдқа түсті.', 'Қазір ол өз пропорциясымен тұр.', 'Енді оның өлшемін реттейміз.') },
+  { m:{ pic:'str' }, c:[['Бүйірінен созу', 'bad'], ['Пропорция бұзылды ✕', 'bad']], t:T('Суретті <b>бүйірінен</b> тартып созсақ, ол бұзылады.', 'Ені мен биіктігі әртүрлі қатынаста өзгергендіктен сурет жалпайып, көрінісі бұрмаланады.', 'Мұндай қатені жібермеу керек.') },
+  { m:{ pic:true }, c:[['Бұрышынан тарту', 'on'], ['Пропорция сақталды ✓', 'good']], t:T('Суретті <b>бұрыштағы</b> маркерден тартамыз.', 'Бұрыштан тартқанда ені мен биіктігі бірдей өзгереді, сурет бұрмаланбайды.', 'Қосымша: Shift пернесін ұстап тартуға да болады.') },
+  { m:{ pic:'cov' }, c:[['Мәтінді жауып тұр', 'bad']], t:T('Сурет мәтінді жауып қойды.', 'Оқылмайтын слайд — нашар слайд.', 'Суретті орын ауыстыру керек.') },
+  { m:{ pic:true }, c:[['Мәтін ашық, сурет оң жақта', 'good']], t:T('Сурет оң жаққа жылжытылды, мәтін оқылады.', 'Мәтінді жаппай орналастыру — графикамен жұмыстың басты ережесі.', 'Енді слайд таза және әдемі.') }
+], 'mm2');
+
+const SND = (a, b) => '<div class="panel"><b>Ойнату</b> қойындысы: Бастау — <div class="opt"><span class="' + (a ? 'sel' : '') + '">Басу арқылы</span><span class="' + (b ? 'sel' : '') + '">Автоматты</span></div></div>';
+demo(3, [
+  { m:{}, c:[['Кірістіру', 'on'], ['Дыбыс'], ['Менің компьютерімдегі дыбыс']], t:T('Жол: <b>Кірістіру → Дыбыс → Менің компьютерімдегі дыбыс</b>.', 'Дыбыс файлын компьютерден таңдаймыз.', 'Файлды таңдап «Кірістіру» басамыз.') },
+  { m:{}, c:[['MP3', 'good'], ['WAV', 'good'], ['M4A', 'good']], t:T('Қолдауға болатын форматтар: <b>MP3, WAV, M4A</b>.', 'Бұл форматтар PowerPoint-те тұрақты ойнайды.', 'Файлды презентациямен бірге сақтаймыз.') },
+  { m:{ aud:true }, c:[['Динамик белгісі слайдта', 'good']], t:T('Слайдта <b>динамик белгісі</b> пайда болды.', 'Бұл дыбыстың орны.', 'Белгіні слайдтың ыңғайлы жеріне қоямыз.') },
+  { m:{ aud:true }, p:SND(true, false), c:[['Басу арқылы ойнату', 'on']], t:T('<b>Басу арқылы</b> ойнату.', 'Дыбыс сен белгіні басқанда ғана ойнайды. Куизде бұл дұрыс: алдымен сұрақ, сосын дыбыс.', 'Ойнату → Бастау → «Басу арқылы».') },
+  { m:{ aud:true }, p:SND(false, true), c:[['Автоматты ойнату', 'on']], t:T('<b>Автоматты</b> ойнату.', 'Слайд ашылысымен дыбыс өздігінен басталады. Фондық музыка үшін ыңғайлы.', 'Ойнату → Бастау → «Автоматты».') },
+  { m:{ aud:true }, p:'<div class="panel"><b>Дыбыс деңгейі</b> мен <b>Қысқарту</b>: керек емес бөлікті кесіп тастаймыз.<div class="trim"><i style="left:20%;width:45%"></i></div></div>', c:[['Деңгей', 'on'], ['Үзіндінің ұзақтығы', 'on']], t:T('<b>Дыбыс деңгейі</b> мен <b>үзінді ұзақтығын</b> реттейміз.', 'Тым қатты не тым ұзақ дыбыс көрерменді шаршатады.', 'Ойнату → Аудиоды қысқарту: бастауы мен соңын таңдаймыз.') }
+], 'mm3');
+
+demo(4, [
+  { m:{}, c:[['Кірістіру', 'on'], ['Бейне'], ['Менің құрылғымдағы бейне']], t:T('Жол: <b>Кірістіру → Бейне → Менің құрылғымдағы бейне</b>.', 'Бейне файлын компьютерден таңдаймыз.', 'Файлды таңдап «Кірістіру» басамыз.') },
+  { m:{ vid:true }, c:[['MP4', 'good'], ['Бейне слайдта', 'good']], t:T('Бейне слайдқа түсті. Негізгі формат — <b>MP4</b>.', 'MP4 барлық компьютерде тұрақты ойнайды.', 'Бейне қара тіктөртбұрыш болып көрінеді.') },
+  { m:{ pic:true, vid:true }, c:[['Өлшемі мен орны реттелген', 'good']], t:T('Бейненің <b>өлшемі мен орнын</b> реттейміз.', 'Бейне басқа элементтерді жаппауы және өте үлкен болмауы керек.', 'Бұрыштан тартып өлшемін өзгертеміз, қажет жерге жылжытамыз.') },
+  { m:{ pic:true, vid:true }, c:[['Көрсетілімді тексеру: F5', 'on']], t:T('Көрсетілім алдында <b>ойналуын міндетті түрде тексереміз</b>.', 'Редакторда көрінген бейне көрсетілімде ойналмай қалуы мүмкін.', 'Слайд көрсетілімі (F5) режимінде бейнені басып көреміз.') },
+  { m:{ pic:true, vid:true, ans:true }, c:[['Дайын слайд', 'good']], t:T('Барлығы дайын: сұрақ, сурет, бейне, жауап.', 'Мұндай слайд куиздің бір тапсырмасы болады.', 'Файлдар бөлек байланыстырылса, презентациямен бір бумаға жинаймыз.') }
+], 'mm4');
+
+/* ---------- Қысқа тест ---------- */
+const Q = [
+  ['Қай форматта сурет енгізуге болады?', ['MP3', 'JPG', 'MP4'], 1, 'JPG — сурет форматы. MP3 — дыбыс, MP4 — бейне.'],
+  ['«Кірістіру → Дыбыс» қай материал үшін?', ['Аудио', 'Бейне', 'Сурет'], 0, 'Дыбыс форматтары: MP3, WAV, M4A.'],
+  ['Суреттің өлшемін өзгерткенде не істеу керек?', ['Бүйірінен тарту', 'Пропорциясын сақтау', 'Мәтіннің үстіне қою'], 1, 'Бұрыштан тарту пропорцияны сақтайды.'],
+  ['Бейнені көрсетілім алдында не істейміз?', ['Тексереміз', 'Өшіреміз', 'Көшіреміз'], 0, 'Көрсетілім режимінде ойналатынын міндетті түрде тексереміз.']
+];
+Q.forEach(([q, opts, ok, why]) => {
+  const fb = el('div', { class:'fb' }), box = el('div', { class:'mq' }, [el('p', { text:q })]);
+  opts.forEach((t, i) => { const b = el('button', { type:'button', text:t }); b.addEventListener('click', () => { [...box.querySelectorAll('button')].forEach(x => { x.disabled = true; }); b.classList.add(i === ok ? 'ok' : 'no'); if (i !== ok) box.querySelectorAll('button')[ok].classList.add('ok'); fb.textContent = (i === ok ? 'Дұрыс! ' : 'Дұрысы осы: ') + why; }); box.append(b); });
+  box.append(fb); $('#quiz').append(box);
+});
+
+/* ---------- Тапсырмалар ---------- */
+[['Кадр бойынша фильмді тап', 'фото және қысқа бейне'], ['Аудиодан ән мен әншіні тап', 'аудио'], ['Силуэттен мультфильм кейіпкерін тап', 'сурет'], ['Дыбыстан жануарды, аспапты не табиғат құбылысын тап', 'аудио'], ['Фотодан көрнекті жерді және орналасқан орнын тап', 'фото'], ['Фотодан белгілі тұлғаны тап', 'фото'], ['Әннің басын тыңдап, жалғасын өз сөзіңмен айт', 'аудио'], ['Жалаудан мемлекетті тап', 'сурет'], ['Бір слайдтағы фото мен аудионың байланысын тап', 'фото және аудио'], ['Фото не аудиомен төрт жауапты сұрақ құрастыр', 'фото не аудио']]
+  .forEach(([t, m], i) => $('#tasks').append(el('div', { class:'tk' }, [el('span', { class:'num', text:String(i + 1) }), el('div', {}, [el('b', { text:t }), el('small', { text:'Слайд ' + (i + 1) + ' · қажет: ' + m + (i === 0 ? ' · автордың аты бірінші слайдқа жазылады' : '') })])])));
+
+/* ---------- Өзін-өзі бағалау ---------- */
+(function(){
+  let level = 0; const learned = new Set(), F = ['😟', '😕', '😐', '🙂', '😀'];
+  F.forEach((f, i) => { const b = el('button', { type:'button', text:f, 'aria-label':'Баға ' + (i + 1) }); b.addEventListener('click', () => { level = i + 1; [...$('#faces').children].forEach((x, j) => x.classList.toggle('on', j === i)); }); $('#faces').append(b); });
+  ['суретті енгізу мен өлшемін реттеу', 'дыбысты енгізу мен ойнатуды баптау', 'бейнені енгізу мен тексеру', 'жақсы презентация ережелері'].forEach(t => {
+    const id = 'l' + Math.random().toString(36).slice(2, 7), c = el('input', { type:'checkbox', id });
+    c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); });
+    $('#learned').append(el('label', { for:id, style:'display:block;margin:4px 0' }, [c, ' Үйрендім: ' + t]));
+  });
+  $('#fbSend').addEventListener('click', async () => {
+    const m = $('#fbMsg'), me = window.Join.get();
+    if (!me || me.guest){ m.className = 'xl-msg bad'; m.textContent = 'Алдымен студент ретінде сабаққа кіріңіз.'; return; }
+    if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
+    const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
+    m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
+  });
+})();
+
+/* ---------- Сабақ жоспары: тек қонақ мұғалімге ---------- */
+(function(){
+  const sec = $('#plan'); let loaded = false;
+  window.Join.on(async me => {
+    if (me && me.guest){
+      if (loaded) return; loaded = true;
+      const j = await window.Join.api('plan?topic=A13');
+      if (j.ok){ $('#planTitle').textContent = j.title; $('#planBody').innerHTML = j.html; sec.hidden = false; } else loaded = false;
+    } else { sec.hidden = true; $('#planBody').innerHTML = ''; loaded = false; }
+  });
+})();
+
+Course.init({ back:{ href:'index.html', text:'← АКТ' }, title:[13, 'Мультимедиа'], sections:[
+  { id:'teo', n:1, title:'Теория' }, { id:'task', n:2, title:'Тапсырма' }, { id:'sum', n:3, title:'Қорытынды' }
+] });
+window.Join.mount({ gate:true, title:'АКТ, 13-тақырып: Презентацияға мультимедиа енгізу' });
+window.MmWork.mount($('#mmHost'));
+})();
+</script>
+</body>
+</html>

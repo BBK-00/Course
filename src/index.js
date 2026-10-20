@@ -6,6 +6,7 @@ import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
 import { gradeSb3 } from './scratch.js';
+import { gradePptx, designGrade, compose } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 
 let ready = false;
@@ -32,7 +33,7 @@ async function body(request) { try { return await request.json(); } catch (e) { 
 
 async function route(request, env, ctx, url) {
   const path = url.pathname.slice(5), method = request.method, DB = env.DB;
-  const b = method === 'GET' || path === 'xl/upload' || path === 'sb/upload' ? {} : await body(request);
+  const b = method === 'GET' || path === 'xl/upload' || path === 'sb/upload' || path === 'mm/upload' ? {} : await body(request);
 
   /* ---------------- Студент: ашық жол ---------------- */
   if (path === 'public/roster' && method === 'GET') {
@@ -100,6 +101,39 @@ async function route(request, env, ctx, url) {
     const t0 = now();
     await DB.batch(res.sheets.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, match: res.match }), '{}', sh.pts, t0)));
     return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: res.sheets });
+  }
+
+  /* АКТ 13: куиз-презентация (.pptx құрылым + PDF дизайн) */
+  if (path === 'mm/upload' && method === 'POST') {
+    const p = await verify(env, bearer(request));
+    if (!p || p.r !== 's') return err('auth', 401);
+    const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
+    if (!ses || ses.status !== 'open' || ses.topic !== 'A13') return err('closed', 403);
+    if (!ses.work_until) return err('not_started', 403);
+    if (now() > ses.work_until + 90) return err('time_over', 403);
+    const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
+    if (busy.n >= 4) return err('wait', 429);
+    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
+    let fd; try { fd = await request.formData(); } catch (e) { return err('need_both'); }
+    const pp = fd.get('pptx'), pf = fd.get('pdf');
+    if (!pp || !pf || typeof pp.arrayBuffer !== 'function' || typeof pf.arrayBuffer !== 'function') return err('need_both');
+    if (pp.size > 60e6 || pf.size > 14e6) return err('too_big');
+    const st = await DB.prepare('SELECT full_name FROM students WHERE id=?').bind(p.st).first();
+    const g = await gradePptx(await pp.arrayBuffer(), st ? st.full_name : '');
+    if (g.error) return err(g.error);
+    const pdf = await pf.arrayBuffer();
+    if (new TextDecoder().decode(new Uint8Array(pdf, 0, 5)) !== '%PDF-') return err('bad_pdf');
+    let dup = '';
+    if (g.fp) {
+      const o = await all(DB.prepare("SELECT x.payload, s.full_name FROM submissions x JOIN students s ON s.id=x.student_id WHERE x.session_id=? AND x.student_id!=? AND x.task=1").bind(p.ses, p.st));
+      const hit = o.find(r => { try { return JSON.parse(r.payload).fp === g.fp; } catch (e) { return false; } });
+      if (hit) dup = hit.full_name;
+    }
+    await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
+    let design; try { design = await designGrade(env, pdf); } catch (e) { return err('ai_busy', 503); }
+    const rows = compose(g, design), t0 = now();
+    await DB.batch(rows.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, fp: g.fp, dup, summary: String(design.summary || '').slice(0, 300) }), '{}', dup ? 0 : sh.pts, t0, dup ? '🔴 Бұл презентация «' + dup + '» студентінің жұмысымен бірдей (көшірілген). Балл 0.' : (i === 2 ? 'Дизайн (ЖИ): ' + String(design.summary || '').slice(0, 200) : ''))));
+    return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: rows.map(s => ({ items: s.items, pts: dup ? 0 : s.pts })), dup: !!dup, summary: design.summary || '' });
   }
 
   /* Scratch 7: .sb3 ойын жобасы жүктеледі, блоктар автоматты талданады */
@@ -447,7 +481,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ses.topic === '10' || ses.topic === 'S7', x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    const x10 = ['10', 'S7', 'A13'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
@@ -478,7 +512,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     const ot = old ? await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(old.session_id).first() : null;
     if (old && ot && ot.topic === '7') await DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id).run();
-    else if (old && ot && (ot.topic === '10' || ot.topic === 'S7')) await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
+    else if (old && ot && ['10', 'S7', 'A13'].includes(ot.topic)) await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
     else if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
   }
