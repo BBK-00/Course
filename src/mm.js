@@ -49,13 +49,14 @@ export async function gradePptx(buf, fullName) {
 }
 
 /* Рәсімдеуді PDF бетінен Gemini қатаң бағалайды */
-const SCHEMA = { type: 'OBJECT', properties: { slides: { type: 'ARRAY', items: { type: 'OBJECT', properties: { n: { type: 'INTEGER' }, score: { type: 'INTEGER' }, note: { type: 'STRING' } }, required: ['n', 'score', 'note'] } }, summary: { type: 'STRING' } }, required: ['slides', 'summary'] };
+const SCHEMA = { type: 'OBJECT', properties: { slides: { type: 'ARRAY', items: { type: 'OBJECT', properties: { n: { type: 'INTEGER' }, score: { type: 'INTEGER' }, q: { type: 'INTEGER' }, note: { type: 'STRING' } }, required: ['n', 'score', 'q', 'note'] } }, summary: { type: 'STRING' } }, required: ['slides', 'summary'] };
 let good = 0;
 export async function designGrade(env, pdf) {
-  if (env.GEMINI_STUB) return { slides: Array.from({ length: 10 }, (_, i) => ({ n: i + 1, score: i % 3 === 0 ? 2 : 1, note: 'Тест түсініктеме' })), summary: 'Тест' };
+  if (env.GEMINI_STUB) return { slides: Array.from({ length: 10 }, (_, i) => ({ n: i + 1, score: i % 3 === 0 ? 2 : 1, q: 2, note: 'Тест түсініктеме' })), summary: 'Тест' };
   const keys = String(env.GEMINI_API_KEY || '').split(/[\s,;]+/).filter(Boolean);
   if (!keys.length) throw new Error('GEMINI_API_KEY бапталмаған');
-  const models = [env.GEMINI_MODEL || 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
+  /* gemini-flash-latest бұл тапсырмада 2 минутқа дейін ойланады, gemini-2.5-flash 3-5 секундта жауап береді */
+  const models = ['gemini-2.5-flash', 'gemini-flash-lite-latest', env.GEMINI_MODEL || 'gemini-flash-latest'];
   const b64 = (() => { let s = ''; const u = new Uint8Array(pdf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); })();
   const text = [
     'You are a STRICT design judge for a student quiz presentation (PDF export, one quiz task per slide, 10 slides). Each slide is a quiz task: media (photo / audio / video) plus a question and a hidden answer.',
@@ -65,15 +66,18 @@ export async function designGrade(env, pdf) {
     '1 = acceptable but plain or with visible flaws (default white template, small text, unbalanced layout, stretched or low-quality image, uneven style).',
     '0 = messy, cluttered, unreadable, overlapping or cut-off content, a missing or broken picture, or an empty slide.',
     'Be strict and honest: an average student presentation should score about 1 per slide. Do not reward effort, only the visible result. If the PDF has fewer than 10 slides, give 0 to the missing ones.',
-    'Return JSON: slides = list of {n (1-10), score (0-2), note (one short Kazakh sentence naming the main visual strength or flaw)}, summary = one Kazakh sentence about the overall style consistency.'].join('\n');
+    'ALSO for each slide give q = integer 0, 1 or 2 for the QUIZ CONTENT. The task type of slide n is: 1 identify a film from a frame (photo and short video); 2 identify a song and singer from audio; 3 identify a cartoon character from a silhouette; 4 identify an animal, instrument or natural phenomenon from a sound; 5 identify a landmark and its location from a photo; 6 identify a famous person from a photo; 7 listen to the beginning of a song and continue it in own words; 8 identify a country from its flag; 9 find the connection between a photo and an audio on one slide; 10 a question with FOUR answer options built on a photo or audio.',
+    'q = 2 only if the slide shows a clear, well-formed question that fits its task type AND the correct answer is visibly written on the slide and is factually correct (slide 10 must show four options with the right one marked). q = 1 if the question is understandable but the answer is missing, unclear, doubtful, or the wording is poor. q = 0 if there is no question, the question does not match the task, or the shown answer is wrong. Audio and video cannot be heard in a PDF: judge only the text and pictures, and do not punish a slide because a sound is not audible.',
+    'Return JSON: slides = list of {n (1-10), score (design 0-2), q (quiz content 0-2), note (one short Kazakh sentence naming the main visual or content strength or flaw)}, summary = one Kazakh sentence about the overall style consistency.'].join('\n');
   let last = '';
   const tries = Math.min(9, Math.max(5, keys.length * 3));
   for (let t = 0; t < tries; t++) {
     const key = keys[(good + t) % keys.length];
     try {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[Math.floor(t / keys.length) % models.length] + ':generateContent', {
+      const model = models[Math.floor(t / keys.length) % models.length];
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text }, { inlineData: { mimeType: 'application/pdf', data: b64 } }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: SCHEMA } })
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text }, { inlineData: { mimeType: 'application/pdf', data: b64 } }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: SCHEMA, ...(model === 'gemini-2.5-flash' ? { thinkingConfig: { thinkingBudget: 0 } } : {}) } })
       });
       const j = await res.json();
       if (j.candidates && j.candidates[0].content) { good = (good + t) % keys.length; return JSON.parse(j.candidates[0].content.parts.map(x => x.text || '').join('')); }
@@ -89,8 +93,9 @@ export function compose(pp, design) {
   const D = {}; (design.slides || []).forEach(s => { D[s.n] = s; });
   const rows = [[], [], []];
   pp.slides.forEach(s => {
-    const full = s.qa === 2 && s.media === 3, g = D[s.n] ? Math.max(0, Math.min(2, Math.round(D[s.n].score))) : 0, d = s.missing ? 0 : Math.min(g, full ? 2 : 1);
-    rows[0].push({ id: '1.' + s.n, label: 'Слайд ' + s.n + ': сұрақ пен жауап' + (s.qaNote ? ' (' + s.qaNote + ')' : ''), max: 2, got: s.qa });
+    const aq = D[s.n] && Number.isFinite(D[s.n].q) ? Math.max(0, Math.min(2, Math.round(D[s.n].q))) : 2, qa = s.missing ? 0 : Math.min(s.qa, aq);
+    const full = qa === 2 && s.media === 3, g = D[s.n] ? Math.max(0, Math.min(2, Math.round(D[s.n].score))) : 0, d = s.missing ? 0 : Math.min(g, full ? 2 : 1);
+    rows[0].push({ id: '1.' + s.n, label: 'Слайд ' + s.n + ': сұрақ пен жауап' + (s.qaNote ? ' (' + s.qaNote + ')' : aq < s.qa ? ' (сұрақ немесе жауап анық/дұрыс емес)' : ''), max: 2, got: qa });
     rows[1].push({ id: '2.' + s.n, label: 'Слайд ' + s.n + ': медиа' + (s.mNote ? ' (' + s.mNote + ')' : ''), max: 3, got: s.media });
     rows[2].push({ id: '3.' + s.n, label: 'Слайд ' + s.n + ': рәсімдеу' + (D[s.n] && D[s.n].note ? ' — ' + String(D[s.n].note).slice(0, 110) : '') + (g === 2 && !full && !s.missing ? ' (талап толық емес, ең көбі 1)' : ''), max: 2, got: d });
   });
