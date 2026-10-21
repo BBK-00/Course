@@ -18,7 +18,7 @@ await T('session/close', { body: {} });
 const GN = 'MM-' + (Date.now() % 100000);
 const g = (await T('groups', { body: { name: GN } })).j.groups.find(x => x.name === GN);
 const [s1, s2, s3] = (await T('students', { body: { group_id: g.id, names: 'АБДОЛЛА_ЖАНГҮЛ\nАГИСОВ_ҚАБЫЛЕТ\nАЙБЕКҰЛЫ_БЕКТҰРСЫН' } })).j.groups.find(x => x.id === g.id).students.sort((a, b) => a.id - b.id);
-ok((await T('session/start', { body: { topic: 'A13' } })).j.ok, 'АКТ 13 сабағы басталды');
+ok((await T('session/start', { body: { topic: 'A13', group_id: g.id } })).j.ok, 'АКТ 13 сабағы басталды');
 const live = (await T('live')).j, code = live.session.code, sid = live.session.id;
 const join = async s => (await call('join', { body: { student_id: s.id, code, device: 'd' + s.id } })).j.token;
 const [t1, t2, t3] = [await join(s1), await join(s2), await join(s3)];

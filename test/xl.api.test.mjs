@@ -22,7 +22,7 @@ const GN = 'XL-' + (Date.now() % 100000);
 r = await T('groups', { body: { name: GN } }); const g = r.j.groups.find(x => x.name === GN);
 r = await T('students', { body: { group_id: g.id, names: 'Тест Бірінші\nТест Екінші\nТест Үшінші' } });
 const [s1, s2, s3] = r.j.groups.find(x => x.id === g.id).students.sort((a, b) => a.id - b.id);
-r = await T('session/start', { body: { topic: '10' } }); ok(r.j.ok, 'АКТ 10 сабағы басталды');
+r = await T('session/start', { body: { topic: '10', group_id: g.id } }); ok(r.j.ok, 'АКТ 10 сабағы басталды');
 const live = (await T('live')).j, code = live.session.code, sid = live.session.id;
 const join = async s => (await call('join', { body: { student_id: s.id, code, device: 'dev' + s.id } })).j.token;
 const [t1, t2, t3] = [await join(s1), await join(s2), await join(s3)];

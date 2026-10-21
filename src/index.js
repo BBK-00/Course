@@ -11,7 +11,7 @@ import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 
 let ready = false;
-async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); ready = true; }
+async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} ready = true; }
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const err = (code, status = 400, extra) => json({ ok: false, error: code, ...(extra || {}) }, status);
@@ -38,9 +38,9 @@ async function route(request, env, ctx, url) {
 
   /* ---------------- Студент: ашық жол ---------------- */
   if (path === 'public/roster' && method === 'GET') {
-    const ses = await DB.prepare("SELECT id, topic FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
+    const ses = await DB.prepare("SELECT id, topic, group_id FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
     if (!ses) return json({ ok: true, open: false });
-    const rows = await all(DB.prepare('SELECT s.id, s.full_name, s.group_id, g.name AS gname, (SELECT 1 FROM attendance a WHERE a.session_id=? AND a.student_id=s.id) AS present FROM students s JOIN groups g ON g.id=s.group_id WHERE s.active=1 ORDER BY g.name, s.full_name').bind(ses.id));
+    const rows = await all(DB.prepare('SELECT s.id, s.full_name, s.group_id, g.name AS gname, (SELECT 1 FROM attendance a WHERE a.session_id=? AND a.student_id=s.id) AS present FROM students s JOIN groups g ON g.id=s.group_id WHERE s.active=1' + (ses.group_id ? ' AND s.group_id=' + Number(ses.group_id) : '') + ' ORDER BY g.name, s.full_name').bind(ses.id));
     const groups = {};
     rows.forEach(r => { (groups[r.group_id] = groups[r.group_id] || { id: r.group_id, name: r.gname, students: [] }).students.push({ id: r.id, name: r.full_name, present: !!r.present }); });
     return json({ ok: true, open: true, topic: ses.topic, groups: Object.values(groups) });
@@ -55,6 +55,7 @@ async function route(request, env, ctx, url) {
     if (fails.n >= 5) return err('wait', 429);
     const st = await DB.prepare('SELECT * FROM students WHERE id=? AND active=1').bind(sid).first();
     if (!st) return err('no_student', 404);
+    if (ses.group_id && st.group_id !== ses.group_id) return err('wrong_group', 403);
     const codes = [await liveCode(env, ses.id, 0), await liveCode(env, ses.id, -1)];
     if (!codes.includes(String(b.code || '').trim())) { await DB.prepare('INSERT INTO join_fails (student_id, at) VALUES (?, ?)').bind(sid, now()).run(); return err('bad_code'); }
     let att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(ses.id, sid).first();
@@ -426,9 +427,11 @@ async function teacher(path, method, b, env, ctx, url) {
   if (path === 'session/start' && method === 'POST') {
     const topic = String(b.topic || '6');
     if (!TOPICS[topic]) return err('bad_topic');
+    const gid = Number(b.group_id) || 0;
+    if (!gid || !(await DB.prepare('SELECT 1 AS x FROM groups WHERE id=?').bind(gid).first())) return err('no_group');
     await DB.prepare("UPDATE sessions SET status='closed' WHERE status='open'").run();
     const code = String(1000 + Math.floor(Math.random() * 9000));
-    await DB.prepare('INSERT INTO sessions (topic, code, status, created_at) VALUES (?,?,?,?)').bind(topic, code, 'open', now()).run();
+    await DB.prepare('INSERT INTO sessions (topic, code, status, created_at, group_id) VALUES (?,?,?,?,?)').bind(topic, code, 'open', now(), gid).run();
     return json({ ok: true });
   }
   if (path === 'session/work' && method === 'POST') {
@@ -446,7 +449,7 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   /* Кездейсоқ жабылған сабақты қайта ашу: ашық сабақ болса, ол жабылады; қатысым мен жұмыстар сақталады */
   if (path === 'sessions' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 25"));
+    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 25"));
     return json({ ok: true, now: now(), rows: rows.filter(r => r.att > 0) });
   }
   if (path === 'session/reopen' && method === 'POST') {
@@ -479,8 +482,10 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */
   if (path === 'live' && method === 'GET') {
-    const ses = await DB.prepare('SELECT * FROM sessions ORDER BY (status=\'open\') DESC, id DESC LIMIT 1').first();
-    const groups = await roster(DB);
+    const want = Number(url.searchParams.get('session')) || 0;
+    const ses = want ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(want).first() : await DB.prepare('SELECT * FROM sessions ORDER BY (status=\'open\') DESC, id DESC LIMIT 1').first();
+    let groups = await roster(DB);
+    if (ses && ses.group_id) groups = groups.filter(g => g.id === ses.group_id);
     if (!ses) return json({ ok: true, session: null, now: now(), groups });
     const [atts, subs, ress, bns] = await Promise.all([
       all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)),
@@ -498,7 +503,7 @@ async function teacher(path, method, b, env, ctx, url) {
       s.bonus = c.bonus; s.tasks = {}; [1, 2, 3].forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at }, groups, guests });
+    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, guests });
   }
 
   /* Бір студенттің толық жұмысы */

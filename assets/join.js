@@ -67,7 +67,7 @@ async function buildForm(box, onDone, onCancel){
     const j = role === 'student' ? await api('join', { student_id:Number(ns.value), code:code.value.trim(), device:device() }) : await api('join_guest', { name:nm.value, code:code.value.trim() });
     go.disabled = false;
     if (j.ok){ saveToken(j.token); await refresh(); if (onDone) onDone(); return; }
-    const t = { bad_code:'Код дұрыс емес.', taken:'Бұл атпен басқа құрылғыдан кірілген. Оқытушыға айт, ол босатады.', wait:'Қате көп болды. 1 минуттан кейін қайта көр.', no_session:'Сабақ жабылған.', bad_request:role === 'teacher' ? 'Аты-жөніңізді толық жазыңыз.' : 'Барлық өрісті толтыр.' }[j.error] || 'Кіру мүмкін болмады. Қайта көр.';
+    const t = { bad_code:'Код дұрыс емес.', taken:'Бұл атпен басқа құрылғыдан кірілген. Оқытушыға айт, ол босатады.', wait:'Қате көп болды. 1 минуттан кейін қайта көр.', no_session:'Сабақ жабылған.', wrong_group:'Бұл сабақ сіздің тобыңызға ашылмаған.', bad_request:role === 'teacher' ? 'Аты-жөніңізді толық жазыңыз.' : 'Барлық өрісті толтыр.' }[j.error] || 'Кіру мүмкін болмады. Қайта көр.';
     msg.append(el('p', { class:'errbox', text:t }));
   };
   go.addEventListener('click', submit); code.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
