@@ -37,8 +37,10 @@ function chip(){
 /* Кіру формасы (терезеде де, қақпада да бір) */
 async function buildForm(box, onDone, onCancel){
   box.innerHTML = '';
+  const bid = box._bf = (box._bf || 0) + 1;   /* бір мезгілде екі рет шақырылса, соңғысы ғана салынады (форма екеу болмауы үшін) */
   const info = el('p', { text:'Тексеріп жатыр…' }); box.append(info);
   const r = await api('public/roster'); S.open = !!r.open;
+  if (box._bf !== bid) return;
   if (!r.open){ info.className = 'notice'; info.textContent = 'Сабақ әзірге ашылмаған. Оқытушы сабақты бастағанда кіре аласың. Бет өзі тексеріп тұрады.'; if (onCancel) box.append(el('div', { class:'stepbar' }, el('button', { type:'button', class:'btn', text:'Жабу', onclick:onCancel }))); return; }
   let role = 'student';
   const tabs = el('div', { class:'role-tabs' }), form = el('div');
