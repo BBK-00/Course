@@ -6,14 +6,16 @@ const { el } = window.L;
 const mmss = s => Math.floor(Math.max(0, s) / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
 const ELEMS = [['cpu', 'Процессор', true], ['ram', 'Жедел жад', true], ['ssd', 'SSD', true], ['mb', 'Аналық тақша', true], ['os', 'Операциялық жүйе', false], ['drv', 'Драйвер', false], ['br', 'Браузер', false], ['av', 'Антивирус', false]];
 const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', closed:'Сабақ жабылған немесе бұл тапсырма әзірге ашылмаған.', already:'Жұмыс жіберіліп қойған.', auth:'Сабаққа қайта кіріңіз.' };
-const TITLE = ['1 · Түрі: аппараттық / программалық (8 × 3)', '2 · Қызметі (8 × 4)', '3 · Өзара байланыс мысалдары (2 × 7)'];
+const TITLE = ['1–3-тапсырмалар (12 + 12 + 6)', '4-тапсырма: түрі және қызметі (16 + 16)', '4-тапсырма: өзара байланыс мысалдары (2 × 4)'];
 const KEY = 'a2draft';
+/* Жауаптар жоба ретінде құрылғыда сақталады; 1–3-тапсырмалардың виджеттері де осы нысанға жазады */
+const st = (() => { let d = null; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} d = d && d.types ? d : {}; return Object.assign({ t1:{}, t2:{ sw:{}, g:['', '', ''] }, t3:['', '', '', '', ''], types:{}, funcs:{}, pairs:[{ a:'', b:'', t:'' }, { a:'', b:'', t:'' }] }, d); })();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+window.A2Draft = { st, save };
 
 window.A2Work = { mount(host){
   let busy = false, result = null, dup = false, last = '', auto = false;
   const box = el('div', { class:'xl' }); host.append(box);
-  const st = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.types) return d; } catch (e) {} return null; })() || { types:{}, funcs:{}, pairs:[{ a:'', b:'', t:'' }, { a:'', b:'', t:'' }] };
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
   const msg = (t, cls) => { const m = box.querySelector('.xl-msg'); if (m){ m.className = 'xl-msg ' + (cls || ''); m.textContent = t || ''; } };
 
   async function submit(btn, silent){
@@ -21,7 +23,7 @@ window.A2Work = { mount(host){
     if (!silent && !confirm('Жауаптарды жібересіз бе? Жібергеннен кейін қайта жіберуге болмайды.')) return;
     busy = true; if (btn) btn.disabled = true; msg('Тексеріліп жатыр…');
     try {
-      const j = await window.Join.api('a2/submit', { types:st.types, funcs:st.funcs, pairs:st.pairs });
+      const j = await window.Join.api('a2/submit', st);
       if (j.ok){ result = j.sheets; dup = !!j.dup; try { localStorage.removeItem(KEY); } catch (e) {} await window.Join.refresh(); }
       else { msg(ERR[j.error] || 'Қате болды. Қайта көріңіз.', 'bad'); if (btn) btn.disabled = false; }
     } catch (e) { msg('Желі қатесі. Қайта көріңіз.', 'bad'); if (btn) btn.disabled = false; }
@@ -29,12 +31,12 @@ window.A2Work = { mount(host){
   }
 
   function report(me){
-    const out = [el('div', { class:'xl-total' }, [el('b', { text:'Қорытынды балл: ' + me.total + ' / 100' }), el('span', { text:'Қатысым ' + me.attendance + ' + 4-тапсырма ' + (me.total - me.attendance - (me.bonus || 0)) + (me.bonus ? ' + бонус ' + me.bonus : '') })])];
+    const out = [el('div', { class:'xl-total' }, [el('b', { text:'Қорытынды балл: ' + me.total + ' / 100' }), el('span', { text:'Қатысым ' + me.attendance + ' + тапсырмалар ' + (me.total - me.attendance - (me.bonus || 0)) + (me.bonus ? ' + бонус ' + me.bonus : '') })])];
     if (dup) out.push(el('p', { class:'errbox', text:'Жауаптарың басқа студенттің жұмысымен бірдей болып шықты, сондықтан балл қойылмады. Оқытушы тексереді.' }));
     [1, 2, 3].forEach(n => {
       const t = me.tasks[n], it = result && result[n - 1];
       const d = el('details', { class:'xl-sheet' }, [el('summary', { text:TITLE[n - 1] + ' — ' + t.pts + ' / ' + t.max })]);
-      if (it){ d.append(el('ul', {}, it.items.map(x => el('li', { class:x.got >= x.max ? 'ok' : x.got > 0 ? 'mid' : 'no', text:(x.got >= x.max ? '✓ ' : x.got > 0 ? '◑ ' : '✗ ') + x.label + ' — ' + x.got + ' / ' + x.max })))); d.open = n === 2 || n === 3; }
+      if (it){ d.append(el('ul', {}, it.items.map(x => el('li', { class:x.got >= x.max ? 'ok' : x.got > 0 ? 'mid' : 'no', text:(x.got >= x.max ? '✓ ' : x.got > 0 ? '◑ ' : '✗ ') + x.label + ' — ' + x.got + ' / ' + x.max })))); d.open = n >= 2; }
       else d.append(el('p', { class:'muted', text:'Толық талдау жіберген кезде ғана көрсетіледі.' }));
       out.push(d);
     });
@@ -73,13 +75,13 @@ window.A2Work = { mount(host){
     if (me.guest){ box.append(el('p', { class:'notice', text:'Мұғалім ретінде кірдіңіз. Тапсырманы студенттер орындайды.' })); return; }
     if (!me.session || me.session.topic !== 'A2'){ box.append(el('p', { class:'notice', text:'Бұл тақырып бойынша сабақ әлі ашылмаған. Оқытушы сабақты бастағанда осы бет жаңарады.' })); return; }
     if (me.tasks[1].sent){ box.append(...report(me)); return; }
-    if (!me.session.work_until){ box.append(el('p', { class:'notice', text:'✓ Сабаққа кірдіңіз (қатысым 30 балл). Оқытушы жұмысты бастағанда 4-тапсырма осы жерде ашылады. Бет өзі жаңарады.' })); return; }
+    if (!me.session.work_until){ box.append(el('p', { class:'notice', text:'✓ Сабаққа кірдіңіз (қатысым 30 балл). Оқытушы жұмысты бастағанда жіберу бөлімі осы жерде ашылады. Бет өзі жаңарады.' })); return; }
     if (now > me.session.work_until + 90){ box.append(el('p', { class:'errbox', text:'Жұмыс уақыты бітті.' })); return; }
     const left = Math.max(0, me.session.work_until - now);
-    const up = el('button', { type:'button', class:'btn primary', text:'⬆ Жауаптарды жіберу' });
+    const up = el('button', { type:'button', class:'btn primary', text:'⬆ 1–4 тапсырманың жауаптарын жіберу' });
     up.addEventListener('click', () => submit(up, false));
     box.append(el('p', { class:'xl-timer' + (left < 300 ? ' low' : ''), text:'⏱ Қалған уақыт: ' + mmss(left) }), ...form(),
-      el('div', { class:'xl-up' }, [up]), el('div', { class:'xl-msg', role:'status' }), el('p', { class:'muted', text:'Жауаптарың осы құрылғыда сақталып тұрады. Уақыт біткенде толтырғаның өздігінен жіберіледі.' }));
+      el('div', { class:'xl-up' }, [up]), el('div', { class:'xl-msg', role:'status' }), el('p', { class:'muted', text:'Алдыңғы 1–3 тапсырманың жауаптары да осымен бірге жіберіледі. Жауаптарың осы құрылғыда сақталып тұрады, уақыт біткенде толтырғаның өздігінен жіберіледі.' }));
   }
 
   window.Join.on(() => render()); render();
