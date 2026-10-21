@@ -50,6 +50,7 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
 .sw{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.sw .it{display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:12px;padding:6px 8px;background:#fff}.sw .it>b{font-size:.9rem}
 .sw .it select{font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:3px 4px;background:#fff}.sw .it.ok{border-color:#16a34a;background:#f0fdf4}.sw .it.no{border-color:#dc2626;background:#fef2f2}
 .si{width:100%;border-collapse:collapse;margin:10px 0}.si th,.si td{border:1px solid var(--line);padding:6px 8px;text-align:left}.si th{background:var(--surface-2);width:44%}.si input{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;box-sizing:border-box}.si input.ok{border-color:#16a34a;background:#f0fdf4}.si input.no{border-color:#dc2626;background:#fef2f2}
+.tsk.a2done{background:#f8fafc}.xl-timer{position:sticky;top:60px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .a2tb{width:100%;border-collapse:collapse;margin:10px 0}.a2tb th,.a2tb td{border:1px solid var(--line);padding:6px 8px;text-align:left}.a2tb thead th{background:var(--surface-2)}.a2tb tbody th{width:28%;font-weight:700}
 .a2in,.a2sel{font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:7px 8px;background:#fff;box-sizing:border-box}.a2in{width:100%}.a2sel{max-width:100%}
 .a2pair{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--surface-2)}.a2row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.a2h{margin:16px 0 4px}
@@ -116,7 +117,8 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
 <!-- 2. ТАПСЫРМАЛАР -->
 <section id="task" class="lesson" data-sec="task"><div class="wrap"><div class="card">
   <div class="sec-head"><span class="sec-num">2</span><h2>Тапсырмалар</h2></div>
-  <p class="learn">Бұл бөлімде төрт тапсырма бар. Барлығын осы беттің өзінде орындайсың, <b>төртеуі де бағаланады: барлығы 70 балл</b>. Жауаптар төменгі «Жіберу» батырмасымен бірге жіберіледі.</p>
+  <p class="learn">Бұл бөлімде төрт тапсырма бар. Барлығын осы беттің өзінде орындайсың, <b>төртеуі де бағаланады: барлығы 70 балл</b>. Төрт тапсырмаға жалпы <b>60 минут</b> беріледі. Әр тапсырманы орындап болған соң, оның астындағы «Жіберу» батырмасын бас: балл бірден көрінеді. Жіберілген тапсырманы өзгерту мүмкін емес.</p>
+  <div id="a2Timer"></div>
   <table class="rub"><tr><th>Өлшемшарт</th><th>Балл</th></tr>
     <tr><td>Сабаққа қатысым: сабаққа кіргенде автоматты түседі</td><td class="n">30</td></tr>
     <tr><td>1-тапсырма: 12 құрылғы × 1</td><td class="n">12</td></tr>
@@ -127,22 +129,21 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
 
   <div class="tsk"><h3><span class="num">1</span>Құрылғыларды қызмет түріне бөл<span class="pt">12 балл</span></h3>
     <p>Әр құрылғы үшін қызмет түрін таңда: <b>Енгізу, Өңдеу, Сақтау, Шығару</b>.</p>
-    <div class="dv" id="t1"></div></div>
+    <div class="dv" id="t1"></div><div id="a2h1"></div></div>
 
   <div class="tsk"><h3><span class="num">2</span>Бағдарламаларды топқа жікте<span class="pt">12 балл</span></h3>
     <p>Әр бағдарлама қай топқа жататынын таңда. Сосын әр топтың негізгі қызметін өз сөзіңмен қысқаша жаз.</p>
     <div class="sw" id="t2"></div>
-    <div class="grp" id="t2g"></div></div>
+    <div class="grp" id="t2g"></div><div id="a2h2"></div></div>
 
   <div class="tsk"><h3><span class="num">3</span>Өз компьютеріңнің сипаттамасы<span class="pt">6 балл</span></h3>
     <p><code>Баптаулар → Жүйе → Жүйе туралы</code> терезесін аш (немесе «Бұл компьютер» белгісіне оң түймені басып, «Сипаттар» таңда). Мәліметті тауып, кестеге жаз.</p>
     <table class="si" id="t3"></table>
-    <div class="tip warn"><b>!</b><span>Жедел жад ГБ-пен, диск көлемі ГБ не ТБ-пен берілетінін ұмытпа. Екі ұғымды шатастырма. Жедел жадтың көлемін «8 ГБ» түрінде өлшем бірлігімен жаз.</span></div></div>
+    <div class="tip warn"><b>!</b><span>Жедел жад ГБ-пен, диск көлемі ГБ не ТБ-пен берілетінін ұмытпа. Екі ұғымды шатастырма. Жедел жадтың көлемін «8 ГБ» түрінде өлшем бірлігімен жаз.</span></div><div id="a2h3"></div></div>
 
   <div class="tsk main"><h3><span class="num">4</span>Аппараттық және программалық жабдықтама<span class="pt">40 балл</span></h3>
     <p>Төмендегі құрылғылар мен бағдарламалардың <b>түрін</b> (аппараттық не программалық) көрсет және <b>қызметін</b> қысқаша жаз. Сосын аппараттық және программалық жабдықтаманың өзара байланысына <b>2 мысал</b> келтір.</p>
-    <div class="tip info"><b>i</b><span>Жіберу бөлімі оқытушы жұмысты бастағанда ашылады. Кіру үшін беттің жоғарғы жағындағы «Сабаққа кіру» батырмасын бас та, оқытушы көрсеткен кодты енгіз. Жауапты бір-ақ рет жібересің.</span></div>
-    <div id="a2Host"></div></div>
+        <div id="a2h4"></div></div>
 </div></div></section>
 
 <!-- 3. ҚОРЫТЫНДЫ -->
@@ -248,7 +249,7 @@ Course.init({ back:{ href:'index.html', text:'← АКТ' }, title:[2, 'Комп
   { id:'teo', n:1, title:'Теория' }, { id:'task', n:2, title:'Тапсырмалар' }, { id:'sum', n:3, title:'Қорытынды' }
 ] });
 window.Join.mount({ gate:true, title:'АКТ, 2-тақырып: Компьютер архитектурасы және программалық жабдықтама' });
-window.A2Work.mount($('#a2Host'));
+window.A2Work.mountTimer($('#a2Timer')); [1, 2, 3, 4].forEach(n => window.A2Work.mountTask($('#a2h' + n), n));
 })();
 </script>
 </body>

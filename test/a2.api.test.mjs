@@ -23,7 +23,6 @@ r = await call('join', { body: { student_id: o1.id, code, device: 'dx' } }); ok(
 ok(!(await T('live')).j.groups.some(x => x.id === g2.id), 'панельде басқа топ есептелмейді');
 const join = async s => (await call('join', { body: { student_id: s.id, code, device: 'd' + s.id } })).j.token;
 const [t1, t2] = [await join(s1), await join(s2)];
-let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 30 && me.tasks[1].max === 30 && me.tasks[2].max === 32 && me.tasks[3].max === 8, 'кірді: қатысым 30, бөлімдер 30/32/8');
 const GOOD = {
   t1: { kbd: 0, mouse: 0, scan: 0, mic: 0, cam: 0, mon: 3, prn: 3, snd: 3, hdd: 2, ram: 2, cpu: 1, gpu: 1 },
   t2: { sw: { os: 0, drv: 0, arc: 0, br: 1, txt: 1, ide: 2 }, g: ['Аппаратты басқарады, құрылғылардың жұмысын үйлестіреді', 'Пайдаланушының нақты міндеттерін орындайды', 'Жаңа бағдарламаларды жасауға арналған'] },
@@ -32,15 +31,20 @@ const GOOD = {
   funcs: { cpu: 'Барлық есептеулерді орындайды, компьютердің миы', ram: 'Деректерді уақытша және жылдам сақтайды', ssd: 'Файлдарды ұзақ мерзімге сақтайды', mb: 'Барлық құрылғыларды бір-бірімен байланыстырады', os: 'Компьютердің жұмысын басқарады, интерфейс береді', drv: 'ОЖ мен құрылғы арасындағы байланысты қамтамасыз етеді', br: 'Интернеттегі сайттарды қарауға арналған', av: 'Компьютерді вирустардан қорғайды' },
   pairs: [{ a: 'os', b: 'cpu', t: 'Операциялық жүйе процессордың жұмысын басқарады және программаларды орындатады' }, { a: 'drv', b: 'mb', t: 'Драйвер аналық тақтадағы құрылғыны жүйеге таныту үшін қажет' }]
 };
-r = await call('a2/submit', { body: GOOD }, t1); ok(r.j.error === 'not_started', 'жұмыс басталмай жіберуге болмайды');
-await T('session/work', { body: { minutes: 30 } });
-r = await call('a2/submit', { body: GOOD }, t1);
-ok(r.j.ok && [1, 2, 3].map(n => r.j.tasks[n].pts).join() === '30,32,8', 'балл: ' + (r.j.tasks ? [1, 2, 3].map(n => r.j.tasks[n].pts) : r.j.error));
-ok(r.j.total === 100, 'жиынтық 30 + 70 = ' + r.j.total);
-r = await call('a2/submit', { body: GOOD }, t1); ok(r.s === 409 && r.j.error === 'already', 'екінші рет жіберуге болмайды');
-r = await call('a2/submit', { body: GOOD }, t2); ok(r.j.ok && r.j.dup === true && r.j.total === 40, 'көшірілген жауап: 0 балл, тек қатысым 30 + ең төменгі 10 (' + r.j.total + ')');
-const w = (await T('work?session=' + live.session.id + '&student=' + s1.id)).j; ok(w.ok && w.subs.length === 3 && w.subs[0].payload.items.length === 27, 'оқытушы панелі жауап тармақтарын көреді');
-r = await call('a2/submit', { body: GOOD }, ''); ok(r.s === 401, 'токенсіз жіберуге болмайды');
+let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 30 && [1, 2, 3, 4].map(n => me.tasks[n].max).join() === '12,12,6,40', 'кірді: қатысым 30, тапсырмалар 12/12/6/40');
+const sub = (tok, n, extra = GOOD) => call('a2/submit', { body: { task: n, ...extra } }, tok);
+r = await sub(t1, 1); ok(r.j.error === 'not_started', 'жұмыс басталмай жіберуге болмайды');
+await T('session/work', { body: { minutes: 60 } });
+r = await sub(t1, 9); ok(r.j.error === 'bad_task', 'қате тапсырма нөмірі');
+r = await sub(t1, 1); ok(r.j.ok && r.j.pts === 12 && r.j.total === 42, '1-тапсырма жіберілді: 12, жиынтық ' + r.j.total);
+r = await sub(t1, 1); ok(r.s === 409 && r.j.error === 'already', 'бір тапсырманы екінші рет жіберуге болмайды');
+r = await sub(t1, 2); ok(r.j.ok && r.j.pts === 12, '2-тапсырма бөлек жіберілді');
+r = await sub(t1, 3); ok(r.j.ok && r.j.pts === 6, '3-тапсырма');
+let live2 = (await T('live')).j; let row = live2.groups[0].students.find(x => x.id === s1.id); ok(row.tasks[4] && !row.tasks[4].sent && row.tasks[3].sent, 'панельде 4 тапсырма: 4-ші әлі жіберілмеген');
+r = await sub(t1, 4); ok(r.j.ok && r.j.pts === 40 && r.j.total === 100, '4-тапсырма: 40, жиынтық ' + r.j.total);
+r = await sub(t2, 4); ok(r.j.ok && r.j.dup === true && r.j.pts === 0, '4-тапсырма көшірілген жауап: 0 балл');
+const w = (await T('work?session=' + live.session.id + '&student=' + s1.id)).j; ok(w.ok && w.subs.length === 4 && w.subs[3].payload.items.length === 18, 'оқытушы панелі 4 тапсырманы көреді');
+r = await sub('', 1); ok(r.s === 401, 'токенсіз жіберуге болмайды');
 await T('session/close', { body: {} });
 console.log(fails ? 'ҚАТЕ: ' + fails : 'Бәрі дұрыс');
 process.exit(fails ? 1 : 0);

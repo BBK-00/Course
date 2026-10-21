@@ -168,7 +168,7 @@ function renderLive(){
     if (ses) root.append(h('div', { class: 'row' }, [h('p', { class: 'sub', style: 'margin:0', text: '№' + ses.id + ' сабағының нәтижесі (сабақ жабылған, деректер сақталған).' }), VIEW ? h('button', { class: 'btn sm', text: '← Жаңа сабаққа оралу', on: { click: () => { VIEW = 0; loadLive(true); } } }) : '']));
   } else {
     const ctl = h('div', { class: 'row' }), started = !!ses.work_until;
-    if (!wDirty) WMIN = started && ses.work_started_at ? Math.max(1, Math.round((ses.work_until - ses.work_started_at) / 60)) : (ses.topic === '10' ? 60 : ses.topic === 'S7' || ses.topic === 'A13' ? 50 : ses.topic === 'A2' ? 30 : ses.topic === '7' ? 35 : 30);
+    if (!wDirty) WMIN = started && ses.work_started_at ? Math.max(1, Math.round((ses.work_until - ses.work_started_at) / 60)) : (ses.topic === '10' ? 60 : ses.topic === 'S7' || ses.topic === 'A13' ? 50 : ses.topic === 'A2' ? 60 : ses.topic === '7' ? 35 : 30);
     const mins = h('input', { class: 'field', type: 'number', value: String(WMIN), min: '1', max: '240', style: 'width:90px', 'aria-label': 'Жұмыс ұзақтығы, минут', on: { input: e => { WMIN = +e.target.value || 30; wDirty = true; } } });
     if (!started) ctl.append(h('span', { text: 'Жұмыс ұзақтығы:' }), mins, h('span', { text: 'мин' }), h('button', { class: 'btn primary', text: '▶ Жұмысты бастау', on: { click: async () => { wDirty = false; await api('session/work', { minutes: WMIN }); loadLive(true); } } }));
     else ctl.append(h('div', { class: 'timer', id: 'timer' }), h('span', { text: 'ұзақтығы:' }), mins, h('span', { text: 'мин' }),
@@ -189,7 +189,7 @@ function renderLive(){
       const tc = n => { const t = s.tasks && s.tasks[n]; return h('td', { text: !t || !t.sent ? '—' : t.pending ? t.pts + '…' : t.pts + '/' + t.max }); };
       return h('tr', { class: cls }, [
         h('td', { class: 'l' }, [h('b', { text: s.name }), s.present ? h('span', { class: 'sub', text: hhmm(s.joined_at) + (s.manual ? ' · қолмен' : '') }) : '']),
-        h('td', { text: s.present ? '✓ 40' : 'жоқ' }), h('td', { text: s.present ? '№' + s.variant : '' }), tc(1), tc(2), tc(3),
+        h('td', { text: s.present ? (ses.topic === 'A2' || ses.topic === 'A13' ? '✓ 30' : '✓ 40') : 'жоқ' }), h('td', { text: s.present ? '№' + s.variant : '' }), tc(1), tc(2), tc(3), ses.topic === 'A2' ? tc(4) : '',
         h('td', {}, s.present && s.ai_pct ? h('span', { class: 'pill', style: 'background:' + (s.ai_pct >= 50 ? '#fecaca' : s.ai_pct >= 30 ? '#fed7aa' : '#bbf7d0'), text: s.ai_pct + '%' }) : '—'),
         h('td', {}, s.present ? [h('span', { class: 'pill', style: 'background:' + band(s.total), text: String(s.total) }), s.edited ? h('span', { class: 'sub mark', text: '✎' }) : ''] : '—'),
         h('td', {}, s.present ? [h('button', { class: 'btn sm', text: 'Ашу', on: { click: () => openDetail(ses.id, s.id) } }), ' ', s.device ? h('button', { class: 'btn sm', title: 'Басқа құрылғыдан кіруге рұқсат', text: '📱', on: { click: async () => { await api('release', { session_id: ses.id, student_id: s.id }); loadLive(true); } } }) : '']
@@ -197,7 +197,7 @@ function renderLive(){
       ]);
     });
     root.append(h('div', { class: 'gh' }, [h('h3', { text: g.name }), h('span', { class: 'sub', text: g.students.filter(s => s.present).length + ' / ' + g.students.length + ' бар' })]),
-      g.students.length ? h('div', { class: 'tw' }, h('table', { class: 't' }, [h('thead', {}, h('tr', {}, ['Студент', 'Қатысым', 'Нұсқа', '1', '2', '3', 'ЖИ', 'Балл', ''].map((c, i) => h('th', { class: i === 0 ? 'l' : '', text: c })))), h('tbody', {}, rows)])) : h('p', { class: 'sub', text: 'Бұл топта студент жоқ.' }));
+      g.students.length ? h('div', { class: 'tw' }, h('table', { class: 't' }, [h('thead', {}, h('tr', {}, ['Студент', 'Қатысым', 'Нұсқа', '1', '2', '3'].concat(ses && ses.topic === 'A2' ? ['4'] : []).concat(['ЖИ', 'Балл', '']).map((c, i) => h('th', { class: i === 0 ? 'l' : '', text: c })))), h('tbody', {}, rows)])) : h('p', { class: 'sub', text: 'Бұл топта студент жоқ.' }));
   });
   window.scrollTo(0, keep); if (ses) tickTimer();
 }
@@ -216,9 +216,9 @@ function paintDetail(j){
   const left = h('div', {}, x10 ? [] : [pre('Студентке берілген жүйе', j.sys), pre('Дұрыс жауап (тек сізге)', j.note)]);
   const right = h('div', {});
   const by = {}; j.subs.forEach(s => { by[s.task] = s; });
-  [1, 2, 3].forEach(n => {
+  (j.session.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => {
     const s = by[n], t = c.tasks[n];
-    const title = x10 && j.session.topic === 'A2' ? n + '-бөлім · ' + ['1–3-тапсырмалар (12 + 12 + 6)', '4-тапсырма: түрі және қызметі (16 + 16)', '4-тапсырма: байланыс мысалдары (2×4)'][n - 1] : x10 && j.session.topic === 'A13' ? n + '-бөлім · ' + ['Сұрақ пен жауап (10×2)', 'Медиа (10×3)', 'Рәсімдеу, дизайн (10×2)'][n - 1] : x10 && j.session.topic === 'S7' ? n + '-бөлім · ' + ['Ойыншыны басқару', 'Кедергінің қозғалысы', 'Жеңу/ұтылу, анимация, дыбыс, түсіндіру'][n - 1] : x7 ? n + '-тапсырма · ' + ['Сызықтық интерполяция (оңай)', 'Шеткі айырымдар (орташа)', 'Квадраттық интерполяция (орташа)'][n - 1] : x10 ? n + '-лист · ' + ['Оңай', 'Орташа', 'Күрделі'][n - 1] : n === 1 ? '1-тапсырма · Қолмен есептеу' : n === 2 ? '2-тапсырма · Бағдарлама' : '3-тапсырма · Тест';
+    const title = x10 && j.session.topic === 'A2' ? n + '-тапсырма · ' + ['Құрылғыларды қызмет түріне бөлу (12)', 'Бағдарламаларды топқа жіктеу (12)', 'Компьютер сипаттамасы (6)', 'Аппараттық және программалық жабдықтама (40)'][n - 1] : x10 && j.session.topic === 'A13' ? n + '-бөлім · ' + ['Сұрақ пен жауап (10×2)', 'Медиа (10×3)', 'Рәсімдеу, дизайн (10×2)'][n - 1] : x10 && j.session.topic === 'S7' ? n + '-бөлім · ' + ['Ойыншыны басқару', 'Кедергінің қозғалысы', 'Жеңу/ұтылу, анимация, дыбыс, түсіндіру'][n - 1] : x7 ? n + '-тапсырма · ' + ['Сызықтық интерполяция (оңай)', 'Шеткі айырымдар (орташа)', 'Квадраттық интерполяция (орташа)'][n - 1] : x10 ? n + '-лист · ' + ['Оңай', 'Орташа', 'Күрделі'][n - 1] : n === 1 ? '1-тапсырма · Қолмен есептеу' : n === 2 ? '2-тапсырма · Бағдарлама' : '3-тапсырма · Тест';
     if (!s) { left.append(h('div', { class: 'box' }, [h('h3', { text: title }), h('p', { class: 'sub', text: 'Әлі жіберілмеген.' })])); return; }
     const p = s.payload, parts = [h('h3', { text: title + ' — ' + t.pts + ' / ' + t.max + (t.edited ? ' (сіз қойдыңыз)' : '') })];
     if (x10 && s.flags) parts.push(h('p', { class: 'aibox', text: s.flags }));
@@ -356,7 +356,7 @@ function renderJournal(){
     h('button', { class: 'btn', text: '⬇ CSV', on: { click: () => { const csv = '﻿' + jTable().map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')).join('\r\n'); const a = h('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), download: 'журнал.csv' }); document.body.append(a); a.click(); a.remove(); } } })]));
   const cell = sc => {
     if (!sc.attendance && !sc.sent) return h('td', { style: 'background:#f3f4f6' }, h('span', { class: 'sub', text: 'жоқ' }));
-    const sub = 'қатысым ' + sc.attendance + (sc.complete ? '' : ' · ' + sc.sent + '/3 тапсырма');
+    const sub = 'қатысым ' + sc.attendance + (sc.complete ? '' : ' · ' + sc.sent + '/' + (sc.topic === 'A2' ? 4 : 3) + ' тапсырма');
     return h('td', { style: 'background:' + band(sc.total) }, [h('b', { text: String(sc.total) }), sc.edited ? h('span', { class: 'sub mark', text: '✎' }) : '', h('span', { class: 'sub', text: sub })]);
   };
   const head = ['№', 'Студент', 'Топ'].concat(JOUR.topics.map(t => JOUR.titles[t])).map((c, i) => h('th', { class: i === 1 ? 'l' : '', text: c }));

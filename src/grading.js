@@ -16,7 +16,7 @@ TOPICS['S7'] = { title: 'Scratch · 7-тақырып', variants: new Array(20).f
 TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
 TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 30, 2: 32, 3: 8 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 12, 3: 6, 4: 40 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -168,17 +168,17 @@ export function sbPts(topic, s) {
   return items.reduce((a, i) => { const w = SB_W[i.id]; if (!w) return a; return a + (i.id === '3.8' ? (i.got >= 4 ? 2 : i.got >= 2 ? 1 : 0) : w === 1 ? Math.floor(i.got / i.max * w + 1e-9) : Math.round(i.got / i.max * w)); }, 0);
 }
 function compute10(att, subs, result, bonus, topic) {
-  const M = MAXT[topic] || MAXT['10'], tot = M[1] + M[2] + M[3];
+  const M = MAXT[topic] || MAXT['10'], NS = topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3], tot = NS.reduce((a, n) => a + M[n], 0);
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {}; let quality = 0;
-  [1, 2, 3].forEach(n => {
+  NS.forEach(n => {
     const s = by[n], max = M[n];
     if (!s) { tasks[n] = { sent: false, pts: null, max }; return; }
     const over = s.teacher_score !== null && s.teacher_score !== undefined, pts = over ? s.teacher_score : sbPts(topic, s);
     tasks[n] = { sent: true, pts, max, pending: false, edited: over, ai_pct: 0, flags: '', comment: '' };
     quality += pts;
   });
-  const sent = [1, 2, 3].some(n => tasks[n].sent), all = [1, 2, 3].every(n => tasks[n].sent);
+  const sent = NS.some(n => tasks[n].sent), all = NS.every(n => tasks[n].sent);
   const attendance = att ? (topic === 'A13' || topic === 'A2' ? 30 : 40) : 0, part = sent ? Math.max(10, Math.round(quality)) : 0, auto = attendance + part;
   const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all, edited_total: base !== auto };
