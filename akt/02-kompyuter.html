@@ -36,6 +36,8 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
 .infog{width:100%;height:auto;border-radius:14px;border:1px solid var(--line);margin:8px 0}
 .faces{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.faces button{font-size:1.8rem;border:2px solid var(--line);background:#fff;border-radius:12px;padding:4px 10px;cursor:pointer}.faces button.on{border-color:var(--primary);background:var(--primary-soft)}
 .rub{width:100%;border-collapse:collapse;margin:10px 0}.rub th,.rub td{border:1px solid var(--line);padding:8px 10px;text-align:left}.rub th{background:var(--surface-2)}.rub td.n{text-align:right;font-weight:700;white-space:nowrap}
+.plan-doc{line-height:1.6}.plan-doc h3{font-size:1.15rem;margin:1em 0 .3em}.plan-doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem;display:block;overflow-x:auto}
+.plan-doc th,.plan-doc td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}.plan-doc th{background:var(--surface-2)}
 .tsk{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:16px 0;background:#fff}
 .tsk>h3{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:1.1rem}.tsk .pt{margin-left:auto;font-size:.8rem;font-weight:800;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
 .tsk.main{border:2px solid var(--primary)}.tsk.main .pt{background:var(--primary);color:#fff}
@@ -71,6 +73,13 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
   </div>
   <div class="hero-actions"><a class="btn primary big" href="#teo">Сабақты бастау →</a></div>
 </div></section>
+
+<!-- Сабақ жоспары (тек мұғалімдерге) -->
+<section id="plan" class="lesson" hidden><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">📄</span><h2 id="planTitle">Сабақ жоспары</h2></div>
+  <p class="learn">Бұл бөлім тек мұғалімдерге көрінеді.</p>
+  <div class="plan-doc" id="planBody"></div>
+</div></div></section>
 
 <!-- 1. ТЕОРИЯ -->
 <section id="teo" class="lesson" data-sec="teo"><div class="wrap"><div class="card">
@@ -122,26 +131,26 @@ code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;paddi
   <table class="rub"><tr><th>Өлшемшарт</th><th>Балл</th></tr>
     <tr><td>Сабаққа қатысым: сабаққа кіргенде автоматты түседі</td><td class="n">30</td></tr>
     <tr><td>1-тапсырма: 12 құрылғы × 1</td><td class="n">12</td></tr>
-    <tr><td>2-тапсырма: 6 бағдарлама × 1 + 3 топтың қызметі × 2</td><td class="n">12</td></tr>
-    <tr><td>3-тапсырма: компьютер сипаттамасы (6 мәлімет × 1)</td><td class="n">6</td></tr>
-    <tr><td>4-тапсырма: түрі 8 × 2 + қызметі 8 × 2 + байланыс мысалдары 2 × 4</td><td class="n">40</td></tr>
+    <tr><td>2-тапсырма: 6 бағдарлама × 2 + 3 топтың қызметі × 2</td><td class="n">18</td></tr>
+    <tr><td>3-тапсырма: компьютер сипаттамасы (процессор 2, жедел жад 2 + өлшем бірлігі 1, ОЖ 2, 32/64 бит 1, диск орны 2)</td><td class="n">10</td></tr>
+    <tr><td>4-тапсырма: түрі 8 × 1 + қызметі 8 × 2 + байланыс мысалдары 2 × 3</td><td class="n">30</td></tr>
     <tr><th>Барлығы</th><th class="n">100</th></tr></table>
 
   <div class="tsk"><h3><span class="num">1</span>Құрылғыларды қызмет түріне бөл<span class="pt">12 балл</span></h3>
     <p>Әр құрылғы үшін қызмет түрін таңда: <b>Енгізу, Өңдеу, Сақтау, Шығару</b>.</p>
     <div class="dv" id="t1"></div><div id="a2h1"></div></div>
 
-  <div class="tsk"><h3><span class="num">2</span>Бағдарламаларды топқа жікте<span class="pt">12 балл</span></h3>
+  <div class="tsk"><h3><span class="num">2</span>Бағдарламаларды топқа жікте<span class="pt">18 балл</span></h3>
     <p>Әр бағдарлама қай топқа жататынын таңда. Сосын әр топтың негізгі қызметін өз сөзіңмен қысқаша жаз.</p>
     <div class="sw" id="t2"></div>
     <div class="grp" id="t2g"></div><div id="a2h2"></div></div>
 
-  <div class="tsk"><h3><span class="num">3</span>Өз компьютеріңнің сипаттамасы<span class="pt">6 балл</span></h3>
+  <div class="tsk"><h3><span class="num">3</span>Өз компьютеріңнің сипаттамасы<span class="pt">10 балл</span></h3>
     <p><code>Баптаулар → Жүйе → Жүйе туралы</code> терезесін аш (немесе «Бұл компьютер» белгісіне оң түймені басып, «Сипаттар» таңда). Мәліметті тауып, кестеге жаз.</p>
     <table class="si" id="t3"></table>
     <div class="tip warn"><b>!</b><span>Жедел жад ГБ-пен, диск көлемі ГБ не ТБ-пен берілетінін ұмытпа. Екі ұғымды шатастырма. Жедел жадтың көлемін «8 ГБ» түрінде өлшем бірлігімен жаз.</span></div><div id="a2h3"></div></div>
 
-  <div class="tsk main"><h3><span class="num">4</span>Аппараттық және программалық жабдықтама<span class="pt">40 балл</span></h3>
+  <div class="tsk main"><h3><span class="num">4</span>Аппараттық және программалық жабдықтама<span class="pt">30 балл</span></h3>
     <p>Төмендегі құрылғылар мен бағдарламалардың <b>түрін</b> (аппараттық не программалық) көрсет және <b>қызметін</b> қысқаша жаз. Сосын аппараттық және программалық жабдықтаманың өзара байланысына <b>2 мысал</b> келтір.</p>
         <div id="a2h4"></div></div>
 </div></div></section>
@@ -242,6 +251,17 @@ const D = window.A2Draft, ST = D.st;
     if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
     const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
     m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
+  });
+})();
+
+(function(){
+  const sec = $('#plan'); let loaded = false;
+  window.Join.on(async me => {
+    if (me && me.guest){
+      if (loaded) return; loaded = true;
+      const j = await window.Join.api('plan?topic=A2');
+      if (j.ok){ $('#planTitle').textContent = j.title; $('#planBody').innerHTML = j.html; sec.hidden = false; } else loaded = false;
+    } else { sec.hidden = true; $('#planBody').innerHTML = ''; loaded = false; }
   });
 })();
 

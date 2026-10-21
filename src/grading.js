@@ -16,7 +16,7 @@ TOPICS['S7'] = { title: 'Scratch · 7-тақырып', variants: new Array(20).f
 TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
 TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 12, 3: 6, 4: 40 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 18, 3: 10, 4: 30 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -179,7 +179,7 @@ function compute10(att, subs, result, bonus, topic) {
     quality += pts;
   });
   const sent = NS.some(n => tasks[n].sent), all = NS.every(n => tasks[n].sent);
-  const attendance = att ? (topic === 'A13' || topic === 'A2' ? 30 : 40) : 0, part = sent ? Math.max(10, Math.round(quality)) : 0, auto = attendance + part;
+  const attendance = att ? (topic === 'A13' || topic === 'A2' ? 30 : 40) : 0, part = sent ? (topic === 'A2' ? Math.round(quality) : Math.max(10, Math.round(quality))) : 0, auto = attendance + part;
   const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all, edited_total: base !== auto };
 }

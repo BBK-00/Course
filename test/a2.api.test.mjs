@@ -31,18 +31,18 @@ const GOOD = {
   funcs: { cpu: 'Барлық есептеулерді орындайды, компьютердің миы', ram: 'Деректерді уақытша және жылдам сақтайды', ssd: 'Файлдарды ұзақ мерзімге сақтайды', mb: 'Барлық құрылғыларды бір-бірімен байланыстырады', os: 'Компьютердің жұмысын басқарады, интерфейс береді', drv: 'ОЖ мен құрылғы арасындағы байланысты қамтамасыз етеді', br: 'Интернеттегі сайттарды қарауға арналған', av: 'Компьютерді вирустардан қорғайды' },
   pairs: [{ a: 'os', b: 'cpu', t: 'Операциялық жүйе процессордың жұмысын басқарады және программаларды орындатады' }, { a: 'drv', b: 'mb', t: 'Драйвер аналық тақтадағы құрылғыны жүйеге таныту үшін қажет' }]
 };
-let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 30 && [1, 2, 3, 4].map(n => me.tasks[n].max).join() === '12,12,6,40', 'кірді: қатысым 30, тапсырмалар 12/12/6/40');
+let me = (await call('me', {}, t1)).j; ok(me.ok && me.attendance === 30 && [1, 2, 3, 4].map(n => me.tasks[n].max).join() === '12,18,10,30', 'кірді: қатысым 30, тапсырмалар 12/18/10/30');
 const sub = (tok, n, extra = GOOD) => call('a2/submit', { body: { task: n, ...extra } }, tok);
 r = await sub(t1, 1); ok(r.j.error === 'not_started', 'жұмыс басталмай жіберуге болмайды');
 await T('session/work', { body: { minutes: 60 } });
 r = await sub(t1, 9); ok(r.j.error === 'bad_task', 'қате тапсырма нөмірі');
 r = await sub(t1, 1); ok(r.j.ok && r.j.pts === 12 && r.j.total === 42, '1-тапсырма жіберілді: 12, жиынтық ' + r.j.total);
 r = await sub(t1, 1); ok(r.s === 409 && r.j.error === 'already', 'бір тапсырманы екінші рет жіберуге болмайды');
-r = await sub(t1, 2); ok(r.j.ok && r.j.pts === 12, '2-тапсырма бөлек жіберілді');
-r = await sub(t1, 3); ok(r.j.ok && r.j.pts === 6, '3-тапсырма');
+r = await sub(t1, 2); ok(r.j.ok && r.j.pts === 18, '2-тапсырма бөлек жіберілді');
+r = await sub(t1, 3); ok(r.j.ok && r.j.pts === 10, '3-тапсырма');
 let live2 = (await T('live')).j; let row = live2.groups[0].students.find(x => x.id === s1.id); ok(row.tasks[4] && !row.tasks[4].sent && row.tasks[3].sent, 'панельде 4 тапсырма: 4-ші әлі жіберілмеген');
-r = await sub(t1, 4); ok(r.j.ok && r.j.pts === 40 && r.j.total === 100, '4-тапсырма: 40, жиынтық ' + r.j.total);
-r = await sub(t2, 4); ok(r.j.ok && r.j.dup === true && r.j.pts === 0, '4-тапсырма көшірілген жауап: 0 балл');
+r = await sub(t1, 4); ok(r.j.ok && r.j.pts === 30 && r.j.total === 100, '4-тапсырма: 30, жиынтық ' + r.j.total);
+r = await sub(t2, 4); ok(r.j.ok && r.j.dup === true && r.j.pts === 0 && r.j.total === 30, '4-тапсырма көшірілген жауап: 0 балл, қосымша 10 балл жоқ (' + r.j.total + ')');
 const w = (await T('work?session=' + live.session.id + '&student=' + s1.id)).j; ok(w.ok && w.subs.length === 4 && w.subs[3].payload.items.length === 18, 'оқытушы панелі 4 тапсырманы көреді');
 r = await sub('', 1); ok(r.s === 401, 'токенсіз жіберуге болмайды');
 await T('session/close', { body: {} });
