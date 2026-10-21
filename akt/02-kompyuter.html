@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2-тақырып: Компьютер архитектурасы мен программалық жабдықтама — АКТ</title>
+<meta name="description" content="Дербес компьютердің архитектурасы және қазіргі компьютердің программалық жабдықтамасы. Интерактивті тапсырмалар.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+.topic-box{display:block;width:fit-content;max-width:min(720px,100%);margin:0 auto 20px;text-align:left;border:1.5px solid #1f2937;background:#fff;padding:10px 18px;font-family:"Times New Roman",Times,serif;font-size:1.3rem;line-height:1.4}
+.hero-actions{display:flex;justify-content:center;margin-top:14px}
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:12px 0}
+.cards3>div{background:var(--surface-2);border-radius:14px;padding:14px 16px}.cards3 h4{margin:0 0 6px;color:var(--primary)}.cards3 p{margin:0}
+.blk{margin-top:26px}.blk-h{display:flex;align-items:center;gap:10px;font-size:1.18rem;margin:0 0 12px}
+.blk-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary);font-size:1rem;font-weight:800;flex:none}
+.tip{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 14px;margin:10px 0}.tip>b{flex:none}.tip.ok{background:var(--ok-bg)}.tip.warn{background:var(--warn-bg)}.tip.info{background:var(--info-bg)}
+.rule2{font-size:1.15rem;font-weight:700;text-align:center;background:var(--pivot-bg);border:2px solid var(--pivot-ring);border-radius:14px;padding:14px 18px;margin:12px 0}
+code{font-family:var(--mono);background:var(--surface-2);border-radius:6px;padding:1px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chip{border-radius:999px;padding:5px 12px;font-weight:700;font-size:.9rem;background:var(--surface-2);border:1px solid var(--line);transition:.3s}
+.chip.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}.chip.good{background:#dcfce7;border-color:#86efac;color:#15803d}.chip.bad{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+.flow{display:flex;align-items:stretch;justify-content:center;gap:6px;flex-wrap:wrap;margin:6px 0}
+.flow .nd{flex:1 1 90px;max-width:130px;text-align:center;border:2px solid var(--line);border-radius:12px;padding:10px 6px;background:#fff;transition:all .4s;opacity:.55}
+.flow .nd span{display:block;font-size:1.7rem}.flow .nd b{font-size:.82rem;display:block}.flow .nd small{color:var(--muted);font-size:.72rem}
+.flow .nd.on{opacity:1;border-color:var(--primary);background:var(--primary-soft);transform:translateY(-4px);box-shadow:0 6px 14px rgba(15,23,42,.12)}
+.flow .ar{align-self:center;font-weight:800;color:var(--muted)}
+.layers{display:flex;flex-direction:column-reverse;gap:8px;margin:6px 0}
+.layers .ly{border:2px solid var(--line);border-radius:12px;padding:10px 14px;background:#fff;transition:all .4s;opacity:.5;display:flex;gap:10px;align-items:center}
+.layers .ly span{font-size:1.6rem}.layers .ly small{display:block;color:var(--muted)}
+.layers .ly.on{opacity:1;border-color:var(--primary);background:var(--primary-soft);transform:scale(1.02)}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:10px 0}
+.parts>div{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface-2)}.parts b{display:block;color:var(--primary)}.parts i{font-style:normal;font-size:1.4rem;margin-right:6px}
+.tb{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem}.tb th,.tb td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.tb th{background:var(--surface-2)}
+.tbwrap{overflow-x:auto}
+.mq{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0}.mq p{margin:0 0 8px;font-weight:700}.mq button{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 12px;border:2px solid var(--line);background:#fff;border-radius:10px;font:inherit;cursor:pointer}
+.mq button.ok{border-color:#16a34a;background:#dcfce7}.mq button.no{border-color:#dc2626;background:#fee2e2}.mq .fb{margin-top:6px;font-size:.92rem}
+.infog{width:100%;height:auto;border-radius:14px;border:1px solid var(--line);margin:8px 0}
+.faces{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.faces button{font-size:1.8rem;border:2px solid var(--line);background:#fff;border-radius:12px;padding:4px 10px;cursor:pointer}.faces button.on{border-color:var(--primary);background:var(--primary-soft)}
+.rub{width:100%;border-collapse:collapse;margin:10px 0}.rub th,.rub td{border:1px solid var(--line);padding:8px 10px;text-align:left}.rub th{background:var(--surface-2)}.rub td.n{text-align:right;font-weight:700;white-space:nowrap}
+.tsk{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:16px 0;background:#fff}
+.tsk>h3{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:1.1rem}.tsk .pt{margin-left:auto;font-size:.8rem;font-weight:800;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.tsk.main{border:2px solid var(--primary)}.tsk.main .pt{background:var(--primary);color:#fff}
+.num{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:inline-grid;place-items:center;font-weight:800;flex:none}
+.dv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:10px 0}
+.dc{border:2px solid var(--line);border-radius:12px;padding:8px;text-align:center;background:#fff}.dc>span{font-size:1.8rem;display:block}.dc>b{display:block;font-size:.88rem;margin-bottom:6px}
+.dc .pk{display:grid;grid-template-columns:1fr 1fr;gap:4px}.dc .pk button{font:inherit;font-size:.74rem;border:1.5px solid var(--line);background:var(--surface-2);border-radius:8px;padding:4px 2px;cursor:pointer}
+.dc .pk button.sel{background:var(--primary-soft);border-color:var(--primary);font-weight:800;color:var(--primary)}
+.dc.ok{border-color:#16a34a;background:#f0fdf4}.dc.no{border-color:#dc2626;background:#fef2f2}.dc small{display:block;margin-top:4px;font-size:.74rem;color:#b91c1c}
+.grp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:10px 0}.grp>div{border-radius:12px;padding:10px 12px;border:1px solid var(--line)}
+.grp>div:nth-child(1){background:#fff1f2}.grp>div:nth-child(2){background:#f0fdf4}.grp>div:nth-child(3){background:#fff7ed}.grp textarea{width:100%;margin-top:6px}
+.sw{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.sw .it{display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:12px;padding:6px 8px;background:#fff}.sw .it>b{font-size:.9rem}
+.sw .it select{font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:3px 4px;background:#fff}.sw .it.ok{border-color:#16a34a;background:#f0fdf4}.sw .it.no{border-color:#dc2626;background:#fef2f2}
+.si{width:100%;border-collapse:collapse;margin:10px 0}.si th,.si td{border:1px solid var(--line);padding:6px 8px;text-align:left}.si th{background:var(--surface-2);width:44%}.si input{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;box-sizing:border-box}.si input.ok{border-color:#16a34a;background:#f0fdf4}.si input.no{border-color:#dc2626;background:#fef2f2}
+.a2tb{width:100%;border-collapse:collapse;margin:10px 0}.a2tb th,.a2tb td{border:1px solid var(--line);padding:6px 8px;text-align:left}.a2tb thead th{background:var(--surface-2)}.a2tb tbody th{width:28%;font-weight:700}
+.a2in,.a2sel{font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:7px 8px;background:#fff;box-sizing:border-box}.a2in{width:100%}.a2sel{max-width:100%}
+.a2pair{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--surface-2)}.a2row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.a2h{margin:16px 0 4px}
+@media(max-width:620px){.a2tb thead{display:none}.a2tb,.a2tb tbody,.a2tb tr,.a2tb td,.a2tb th{display:block;width:100%!important;box-sizing:border-box}.a2tb tr{border:1px solid var(--line);border-radius:10px;margin:8px 0;padding:6px}.a2tb td,.a2tb th{border:0}}
+</style>
+</head>
+<body>
+<main id="main">
+
+<section id="hero" class="hero" data-sec="hero"><div class="wrap">
+  <div class="topic-box"><b>Тақырып:</b> <i>Дербес компьютердің архитектурасы және қазіргі компьютердің программалық жабдықтамасы.</i></div>
+  <h1>Компьютер архитектурасы мен программалық жабдықтама</h1>
+  <p class="lead"><b>Сабақ мақсаты.</b> Дербес компьютердің негізгі бөліктерін және олардың қызметін білу, программалық жабдықтаманың түрлерін ажырату, аппараттық және программалық жабдықтаманың өзара байланысын түсіндіру.</p>
+  <div class="cards3">
+    <div><h4>1. Теория</h4><p>Компьютер қандай бөліктерден тұрады және оны қандай программалар басқарады.</p></div>
+    <div><h4>2. Тапсырмалар</h4><p>Алғашқы үш тапсырма — жаттығу. 4-тапсырма — бағаланады (70 балл).</p></div>
+    <div><h4>3. Қорытынды</h4><p>Негізгі ойды бекітіп, өзімізді бағалаймыз.</p></div>
+  </div>
+  <div class="hero-actions"><a class="btn primary big" href="#teo">Сабақты бастау →</a></div>
+</div></section>
+
+<!-- 1. ТЕОРИЯ -->
+<section id="teo" class="lesson" data-sec="teo"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">1</span><h2>Теория</h2></div>
+  <p class="learn">Бұл бөлімде компьютердің бөліктерін, олардың қызметін және программалық жабдықтаманың түрлерін үйренесің.</p>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">1</span>Компьютер архитектурасы</h3>
+    <p><dfn>Компьютердің архитектурасы</dfn> — компьютердің негізгі құрамдас бөліктері, олардың өзара байланысы және жұмыс істеу принципі. Негізгі принцип: <b>енгізу → өңдеу → шығару</b>, ал деректер <b>сақтауда</b> тұрады. «Алға» батырмасын өзің басасың.</p>
+    <div class="demo"><div class="stage"><div id="f1"></div><div class="chips" id="c1"></div></div><div class="side"><div id="ex1"></div><div id="bar1"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">2</span>Негізгі бөліктері және қызметі</h3>
+    <div class="parts">
+      <div><b><i>🧠</i>Процессор (CPU)</b>Барлық есептеулерді орындайды, программаларды басқарады. Компьютердің «миы».</div>
+      <div><b><i>🧩</i>Жедел жад (RAM)</b>Программалар мен деректерді уақытша сақтайды, жылдам жұмыс істеуді қамтамасыз етеді.</div>
+      <div><b><i>🔌</i>Жүйелік тақта (аналық тақша)</b>Барлық құрылғыны байланыстырады, деректер алмасуын қамтамасыз етеді.</div>
+      <div><b><i>💾</i>Сақтау құрылғылары (HDD, SSD)</b>Деректерді ұзақ мерзімге сақтайды.</div>
+      <div><b><i>🎮</i>Бейне адаптері (GPU)</b>Графикалық ақпаратты өңдейді, мониторға бейнені шығарады.</div>
+      <div><b><i>🔋</i>Қуат көзі (БП)</b>Электр энергиясын береді, құрылғылардың тұрақты жұмысын қамтамасыз етеді.</div>
+      <div><b><i>🗄️</i>Корпус</b>Барлық бөлшектерді қорғайды, салқындатуды қамтамасыз етеді.</div>
+    </div>
+    <div class="tip warn"><b>!</b><span><b>Есіңде болсын.</b> Жедел жад (RAM) — уақытша жад, көлемі ГБ-пен өлшенеді, қуат өшсе деректер жойылады. Диск (HDD/SSD) — тұрақты сақтау құрылғысы, көлемі көбіне ГБ не ТБ-пен өлшенеді.</span></div>
+    <h4>Енгізу және шығару құрылғылары</h4>
+    <div class="chips"><span class="chip good">Енгізу: пернетақта</span><span class="chip good">тінтуір</span><span class="chip good">микрофон</span><span class="chip good">сканер</span><span class="chip good">веб-камера</span></div>
+    <div class="chips"><span class="chip bad">Шығару: монитор</span><span class="chip bad">принтер</span><span class="chip bad">дыбыс жүйесі</span></div>
+    <p>Компьютер түрлері: үстелдік компьютер, ноутбук, моноблок, мини-компьютер.</p></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">3</span>Программалық жабдықтама</h3>
+    <p><dfn>Программалық жабдықтама (ПЖ)</dfn> — компьютердің аппараттық бөлігін басқаруға, пайдаланушымен өзара әрекеттесуге және әртүрлі есептерді шешуге арналған бағдарламалар жиынтығы. Ол үш топқа бөлінеді. Қабаттарды өзің ашып көр.</p>
+    <div class="demo"><div class="stage"><div id="f2"></div><div class="chips" id="c2"></div></div><div class="side"><div id="ex2"></div><div id="bar2"></div></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">4</span>Түрлері және мысалдары</h3>
+    <div class="tbwrap"><table class="tb"><tr><th>Түрі</th><th>Не істейді</th><th>Мысалдар</th></tr>
+      <tr><td><b>Жүйелік</b> (ЖБ)</td><td>Аппаратты басқарады, құрылғылардың жұмысын үйлестіреді, қолданбалы программалардың орындалуын қамтамасыз етеді.</td><td>Операциялық жүйе (Windows, Linux, macOS, Android), драйвер, антивирус, архиватор, файл менеджері</td></tr>
+      <tr><td><b>Қолданбалы</b> (ҚБ)</td><td>Пайдаланушының нақты міндеттерін орындайды.</td><td>Word, Excel, PowerPoint, Photoshop, Chrome, Zoom, VLC</td></tr>
+      <tr><td><b>Құралдық</b> (ҚұБ)</td><td>Жаңа бағдарламаларды жасауға, тексеруге және өңдеуге арналған.</td><td>Python, C++, Java, Visual Studio, PyCharm, Eclipse</td></tr></table></div>
+    <div class="cards3">
+      <div><h4>Операциялық жүйе</h4><p>Құрылғылар мен пайдаланушы арасындағы негізгі бағдарлама: ақпаратты енгізу-шығару, файлдармен жұмыс, жадты бөлу, интерфейс пен қауіпсіздікті қамтамасыз ету.</p></div>
+      <div><h4>Драйвер</h4><p>Операциялық жүйе мен аппараттық құрылғы арасындағы байланысты қамтамасыз етеді: ОЖ құрылғыны таниды және дұрыс жұмыс істетеді (принтер, бейне карта, дыбыс карта драйвері).</p></div>
+      <div><h4>Аппарат пен ПЖ байланысы</h4><p>Аппараттық бөлік программасыз жұмыс істемейді, ал программа аппаратсыз орындалмайды. Мысалы, браузер процессор мен жедел жадты ОЖ арқылы қолданады.</p></div></div></div>
+
+  <div class="blk"><h3 class="blk-h"><span class="ic">?</span>Өзіңді тексер</h3><div id="quiz"></div></div>
+</div></div></section>
+
+<!-- 2. ТАПСЫРМАЛАР -->
+<section id="task" class="lesson" data-sec="task"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">2</span><h2>Тапсырмалар</h2></div>
+  <p class="learn">Бұл бөлімде төрт тапсырма бар. Алғашқы үшеуі — жаттығу, жауабың бірден тексеріледі, балл қойылмайды. <b>4-тапсырма бағаланады: 70 балл.</b></p>
+
+  <div class="tsk"><h3><span class="num">1</span>Құрылғыларды қызмет түріне бөл<span class="pt">жаттығу</span></h3>
+    <p>Әр құрылғы үшін қызмет түрін таңда: <b>Енгізу, Өңдеу, Сақтау, Шығару</b>. Сосын «Тексеру» батырмасын бас.</p>
+    <div class="dv" id="t1"></div>
+    <div class="stepbar"><button type="button" class="btn primary" id="t1ok">Тексеру</button><button type="button" class="btn ghost" id="t1rs">Қайта</button></div><div class="xl-msg" id="t1m" role="status"></div>
+    <div id="t1s" hidden><p><b>Өзара байланыс сызбасы:</b></p><div class="flow"><div class="nd on"><span>⌨️</span><b>Енгізу құрылғылары</b></div><span class="ar">→</span><div class="nd on"><span>🧠</span><b>Процессор (CPU)</b></div><span class="ar">→</span><div class="nd on"><span>🖥️</span><b>Шығару құрылғылары</b></div></div>
+      <div class="flow"><div class="nd on"><span>🧩</span><b>Жедел жад (RAM)</b></div><span class="ar">↔</span><div class="nd on"><span>💾</span><b>Сақтау құрылғылары (HDD/SSD)</b></div></div><p class="muted">Процессор жедел жадпен тікелей жұмыс істейді, ал деректер сақтау құрылғысында тұрады.</p></div></div>
+
+  <div class="tsk"><h3><span class="num">2</span>Бағдарламаларды топқа жікте<span class="pt">жаттығу</span></h3>
+    <p>Әр бағдарлама қай топқа жататынын таңда. Сосын әр топтың негізгі қызметін өз сөзіңмен қысқаша жаз.</p>
+    <div class="sw" id="t2"></div>
+    <div class="grp" id="t2g"></div>
+    <div class="stepbar"><button type="button" class="btn primary" id="t2ok">Тексеру</button><button type="button" class="btn ghost" id="t2rs">Қайта</button></div><div class="xl-msg" id="t2m" role="status"></div></div>
+
+  <div class="tsk"><h3><span class="num">3</span>Өз компьютеріңнің сипаттамасы<span class="pt">жаттығу</span></h3>
+    <p><code>Баптаулар → Жүйе → Жүйе туралы</code> терезесін аш (немесе «Бұл компьютер» белгісіне оң түймені басып, «Сипаттар» таңда). Мәліметті тауып, кестеге жаз.</p>
+    <table class="si" id="t3"></table>
+    <div class="tip warn"><b>!</b><span>Жедел жад ГБ-пен, диск көлемі ГБ не ТБ-пен берілетінін ұмытпа. Екі ұғымды шатастырма. Кіру шектелсе, төмендегі үлгіні қолдан: <i>Intel Core i5, 8 ГБ, Windows 11, 64-биттік, C: 237 ГБ</i>.</span></div>
+    <div class="stepbar"><button type="button" class="btn primary" id="t3ok">Тексеру</button></div><div class="xl-msg" id="t3m" role="status"></div></div>
+
+  <div class="tsk main"><h3><span class="num">4</span>Аппараттық және программалық жабдықтама<span class="pt">70 балл</span></h3>
+    <p>Төмендегі құрылғылар мен бағдарламалардың <b>түрін</b> (аппараттық не программалық) көрсет және <b>қызметін</b> қысқаша жаз. Сосын аппараттық және программалық жабдықтаманың өзара байланысына <b>2 мысал</b> келтір. Тапсырманы осы беттің өзінде орында.</p>
+    <h4 style="margin:14px 0 6px">Қалай бағаланады</h4>
+    <table class="rub"><tr><th>Өлшемшарт</th><th>Балл</th></tr>
+      <tr><td>Сабаққа қатысым: сабаққа кіргенде автоматты түседі</td><td class="n">30</td></tr>
+      <tr><td>Түрі дұрыс көрсетілген: 8 × 3</td><td class="n">24</td></tr>
+      <tr><td>Қызметі дұрыс сипатталған: 8 × 4</td><td class="n">32</td></tr>
+      <tr><td>Өзара байланыс мысалдары: 2 × 7 (жұп дұрыс 3 + түсініктеме 4)</td><td class="n">14</td></tr>
+      <tr><th>Барлығы</th><th class="n">100</th></tr></table>
+    <div class="tip info"><b>i</b><span>Тапсырма оқытушы жұмысты бастағанда ашылады. Кіру үшін беттің жоғарғы жағындағы «Сабаққа кіру» батырмасын бас да, оқытушы көрсеткен кодты енгіз. Жауапты бір-ақ рет жібересің.</span></div>
+    <div id="a2Host"></div></div>
+</div></div></section>
+
+<!-- 3. ҚОРЫТЫНДЫ -->
+<section id="sum" class="lesson" data-sec="sum"><div class="wrap"><div class="card">
+  <div class="sec-head"><span class="sec-num">3</span><h2>Қорытынды және бекіту</h2></div>
+  <img class="infog" src="../assets/akt2-arhitektura.webp" alt="Инфографика: дербес компьютердің архитектурасы" loading="lazy">
+  <img class="infog" src="../assets/akt2-programmalyk.webp" alt="Инфографика: қазіргі компьютердің программалық жабдықтамасы" loading="lazy">
+  <div class="rule2">Аппараттық жабдықтама — компьютердің «денесі», программалық жабдықтама — оның «ақылы». Екеуі бірге ғана жұмыс істейді.</div>
+  <h3 class="blk-h" style="margin-top:18px">Бекіту сұрақтары</h3>
+  <details class="qa"><summary>Драйвер не үшін керек?</summary><p>Драйвер операциялық жүйе мен аппараттық құрылғы арасындағы байланысты қамтамасыз етеді. Драйверсіз ОЖ құрылғыны дұрыс қолдана алмайды.</p></details>
+  <details class="qa"><summary>Жедел жад пен SSD айырмашылығы неде?</summary><p>Жедел жад деректерді уақытша және жылдам сақтайды, қуат өшсе деректер жойылады. SSD деректерді ұзақ мерзімге сақтайды.</p></details>
+  <div class="tip ok"><b>🏠</b><span><b>Үй тапсырмасы.</b> Өз компьютеріңнің немесе телефоныңның құрылғылары мен бағдарламаларын 3 топқа бөліп жаз: аппараттық, жүйелік, қолданбалы.</span></div>
+  <h3 class="blk-h" style="margin-top:18px">Өзін-өзі бағалау</h3>
+  <p>Бүгінгі тақырыпты қаншалықты түсіндің?</p>
+  <div class="faces" id="faces"></div><div id="learned"></div>
+  <div class="stepbar"><button type="button" class="btn primary" id="fbSend">Жіберу</button></div>
+  <div class="xl-msg" id="fbMsg" role="status"></div>
+</div></div></section>
+</main>
+<footer><div class="wrap">© Бақытжанов Бекет Қайратұлы · <a href="index.html">АКТ</a></div></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/a2-work.js"></script>
+<script>
+(function(){
+const { $, el, Stepper, ExplainPanel, Course } = L;
+const T = (now, why, how) => ({ now, why, how });
+
+/* ---------- Анимациялы түсіндірмелер ---------- */
+function demo(n, steps, id, draw){
+  const ex = new ExplainPanel($('#ex' + n));
+  const apply = s => { const st = steps[s]; draw($('#f' + n), s); const c = $('#c' + n); c.innerHTML = ''; (st.c || []).forEach(([t, k]) => c.append(el('span', { class:'chip ' + (k || ''), text:t }))); ex.set(st.t); };
+  const stepper = new Stepper({ count:steps.length, apply, animate:async (s, ctx) => { apply(s); await ctx.wait(300); }, barHost:$('#bar' + n) });
+  Course.register(id, { stepper, reset(){ stepper.reset(); } });
+  stepper.init();
+}
+const NODES = [['⌨️', 'Енгізу', 'пернетақта, тінтуір'], ['🧠', 'Процессор', 'өңдеу'], ['🧩', 'Жедел жад', 'уақытша сақтау'], ['💾', 'SSD / HDD', 'ұзақ сақтау'], ['🖥️', 'Шығару', 'монитор, принтер']];
+demo(1, [
+  { c:[['Енгізу', 'on']], t:T('Деректер <b>енгізу құрылғысынан</b> келеді.', 'Компьютер ақпаратты алдымен қабылдауы керек.', 'Пернетақта, тінтуір, микрофон, сканер, веб-камера деректі компьютерге береді.') },
+  { c:[['Енгізу'], ['Өңдеу', 'on']], t:T('Деректі <b>процессор</b> өңдейді.', 'Барлық есептеулер мен командалар осында орындалады.', 'Процессор программаны басқарады, сондықтан оны компьютердің «миы» дейді.') },
+  { c:[['Енгізу'], ['Өңдеу'], ['Жедел жад', 'on']], t:T('Өңделіп жатқан деректер <b>жедел жадта</b> тұрады.', 'Жедел жад процессорға деректі өте жылдам береді.', 'Бұл уақытша жад: қуат өшсе, ондағы деректер жойылады.') },
+  { c:[['Енгізу'], ['Өңдеу'], ['Жедел жад'], ['Сақтау', 'on']], t:T('Қажет деректер <b>сақтау құрылғысына</b> жазылады.', 'Файлдар өшіп қалмауы үшін ұзақ мерзімге сақтау керек.', 'HDD немесе SSD деректі тұрақты сақтайды.') },
+  { c:[['Енгізу'], ['Өңдеу'], ['Жедел жад'], ['Сақтау'], ['Шығару', 'good']], t:T('Нәтиже <b>шығару құрылғысында</b> көрінеді.', 'Пайдаланушы нәтижені көруі керек.', 'Монитор, принтер, дыбыс жүйесі нәтижені көрсетеді.') }
+], 'a21', (h, s) => { h.innerHTML = ''; const f = el('div', { class:'flow' }); NODES.forEach((x, i) => { if (i) f.append(el('span', { class:'ar', text:'→' })); f.append(el('div', { class:'nd' + (i === s ? ' on' : ''), role:'img', 'aria-label':x[1] }, [el('span', { text:x[0] }), el('b', { text:x[1] }), el('small', { text:x[2] })])); }); h.append(f); });
+
+const LY = [['⚙️', 'Аппараттық жабдықтама', 'процессор, жедел жад, SSD'], ['🧰', 'Жүйелік ПЖ', 'операциялық жүйе, драйвер, утилита'], ['📝', 'Қолданбалы ПЖ', 'Word, Excel, Chrome'], ['🛠️', 'Құралдық ПЖ', 'Python, Visual Studio: жаңа программа жасайды']];
+demo(2, [
+  { c:[['Аппараттық', 'on']], t:T('Ең төменгі қабат — <b>аппараттық жабдықтама</b>.', 'Бұл компьютердің физикалық бөлшектері: оларды қолмен ұстауға болады.', 'Программасыз олар жай ғана темір мен пластик.') },
+  { c:[['Аппараттық'], ['Жүйелік', 'on']], t:T('Оны <b>жүйелік программалар</b> басқарады.', 'Операциялық жүйе, драйвер, антивирус аппаратты басқарып, жұмысын үйлестіреді.', 'ОЖ құрылғыларды драйвер арқылы таниды.') },
+  { c:[['Аппараттық'], ['Жүйелік'], ['Қолданбалы', 'on']], t:T('Жүйенің үстінде <b>қолданбалы программалар</b> жұмыс істейді.', 'Олар пайдаланушының нақты міндетін орындайды: құжат жазу, интернетті қарау, сурет өңдеу.', 'Браузер де, Word та — қолданбалы программа.') },
+  { c:[['Аппараттық'], ['Жүйелік'], ['Қолданбалы'], ['Құралдық: бәрін жасайды', 'good']], t:T('<b>Құралдық программалар</b> жаңа программаларды жасайды.', 'Python, Visual Studio сияқты құралдармен жүйелік не қолданбалы бағдарлама жазылады.', 'Сондықтан құралдық ПЖ — программашының құралы.') }
+], 'a22', (h, s) => { h.innerHTML = ''; const f = el('div', { class:'layers' }); LY.forEach((x, i) => f.append(el('div', { class:'ly' + (i === s ? ' on' : '') }, [el('span', { text:x[0] }), el('div', {}, [el('b', { text:x[1] }), el('small', { text:x[2] })])]))); h.append(f); });
+
+/* ---------- Қысқа тест ---------- */
+[
+  ['Компьютердің «миы» деп нені айтады?', ['Жедел жад', 'Процессор', 'Монитор'], 1, 'Барлық есептеулерді процессор орындайды.'],
+  ['Қуат өшкенде қай жадтағы деректер жойылады?', ['Жедел жад (RAM)', 'SSD', 'HDD'], 0, 'Жедел жад — уақытша жад. SSD мен HDD деректі ұзақ сақтайды.'],
+  ['Қайсысы жүйелік программаға жатады?', ['Word', 'Windows', 'Python'], 1, 'Windows — операциялық жүйе. Word — қолданбалы, Python — құралдық.'],
+  ['Драйвер не істейді?', ['Вирусты жояды', 'ОЖ мен құрылғы арасын байланыстырады', 'Сурет салады'], 1, 'Драйвер операциялық жүйеге құрылғыны таныстырады.']
+].forEach(([q, opts, ok, why]) => {
+  const fb = el('div', { class:'fb' }), box = el('div', { class:'mq' }, [el('p', { text:q })]);
+  opts.forEach((t, i) => { const b = el('button', { type:'button', text:t }); b.addEventListener('click', () => { [...box.querySelectorAll('button')].forEach(x => { x.disabled = true; }); b.classList.add(i === ok ? 'ok' : 'no'); if (i !== ok) box.querySelectorAll('button')[ok].classList.add('ok'); fb.textContent = (i === ok ? 'Дұрыс! ' : 'Дұрысы осы: ') + why; }); box.append(b); });
+  box.append(fb); $('#quiz').append(box);
+});
+
+/* ---------- 1-тапсырма: қызмет түрі ---------- */
+(function(){
+  const CAT = ['Енгізу', 'Өңдеу', 'Сақтау', 'Шығару'];
+  const D = [['⌨️', 'Пернетақта', 0], ['🖱️', 'Тінтуір', 0], ['📠', 'Сканер', 0], ['🎤', 'Микрофон', 0], ['📷', 'Веб-камера', 0], ['🖥️', 'Монитор', 3], ['🖨️', 'Принтер', 3], ['🔊', 'Дыбыс жүйесі', 3], ['💽', 'Қатты диск (HDD/SSD)', 2], ['🧩', 'Жедел жад (RAM)', 2], ['🧠', 'Процессор (CPU)', 1], ['🎮', 'Бейне адаптері (GPU)', 1]];
+  const pick = D.map(() => -1), cards = [];
+  D.forEach(([ic, nm], i) => {
+    const pk = el('div', { class:'pk' }), c = el('div', { class:'dc' }, [el('span', { text:ic }), el('b', { text:nm }), pk]); cards.push(c);
+    CAT.forEach((t, k) => { const b = el('button', { type:'button', text:t }); b.addEventListener('click', () => { pick[i] = k; [...pk.children].forEach((x, j) => x.classList.toggle('sel', j === k)); c.classList.remove('ok', 'no'); const s = c.querySelector('small'); if (s) s.remove(); }); pk.append(b); });
+    $('#t1').append(c);
+  });
+  $('#t1ok').addEventListener('click', () => {
+    let ok = 0; if (pick.some(p => p < 0)){ $('#t1m').className = 'xl-msg bad'; $('#t1m').textContent = 'Алдымен барлық құрылғыны таңда.'; return; }
+    D.forEach((d, i) => { const good = pick[i] === d[2]; ok += good; cards[i].classList.toggle('ok', good); cards[i].classList.toggle('no', !good); const s = cards[i].querySelector('small'); if (s) s.remove(); if (!good) cards[i].append(el('small', { text:'Дұрысы: ' + CAT[d[2]] })); });
+    $('#t1m').className = 'xl-msg ' + (ok === D.length ? 'ok' : 'bad'); $('#t1m').textContent = ok + ' / ' + D.length + (ok === D.length ? ' — тамаша!' : '. Қызыл карточкаларды түзет.'); $('#t1s').hidden = false;
+  });
+  $('#t1rs').addEventListener('click', () => { pick.fill(-1); cards.forEach(c => { c.classList.remove('ok', 'no'); const s = c.querySelector('small'); if (s) s.remove(); c.querySelectorAll('.pk button').forEach(b => b.classList.remove('sel')); }); $('#t1m').textContent = ''; $('#t1s').hidden = true; });
+})();
+
+/* ---------- 2-тапсырма: бағдарламаларды жіктеу ---------- */
+(function(){
+  const G = ['Жүйелік', 'Қолданбалы', 'Құралдық'], S = [['Операциялық жүйе', 0], ['Драйвер', 0], ['Архиватор', 0], ['Браузер', 1], ['Мәтіндік редактор', 1], ['Программалау ортасы', 2]];
+  const MODEL = ['Компьютердің аппараттық бөлігін басқарады, құрылғылардың жұмысын үйлестіреді, қолданбалы программалардың орындалуын қамтамасыз етеді.', 'Пайдаланушының нақты міндеттерін орындайды: құжат жазу, интернетті қарау, сурет өңдеу.', 'Жаңа бағдарламаларды жасауға, тексеруге және өңдеуге арналған.'];
+  const sels = [], items = [], tas = [];
+  S.forEach(([nm]) => { const s = el('select', { 'aria-label':nm }, [el('option', { value:'-1', text:'— таңда —' }), ...G.map((g, i) => el('option', { value:String(i), text:g }))]); const it = el('div', { class:'it' }, [el('b', { text:nm }), s]); sels.push(s); items.push(it); s.addEventListener('change', () => it.classList.remove('ok', 'no')); $('#t2').append(it); });
+  const gd = $('#t2g'); G.forEach((g, i) => { const t = el('textarea', { class:'a2in', rows:'3', placeholder:'Негізгі қызметін жаз', 'aria-label':g + ' ПЖ қызметі' }); tas.push(t); gd.append(el('div', {}, [el('b', { text:g + ' ПЖ' }), t])); });
+  $('#t2ok').addEventListener('click', () => {
+    if (sels.some(s => s.value === '-1')){ $('#t2m').className = 'xl-msg bad'; $('#t2m').textContent = 'Алдымен барлық бағдарламаны топқа жікте.'; return; }
+    let ok = 0; S.forEach(([, k], i) => { const g = +sels[i].value === k; ok += g; items[i].classList.toggle('ok', g); items[i].classList.toggle('no', !g); });
+    const m = $('#t2m'); m.className = 'xl-msg ' + (ok === S.length ? 'ok' : 'bad'); m.textContent = ok + ' / ' + S.length + (ok === S.length ? ' — дұрыс! Архиватор — жүйелік утилита.' : '. Қызыл жолдарды түзет.');
+    tas.forEach((t, i) => { let n = t.nextElementSibling; if (!n){ n = el('p', { class:'muted' }); t.after(n); } n.textContent = 'Үлгі жауап: ' + MODEL[i]; });
+  });
+  $('#t2rs').addEventListener('click', () => { sels.forEach(s => { s.value = '-1'; }); items.forEach(i => i.classList.remove('ok', 'no')); tas.forEach(t => { t.value = ''; if (t.nextElementSibling) t.nextElementSibling.remove(); }); $('#t2m').textContent = ''; });
+})();
+
+/* ---------- 3-тапсырма: жүйе сипаттамасы ---------- */
+(function(){
+  const R = [['Процессор (CPU)', /[a-zа-я0-9]{3,}/i, 'Үлгі: Intel Core i5-10400F'], ['Жедел жад (RAM)', /\d/, 'Сан керек, мысалы: 8 ГБ'], ['Операциялық жүйе', /windows|linux|mac|android|ubuntu/i, 'Мысалы: Windows 11'], ['Жүйе түрі (32/64 бит)', /(32|64)/, '32 немесе 64 көрсет'], ['Дискідегі қолжетімді орын (C: немесе D:)', /\d/, 'Сан керек, мысалы: 237 ГБ']];
+  const inp = []; const tb = $('#t3'); tb.append(el('tr', {}, [el('th', { text:'Сипаттама' }), el('th', { text:'Мәлімет' })]));
+  R.forEach(([n]) => { const i = el('input', { type:'text', maxlength:'80', 'aria-label':n }); inp.push(i); i.addEventListener('input', () => i.classList.remove('ok', 'no')); tb.append(el('tr', {}, [el('th', { text:n }), el('td', {}, i)])); });
+  $('#t3ok').addEventListener('click', () => { let ok = 0; R.forEach(([, re, h], k) => { const g = re.test(inp[k].value); ok += g; inp[k].classList.toggle('ok', g); inp[k].classList.toggle('no', !g); inp[k].title = g ? '' : h; }); const m = $('#t3m'); m.className = 'xl-msg ' + (ok === R.length ? 'ok' : 'bad'); m.textContent = ok === R.length ? 'Бәрі толтырылған. Жедел жад пен диск көлемін шатастырмағаныңды тексер.' : ok + ' / ' + R.length + '. Қызыл ұяшықтарға меңзерді апарсаң, кеңес көрінеді.'; });
+})();
+
+/* ---------- Өзін-өзі бағалау ---------- */
+(function(){
+  let level = 0; const learned = new Set(), F = ['😟', '😕', '😐', '🙂', '😀'];
+  F.forEach((f, i) => { const b = el('button', { type:'button', text:f, 'aria-label':'Баға ' + (i + 1) }); b.addEventListener('click', () => { level = i + 1; [...$('#faces').children].forEach((x, j) => x.classList.toggle('on', j === i)); }); $('#faces').append(b); });
+  ['компьютердің негізгі бөліктері мен қызметі', 'енгізу, өңдеу, сақтау, шығару принципі', 'программалық жабдықтаманың түрлері', 'аппарат пен программаның байланысы'].forEach(t => {
+    const id = 'l' + Math.random().toString(36).slice(2, 7), c = el('input', { type:'checkbox', id });
+    c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); });
+    $('#learned').append(el('label', { for:id, style:'display:block;margin:4px 0' }, [c, ' Үйрендім: ' + t]));
+  });
+  $('#fbSend').addEventListener('click', async () => {
+    const m = $('#fbMsg'), me = window.Join.get();
+    if (!me || me.guest){ m.className = 'xl-msg bad'; m.textContent = 'Алдымен студент ретінде сабаққа кіріңіз.'; return; }
+    if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
+    const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
+    m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
+  });
+})();
+
+Course.init({ back:{ href:'index.html', text:'← АКТ' }, title:[2, 'Компьютер архитектурасы'], sections:[
+  { id:'teo', n:1, title:'Теория' }, { id:'task', n:2, title:'Тапсырмалар' }, { id:'sum', n:3, title:'Қорытынды' }
+] });
+window.Join.mount({ gate:true, title:'АКТ, 2-тақырып: Компьютер архитектурасы және программалық жабдықтама' });
+window.A2Work.mount($('#a2Host'));
+})();
+</script>
+</body>
+</html>

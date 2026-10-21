@@ -87,7 +87,7 @@ function openJoin(){
   const { box, close } = dialog();
   box.append(el('h3', { text:'Сабаққа кіру' }));
   if (S.me){
-    box.append(el('p', { html:'<b>' + S.me.student.name + '</b> · ' + S.me.student.group }), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : (S.me.session && S.me.session.topic === '10' ? '' : 'Нұсқаң: №' + S.me.variant + '. ') + 'Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
+    box.append(el('p', { html:'<b>' + S.me.student.name + '</b> · ' + S.me.student.group }), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : (S.me.session && ['10', 'A2', 'A13', 'S7'].includes(S.me.session.topic) ? '' : 'Нұсқаң: №' + S.me.variant + '. ') + 'Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
     const out = el('button', { type:'button', class:'btn ghost', text:S.me.guest ? 'Шығу' : 'Шығу (басқа құрылғыға ауысу үшін оқытушыға айт)' });
     out.addEventListener('click', () => { saveToken(''); S.me = null; sync(); close(); });
     box.append(el('div', { class:'stepbar' }, [el('button', { type:'button', class:'btn primary', text:'Жабу', onclick:close }), out]));
