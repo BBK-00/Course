@@ -9,6 +9,8 @@ import { gradeSb3 } from './scratch.js';
 import { gradeA2Task } from './a2.js';
 import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
+import { pyStudent, pyStats } from './pyapi.js';
+import { isPy } from './py.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} ready = true; }
@@ -37,6 +39,8 @@ async function route(request, env, ctx, url) {
   const b = method === 'GET' || path === 'xl/upload' || path === 'sb/upload' || path === 'mm/upload' ? {} : await body(request);
 
   /* ---------------- Студент: ашық жол ---------------- */
+  if (path.startsWith('py/')) return await pyStudent(path, method, b, request, env);
+
   if (path === 'public/roster' && method === 'GET') {
     const ses = await DB.prepare("SELECT id, topic, group_id FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
     if (!ses) return json({ ok: true, open: false });
@@ -222,10 +226,11 @@ async function route(request, env, ctx, url) {
     if (p.r === 't') return json({ ok: true, guest: true, teacher: true, student: { name: 'Оқытушы', group: 'Мұғалім' }, now: now() });
     if (p.r === 'g') {
       const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(p.ses).first();
-      if (!ses) return err('auth', 401);
+      if (!ses || ses.status !== 'open') return err('auth', 401);
       return json({ ok: true, guest: true, student: { name: p.name, group: 'Мұғалім' }, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now() });
     }
     if (p.r !== 's') return err('auth', 401);
+    { const ses = await DB.prepare('SELECT status FROM sessions WHERE id=?').bind(p.ses).first(); if (!ses || ses.status !== 'open') return err('auth', 401); }   /* жабылған сабақтың токені жарамсыз: студент қайта код енгізеді */
     return json(await studentState(env, p.ses, p.st));
   }
 
@@ -265,7 +270,7 @@ async function route(request, env, ctx, url) {
     await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
     const code = String(b.code || '');
     if (!code.trim()) return err('bad_request');
-    const r = await runCode(env, LANGS.includes(b.language) ? b.language : 'python', code, '');
+    const r = await runCode(env, LANGS.includes(b.language) ? b.language : 'python', code, String(b.stdin || '').slice(0, 500));
     return json({ ok: true, run: r });
   }
 
@@ -386,7 +391,7 @@ async function studentState(env, ses_id, st_id) {
   const fbk = await DB.prepare('SELECT 1 AS x FROM feedback WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first();
   const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
-  (ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: (TOPICS[ses.topic].limits[n] || 0), zero: t.zero || '', late: t.late || 0, lf: t.late_factor || 1 }; });
+  (ses.topic === 'A2' || isPy(ses.topic) ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: (TOPICS[ses.topic].limits[n] || 0), zero: t.zero || '', late: t.late || 0, lf: t.late_factor || 1 }; });
   const data = ses.topic === '7' ? data7(att.variant) : undefined;
   return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, data, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete };
 }
@@ -451,7 +456,7 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   /* Кездейсоқ жабылған сабақты қайта ашу: ашық сабақ болса, ол жабылады; қатысым мен жұмыстар сақталады */
   if (path === 'sessions' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 25"));
+    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM students st WHERE st.group_id=s.group_id AND st.active=1) AS total, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 300"));
     return json({ ok: true, now: now(), rows: rows.filter(r => r.att > 0) });
   }
   if (path === 'session/reopen' && method === 'POST') {
@@ -482,6 +487,8 @@ async function teacher(path, method, b, env, ctx, url) {
     return json({ ok: true });
   }
 
+  if (path === 'py_stats' && method === 'GET') return pyStats(DB, Number(url.searchParams.get('session')) || 0);
+
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */
   if (path === 'live' && method === 'GET') {
     const want = Number(url.searchParams.get('session')) || 0;
@@ -502,7 +509,7 @@ async function teacher(path, method, b, env, ctx, url) {
       const a = A.get(s.id);
       s.present = !!a; s.joined_at = a ? a.joined_at : null; s.variant = a ? a.variant : null; s.device = a ? !!a.device_id : false; s.manual = a ? !!a.manual : false;
       const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0, ses.topic);
-      s.bonus = c.bonus; s.tasks = {}; (ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
+      s.bonus = c.bonus; s.tasks = {}; (ses.topic === 'A2' || isPy(ses.topic) ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
     return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, guests });
@@ -515,7 +522,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ['10', 'S7', 'A13', 'A2'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    const x10 = ['10', 'S7', 'A13', 'A2', 'P7'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
@@ -534,6 +541,7 @@ async function teacher(path, method, b, env, ctx, url) {
   if (path === 'regrade' && method === 'POST') {
     const s = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     if (!s) return err('not_found', 404);
+    { const t1 = await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(s.session_id).first(); if (t1 && isPy(t1.topic)) return err('not_found', 404); }
     { const t0 = await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(s.session_id).first(); if (s.task === 3 && !(t0 && t0.topic === '7')) return err('not_found', 404); }
     const ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(s.session_id).first(), att = await DB.prepare('SELECT * FROM attendance WHERE session_id=? AND student_id=?').bind(s.session_id, s.student_id).first();
     const pl = JSON.parse(s.payload), sg = s.signals ? JSON.parse(s.signals) : {};
@@ -545,7 +553,8 @@ async function teacher(path, method, b, env, ctx, url) {
   if (path === 'reopen' && method === 'POST') {
     const old = await DB.prepare('SELECT * FROM submissions WHERE id=?').bind(Number(b.id)).first();
     const ot = old ? await DB.prepare('SELECT topic FROM sessions WHERE id=?').bind(old.session_id).first() : null;
-    if (old && ot && ot.topic === '7') await DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id).run();
+    if (old && ot && isPy(ot.topic)) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM py_attempts WHERE session_id=? AND student_id=? AND item>=? AND item<?').bind(old.session_id, old.student_id, old.task * 10, old.task * 10 + 10), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task>=? AND task<?').bind(old.session_id, old.student_id, old.task * 10, old.task * 10 + 10)]);
+    else if (old && ot && ot.topic === '7') await DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id).run();
     else if (old && ot && ['10', 'S7', 'A13'].includes(ot.topic)) await DB.batch([DB.prepare('DELETE FROM submissions WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=?').bind(old.session_id, old.student_id)]);
     else if (old) await DB.batch([DB.prepare('DELETE FROM submissions WHERE id=?').bind(old.id), DB.prepare('DELETE FROM task_starts WHERE session_id=? AND student_id=? AND task=?').bind(old.session_id, old.student_id, old.task)]);
     return json({ ok: true });
@@ -598,7 +607,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const S = {}; subs.forEach(s => { (S[key(s.session_id, s.student_id)] = S[key(s.session_id, s.student_id)] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
       s.scores = {};
-      topics.forEach(t => { let best = null; sess.filter(x => x.topic === t).forEach(se => { const k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t); if (!best || c.final > best.c.final || (c.final === best.c.final && se.id > best.se.id)) best = { se, c }; }); const { se, c } = best; s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, sent: [1, 2, 3, 4].filter(n => c.tasks[n] && c.tasks[n].sent).length, topic: t, edited: c.edited_total }; });   /* бір тақырып бірнеше рет өтсе, студенттің ең жақсы нәтижесі */
+      topics.forEach(t => { let best = null; sess.filter(x => x.topic === t).forEach(se => { const k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t); if (!best || c.final > best.c.final || (c.final === best.c.final && se.id > best.se.id)) best = { se, c }; }); const { se, c } = best; s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, present: !!A.get(key(se.id, s.id)), sent: [1, 2, 3, 4].filter(n => c.tasks[n] && c.tasks[n].sent).length, topic: t, edited: c.edited_total }; });   /* бір тақырып бірнеше рет өтсе, студенттің ең жақсы нәтижесі */
     }));
     return json({ ok: true, topics, titles: Object.fromEntries(topics.map(t => [t, (TOPICS[t] || {}).title || t])), groups });
   }

@@ -2,7 +2,7 @@
 const J0 = { python: 100, cpp: 105, javascript: 97, java: 91, c: 103 };
 const WB = { python: 'cpython-3.12.7', cpp: 'gcc-13.2.0', javascript: 'nodejs-20.17.0', java: 'openjdk-jdk-21+35', c: 'gcc-13.2.0-c' };
 export const LANGS = Object.keys(J0);
-const cut = s => String(s || '').slice(0, 4000);
+const cut = s => String(s || '').slice(0, 20000);
 
 async function judge0(lang, code, stdin) {
   const res = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {

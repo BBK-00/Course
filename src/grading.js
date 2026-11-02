@@ -1,6 +1,7 @@
 /* Тапсырмаларды бағалау: тест, қолмен есеп, бағдарлама (Gemini) және жиынтық балл. 6-тақырып. */
 import { V6 } from './variants.js';
 import { V7, MAX7, AI7, LIMIT7, prompt7 } from './approx.js';
+import { PY_MAX } from './py.js';
 
 export const TOPICS = {
   '6': {
@@ -15,8 +16,9 @@ TOPICS['A13'] = { title: 'АКТ · 13-тақырып', variants: new Array(20).
 TOPICS['S7'] = { title: 'Scratch · 7-тақырып', variants: new Array(20).fill(0), limits: { 1: 45, 2: 45, 3: 45 }, xlsx: true };   /* Scratch ойыны: 1-3 = бөлімдер 5/20/35 */
 TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 15, 2: 20, 3: 25 }, xlsx: true };   /* Excel жұмысы: 1-3 = листер */
 TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
+TOPICS['P7'] = { title: 'Python · 7-тақырып', variants: new Array(20).fill(0), limits: { 1: 60, 2: 60, 3: 60, 4: 60 }, xlsx: true };   /* if шарты: 4 тапсырма, 100 балл, қатемен жұмыс */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 18, 3: 10, 4: 30 } };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 18, 3: 10, 4: 30 }, 'P7': PY_MAX };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -108,8 +110,8 @@ function prompt(task, topic, variant, p, sig, auto) {
   return common.concat(['AUTOMATIC CHECK (already scored): printed output correct: ' + (auto ? 'yes' : 'no') + '.', '', 'PROGRAM WAS ACTUALLY EXECUTED on the server (language: ' + (p.lang || 'python') + '). Expected solution of this system: ' + ex.out.map(v => Math.round(v * 1e4) / 1e4).join(', ') + '. The program stdout: ' + String((p.run && p.run.stdout) || '').slice(0, 300) + (p.run && p.run.stderr ? ' | errors: ' + String(p.run.stderr).slice(0, 300) : '') + '. If the output does not match the expected solution, the program does not work: give at most 3 points.', '<code>\n' + String(p.code || '').slice(0, 6000) + '\n</code>', '', behaviour, '', 'Return:', '1) score: ' + t.code, '2) (ignore)'], own).join('\n');
 }
 let good = 0;
-async function callGemini(env, text, task, image) {
-  if (env.GEMINI_STUB) return { score: task === 1 ? 13 : 16, ai_suspicion: Number(env.GEMINI_STUB_AI) || 10, comment: 'Тест түсініктеме' };
+async function callGemini(env, text, task, image, schema, stub) {
+  if (env.GEMINI_STUB) return stub ||  { score: task === 1 ? 13 : 16, ai_suspicion: Number(env.GEMINI_STUB_AI) || 10, comment: 'Тест түсініктеме' };
   /* Бірнеше кілтті үтір немесе жаңа жол арқылы жазуға болады: біреуі істемесе (квота, қате), келесісі алынады */
   const keys = String(env.GEMINI_API_KEY || '').split(/[\s,;]+/).filter(Boolean);
   if (!keys.length) throw new Error('GEMINI_API_KEY бапталмаған');
@@ -121,7 +123,7 @@ async function callGemini(env, text, task, image) {
     try {
       const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[Math.floor(t / keys.length) % models.length] + ':generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: image ? [{ text }, { inlineData: { mimeType: image.mime, data: image.data } }] : [{ text }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: SCHEMA } })
+        body: JSON.stringify({ contents: [{ role: 'user', parts: image ? [{ text }, { inlineData: { mimeType: image.mime, data: image.data } }] : [{ text }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema || SCHEMA } })
       });
       const j = await res.json();
       if (j.candidates && j.candidates[0].content) { good = (good + t) % keys.length; return JSON.parse(j.candidates[0].content.parts.map(x => x.text || '').join('')); }
@@ -204,7 +206,23 @@ function compute7(att, subs, result, bonus) {
   const base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all && !anyPending, edited_total: base !== auto };
 }
+/* Python сабағы: қатысым балы жоқ, барлығы 100 балл тапсырмалардан (қатемен жұмыс есепке алынған). Көшіру белгілері баллға автоматты әсер етпейді. */
+function computeP(att, subs, result, bonus, topic) {
+  const M = MAXT[topic], NS = [1, 2, 3, 4], by = {}; (subs || []).forEach(s => { by[s.task] = s; });
+  const tasks = {}; let quality = 0, done = true;
+  NS.forEach(n => {
+    const s = by[n], max = M[n];
+    if (!s) { tasks[n] = { sent: false, pts: null, max }; done = false; return; }
+    let pl = {}; try { pl = typeof s.payload === 'string' ? JSON.parse(s.payload) : (s.payload || {}); } catch (e) {}
+    const over = s.teacher_score !== null && s.teacher_score !== undefined, pts = over ? s.teacher_score : Math.round((s.auto_score || 0) * 10) / 10;
+    tasks[n] = { sent: true, pts, max, pending: false, edited: over, ai_pct: 0, flags: s.flags || '', comment: '' };
+    quality += pts; if (!pl.done) done = false;
+  });
+  const auto = Math.min(100, Math.round(quality)), base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
+  return { attendance: 0, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: done, edited_total: base !== auto };
+}
 export function compute(att, subs, result, bonus, topic) {
+  if (String(topic) === 'P7') return computeP(att, subs, result, bonus, 'P7');
   if (String(topic) === '10' || String(topic) === 'S7' || String(topic) === 'A13' || String(topic) === 'A2') return compute10(att, subs, result, bonus, String(topic));
   if (String(topic) === '7') return compute7(att, subs, result, bonus);
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });
@@ -229,3 +247,7 @@ export function compute(att, subs, result, bonus, topic) {
   const final = Math.min(100, base + (bonus || 0));
   return { attendance, tasks, quality, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final, complete: all && !anyPending, edited_total: base !== auto };
 }
+
+/* Студентке жеке кеңес: қысқа, толық шешімсіз */
+const HINT_SCHEMA = { type: 'OBJECT', properties: { hint: { type: 'STRING' } }, required: ['hint'] };
+export async function askHint(env, text) { return callGemini(env, text, 2, null, HINT_SCHEMA, { hint: 'Тест кеңесі: шартыңды тапсырмадағы сөздермен салыстырып көр.' }); }

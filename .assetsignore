@@ -12,3 +12,8 @@ wrangler.jsonc
 .dev.vars
 .assetsignore
 .gitignore
+output
+tmp
+.review_scratch
+backups
+.dev-site

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7-тақырып: if шарты операторы — Python</title>
+<meta name="description" content="Тармақталған алгоритмдер. if шарты операторы. Видео, интерактивті мысалдар, Python-да код жазу және қатемен жұмыс.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-work.css">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+</head>
+<body class="pl">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>7</i><span>if шарты операторы</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button type="button" role="tab" data-tab="teo" class="on">1 Түсіндіру</button>
+    <button type="button" role="tab" data-tab="task">2 Тапсырмалар</button>
+    <button type="button" role="tab" data-tab="sum">3 Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+
+<!-- 1. ТҮСІНДІРУ -->
+<section class="pl-pane" id="teo" data-pane="teo">
+  <div class="pl-card">
+    <div class="pl-hero">
+      <div class="pl-video" id="pyVideo"><iframe src="https://www.youtube-nocookie.com/embed/Gf6m1AhTWjc" title="Сабақ видеосы" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
+      <div class="pl-goals">
+        <h1>if шарты операторы</h1>
+        <p>Тармақталған алгоритмдер. Бағдарлама шешімді осылай қабылдайды.</p>
+        <div class="pl-goal"><b>1</b>if операторын жазуды үйренесің.</div>
+        <div class="pl-goal"><b>2</b>Салыстыру амалдарын қолданасың.</div>
+        <div class="pl-goal"><b>3</b>Кірістірілген шарттарды жазасың.</div>
+        <div class="pl-goal"><b>4</b>Кодтағы қатені табасың.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">1</span>if қалай жұмыс істейді</h2>
+    <p class="pl-lead">Бұл бөлімде бағдарламаның шешім қабылдау жолын қадам-қадаммен көресің. Бағдарлама жолдарды ретімен орындайды. <b>if</b> оператор шартты тексереді: шарт <b>True</b> (ақиқат) болса ғана, ішіндегі жолдар орындалады. Шарт <b>False</b> (жалған) болса, олар өткізіліп кетеді. Мысалы: «жауын жауса, қолшатыр аламын».</p>
+    <div id="dFlow"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">2</span>if қалай жазылады</h2>
+    <p class="pl-lead">Бұл бөлімде if жолының төрт бөлігін үйренесің. Бөлікті басып, оның қызметін оқы.</p>
+    <div id="dSyntax"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Салыстыру амалдары</h2>
+    <p class="pl-lead">Бұл бөлімде шартта қолданылатын алты таңбаны үйренесің. Әр салыстыру True немесе False нәтиже береді. Мысалын көру үшін карточканы бас.</p>
+    <div id="dOps"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">4</span>Мысалдар: өзің сынап көр</h2>
+    <p class="pl-lead">Бұл бөлімде үш мысалды орындап көресің. Санды өзгертсең, қай жолдың орындалғаны бірден көрінеді. Үшінші мысалда <b>кірістірілген if</b> бар: екінші шарт тек бірінші шарт True болғанда тексеріледі.</p>
+    <div id="dEx"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">5</span>Жиі кететін қателер</h2>
+    <p class="pl-lead">Бұл бөлімде төрт жиі қатені және оның түзетілуін көресің. Дұрыс нұсқасын көру үшін карточканы бас. Тапсырмада осындай қателерді өзің табасың.</p>
+    <div id="dErr"></div>
+  </div>
+
+  <div class="pl-next"><button type="button" class="btn primary big" data-go="task">Тапсырмаларға өту →</button></div>
+</section>
+
+<!-- 2. ТАПСЫРМАЛАР -->
+<section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Тапсырмалар: 100 балл, 60 минут</h2>
+    <div class="pl-rules">
+      <div class="pl-rule"><b>Төрт тапсырма</b><p>1) 4 есеп, 2) 2 күрделі есеп, 3) 4 кодтағы қатені түзету, 4) тест.</p></div>
+      <div class="pl-rule"><b>Тапсырманы бүтін жібер</b><p>Тапсырмадағы барлық есепті орындап болған соң, төмендегі «Жіберу» батырмасын бас. Код нақты орындалып, тест жағдайларымен салыстырылады. Бірінші жіберу негізгі баға береді.</p></div>
+      <div class="pl-rule"><b>Қатемен жұмыс</b><p>Қате есептің астында түсініктеме шығады: оны оқып, кодты түзетіп қайта жібер. Жоғалтқан баллдың 70%-ы қайтады (тестте 50%). Уақыт біткен соң тағы 15 минут беріледі.</p></div>
+      <div class="pl-rule"><b>«▶ Орындау» бағаланбайды</b><p>Ол кодты өз енгізуіңмен сынауға арналған. Кеңес алуға сабақта 6 мүмкіндік бар.</p></div>
+    </div>
+  </div>
+  <div id="pyTasks"></div>
+</section>
+
+<!-- 3. ҚОРЫТЫНДЫ -->
+<section class="pl-pane" id="sum" data-pane="sum" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Қорытынды және бекіту</h2>
+    <p class="pl-lead">Бұл бөлімде нәтижеңді, әр есепке жұмсаған уақытыңды және қайталауға тұратын тақырыптарды көресің.</p>
+    <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
+    <div id="pySum"></div>
+  </div>
+  <div class="pl-card">
+    <h2><span class="ic">★</span>Өзін-өзі бағалау</h2>
+    <p>Бүгінгі тақырыпты қаншалықты түсіндің?</p>
+    <div class="faces" id="faces"></div><div id="learned"></div>
+    <div class="stepbar"><button type="button" class="btn primary" id="fbSend">Жіберу</button></div>
+    <div class="xl-msg" id="fbMsg" role="status"></div>
+  </div>
+</section>
+</main>
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-demos.js"></script>
+<script src="../assets/py-work.js"></script>
+<script>
+(function(){
+const { $, el } = L;
+const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
+function go(id, push){
+  if (!panes.some(p => p.id === id)) id = 'teo';
+  panes.forEach(p => { p.hidden = p.id !== id; });
+  tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  if (push !== false) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
+}
+tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+go((location.hash || '').slice(1), false);
+
+/* бейне үш өлшемді еңкейеді */
+const v = $('#pyVideo');
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { v.addEventListener('pointermove', e => { const r = v.getBoundingClientRect(); v.style.setProperty('--vy', ((e.clientX - r.left) / r.width - .5) * 7 + 'deg'); v.style.setProperty('--vx', (-((e.clientY - r.top) / r.height - .5)) * 5 + 'deg'); }); v.addEventListener('pointerleave', () => { v.style.removeProperty('--vy'); v.style.removeProperty('--vx'); }); }
+
+PyDemos.mount({ flow:$('#dFlow'), syntax:$('#dSyntax'), ops:$('#dOps'), ex:$('#dEx'), err:$('#dErr') });
+
+/* ---------- Өзін-өзі бағалау ---------- */
+(function(){
+  let level = 0; const learned = new Set(), F = ['😟', '😕', '😐', '🙂', '😀'];
+  F.forEach((f, i) => { const b = el('button', { type:'button', text:f, 'aria-label':'Баға ' + (i + 1) }); b.addEventListener('click', () => { level = i + 1; [...$('#faces').children].forEach((x, j) => x.classList.toggle('on', j === i)); }); $('#faces').append(b); });
+  ['if операторының жазылуы', 'салыстыру амалдары (==, >=, <)', 'кірістірілген шарттар', 'кодтағы қатені табу және түзету'].forEach(t => {
+    const id = 'l' + Math.random().toString(36).slice(2, 7), c = el('input', { type:'checkbox', id });
+    c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); });
+    $('#learned').append(el('label', { for:id, style:'display:block;margin:4px 0' }, [c, ' Үйрендім: ' + t]));
+  });
+  $('#fbSend').addEventListener('click', async () => {
+    const m = $('#fbMsg'), me = window.Join.get();
+    if (!me || me.guest){ m.className = 'xl-msg bad'; m.textContent = 'Алдымен студент ретінде сабаққа кіріңіз.'; return; }
+    if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
+    const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
+    m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
+  });
+})();
+
+window.Join.mount({ gate:true, title:'Python, 7-тақырып: if шарты операторы' });
+window.PyWork.mount({ tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
+})();
+</script>
+</body>
+</html>
