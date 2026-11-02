@@ -494,8 +494,9 @@ async function teacher(path, method, b, env, ctx, url) {
     const want = Number(url.searchParams.get('session')) || 0;
     const ses = want ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(want).first() : await DB.prepare('SELECT * FROM sessions ORDER BY (status=\'open\') DESC, id DESC LIMIT 1').first();
     let groups = await roster(DB);
+    const allGroups = groups.map(g => ({ id: g.id, name: g.name, students: g.students }));
     if (ses && ses.group_id) groups = groups.filter(g => g.id === ses.group_id);
-    if (!ses) return json({ ok: true, session: null, now: now(), groups });
+    if (!ses) return json({ ok: true, session: null, now: now(), groups, allGroups });
     const [atts, subs, ress, bns] = await Promise.all([
       all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)),
       all(DB.prepare('SELECT * FROM submissions WHERE session_id=?').bind(ses.id)),
@@ -512,7 +513,7 @@ async function teacher(path, method, b, env, ctx, url) {
       s.bonus = c.bonus; s.tasks = {}; (ses.topic === 'A2' || isPy(ses.topic) ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, guests });
+    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests });
   }
 
   /* Бір студенттің толық жұмысы */

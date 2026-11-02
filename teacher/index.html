@@ -221,14 +221,14 @@ function startCard(){
   const sel = (label, node) => h('label', { class: 'sf' }, [h('span', { text: label }), node]);
   const subj = h('select', { class: 'field', 'aria-label': 'Пән' }, SUBJ.map(s => h('option', { value: s.id, text: s.ico + ' ' + s.name + ' (' + s.topics.length + ' тақырып ашық)' })));
   const top = h('select', { class: 'field', 'aria-label': 'Тақырып' });
-  const grp = h('select', { class: 'field', 'aria-label': 'Топ' }, [h('option', { value: '', text: '— топты таңда —' })].concat(LIVE.groups.map(g => h('option', { value: String(g.id), text: g.name + ' (' + g.students.filter(s => s.active !== false).length + ' студент)' }))));
+  const grp = h('select', { class: 'field', 'aria-label': 'Топ' }, [h('option', { value: '', text: '— топты таңда —' })].concat((LIVE.allGroups || LIVE.groups).map(g => h('option', { value: String(g.id), text: g.name + ' (' + g.students.filter(s => s.active !== false).length + ' студент)' }))));
   const info = h('div', { class: 'sinfo' });
   const upd = () => { const t = TP[top.value]; if (!t) return; info.innerHTML = ''; [['Тапсырма', t.tasks + ' тапсырма'], ['Жұмыс уақыты', t.min + ' минут' + (t.py ? ' + 15 минут қатемен жұмыс' : '')], ['Қатысым', t.att ? t.att + ' балл' : 'балл берілмейді'], ['Бағалау', t.ai ? 'автоматты + ЖИ' : t.py ? 'автоматты (код нақты орындалады)' : 'автоматты']].forEach(([k, v]) => info.append(h('span', { class: 'sc' }, [h('b', { text: k + ': ' }), v]))); try { sessionStorage.setItem('tstart', JSON.stringify({ s: subj.value, t: top.value, g: grp.value })); } catch (e) {} };
   const fill = keep => { const s = SUBJ.find(x => x.id === subj.value) || SUBJ[0]; top.innerHTML = ''; s.topics.forEach(t => top.append(h('option', { value: t.id, text: t.n + '-тақырып: ' + t.title }))); if (keep && s.topics.some(t => t.id === keep)) top.value = keep; upd(); };
   subj.addEventListener('change', () => fill()); top.addEventListener('change', upd); grp.addEventListener('change', upd);
-  if (LS.s && SUBJ.some(s => s.id === LS.s)) subj.value = LS.s; fill(LS.t); if (LS.g && LIVE.groups.some(g => String(g.id) === LS.g)) grp.value = LS.g; upd();
+  if (LS.s && SUBJ.some(s => s.id === LS.s)) subj.value = LS.s; fill(LS.t); if (LS.g && (LIVE.allGroups || LIVE.groups).some(g => String(g.id) === LS.g)) grp.value = LS.g; upd();
   const go = h('button', { class: 'btn primary big', text: '▶ Сабақты бастау', on: { click: async () => { if (!grp.value) { alert('Алдымен топты таңда: сабаққа тек осы топ кіре алады.'); return; } go.disabled = true; VIEW = 0; const r = await api('session/start', { topic: top.value, group_id: Number(grp.value) }); go.disabled = false; if (!r.ok) { alert('Сабақты бастау мүмкін болмады.'); return; } SESS.t = 0; loadLive(true); } } });
-  return h('div', { class: 'card' }, [h('h2', { text: 'Жаңа сабақ' }), h('p', { class: 'sub', text: LIVE.groups.length ? 'Бастағанда студенттерге көрсетілетін 4 таңбалы код пайда болады. Ашық сабақ болса, ол жабылады.' : 'Алдымен «Топтар мен студенттер» бөлімінде топ пен студенттерді қосыңыз.' }),
+  return h('div', { class: 'card' }, [h('h2', { text: 'Жаңа сабақ' }), h('p', { class: 'sub', text: (LIVE.allGroups || LIVE.groups).length ? 'Бастағанда студенттерге көрсетілетін 4 таңбалы код пайда болады. Ашық сабақ болса, ол жабылады.' : 'Алдымен «Топтар мен студенттер» бөлімінде топ пен студенттерді қосыңыз.' }),
     h('div', { class: 'startgrid' }, [sel('1 · Пән', subj), sel('2 · Тақырып', top), sel('3 · Топ', grp), go]), info]);
 }
 
