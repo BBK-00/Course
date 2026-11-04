@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8-тақырып: if–else және elif — Python</title>
+<meta name="description" content="Толық тармақталу. if–else және elif операторлары. Видео, интерактивті тренажер, жазылу ережесі және жиі қателер.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-work.css">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson8.css">
+</head>
+<body class="pl">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>8</i><span>if–else және elif</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button type="button" role="tab" data-tab="teo" class="on">1 Түсіндіру</button>
+    <button type="button" role="tab" data-tab="task">2 Тапсырмалар</button>
+    <button type="button" role="tab" data-tab="sum">3 Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+
+<section class="pl-pane" id="teo" data-pane="teo">
+  <div class="pl-card">
+    <div class="pl-hero">
+      <div class="pl-video" id="pyVideo"><iframe src="https://www.youtube-nocookie.com/embed/Gf6m1AhTWjc" title="Сабақ видеосы" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>
+      <div class="pl-goals">
+        <h1>if–else және elif</h1>
+        <p>Толық тармақталу. Бағдарлама екіден көп жолдың біреуін таңдайды.</p>
+        <div class="pl-goal"><b>1</b>if–else операторын жазуды үйренесің.</div>
+        <div class="pl-goal"><b>2</b>elif арқылы бірнеше шартты тексересің.</div>
+        <div class="pl-goal"><b>3</b>Кодтағы қатені табасың.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">1</span>Бағдарлама қалай шешім қабылдайды</h2>
+    <p class="pl-lead">Бұл бөлімде бағдарламаның жолды қалай таңдайтынын көресің. if шарт ақиқат болғанда ғана жұмыс істейді. <b>else</b> («әйтпесе») шарт жалған болғанда орындалады. <b>elif</b> («әйтпесе егер») келесі шартты тексереді. Python шарттарды жоғарыдан төмен қарай тексереді және бірінші True шартта тоқтайды. Мәнді өзгертіп, жолдың қалай өзгеретінін көр.</p>
+    <div id="dLab"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Жазылу ережесі</h2>
+    <p class="pl-lead">Бұл бөлімде үш конструцияның жазылуын көресің. Төмендегі батырманы бассаң, сәйкес бөлік кодта боялады.</p>
+    <div id="dSyntax"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Қатені тап</h2>
+    <p class="pl-lead">Бұл бөлімде бес қате кодты түзетесің. Терминалдағы нәтижеге қарап, қате жолды бас. Дұрыс болса, жол түзетіледі және түсініктеме шығады.</p>
+    <div id="dErr"></div>
+  </div>
+
+  <div class="pl-next"><button type="button" class="btn primary big" data-go="task">Тапсырмаларға өту →</button></div>
+</section>
+
+<section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Тапсырмалар: 60 минут</h2>
+    <div class="pl-rules">
+      <div class="pl-rule"><b>1-тапсырма · 30 балл</b><p>Екі есеп: біріншісі оңай (if–else), екіншісі орташа (elif). Мысалдардағы есептер емес. Шамамен 15 минут.</p></div>
+      <div class="pl-rule"><b>2-тапсырма · жұптық «Сандық» · 25 балл</b><p>Жұпты оқытушы құрады. Екі сұрақтың жауабын тапсаңдар, сандық ашылады. Білмесеңдер, кеңес алыңдар: әр сұраққа екі кеңес бар, кеңес есебін шешсеңдер, кеңес мәтіні ашылады. Кеңес көп болса, сыйлық азаяды. Шамамен 25 минут.</p></div>
+      <div class="pl-rule"><b>3-тапсырма · 20 балл</b><p>10 тест сұрағы: 5 оңай, 3 орташа, 2 қиын. Әр студентте сұрақтар әртүрлі. Шамамен 15 минут.</p></div>
+      <div class="pl-rule"><b>Тапсырманы бүтін жібер</b><p>Барлық есепті орындап болған соң, төмендегі «Жіберу» батырмасын бас. Код нақты орындалып, тест жағдайларымен салыстырылады.</p></div>
+      <div class="pl-rule"><b>Қатемен жұмыс</b><p>Қате болса, түсініктемені оқып, түзетіп қайта жібер. Жоғалтқан баллдың 70%-ы қайтады (тестте 50%). Уақыт біткен соң тағы 15 минут беріледі.</p></div>
+      <div class="pl-rule"><b>4-тапсырма · үй жұмысы (25 балл)</b><p>Үй жұмысы кейін ашылады: дәптерге орындап, фотосын жібересің.</p></div>
+    </div>
+  </div>
+  <div id="pyTasks"></div>
+</section>
+
+<section class="pl-pane" id="sum" data-pane="sum" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Қорытынды және бекіту</h2>
+    <p class="pl-lead">Бұл бөлімде нәтижеңді, әр есепке жұмсаған уақытыңды және қайталауға тұратын тақырыптарды көресің.</p>
+    <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
+    <div id="pySum"></div>
+  </div>
+</section>
+</main>
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-demos8.js"></script>
+<script src="../assets/py-work.js"></script>
+<script>
+(function(){
+const { $ } = L;
+const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
+function go(id, push){
+  if (!panes.some(p => p.id === id)) id = 'teo';
+  panes.forEach(p => { p.hidden = p.id !== id; });
+  tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  if (push !== false) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
+}
+tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+go((location.hash || '').slice(1), false);
+
+const v = $('#pyVideo');
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { v.addEventListener('pointermove', e => { const r = v.getBoundingClientRect(); v.style.setProperty('--vy', ((e.clientX - r.left) / r.width - .5) * 7 + 'deg'); v.style.setProperty('--vx', (-((e.clientY - r.top) / r.height - .5)) * 5 + 'deg'); }); v.addEventListener('pointerleave', () => { v.style.removeProperty('--vy'); v.style.removeProperty('--vx'); }); }
+
+PyDemos8.mount({ lab:$('#dLab'), syntax:$('#dSyntax'), err:$('#dErr') });
+window.Join.mount({ title:'Python, 8-тақырып: if–else және elif' });   /* теория ашық, тапсырма үшін жоғарыдағы «Сабаққа кіру» батырмасы */
+window.PyWork.mount({ topic:'P8', tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
+})();
+</script>
+</body>
+</html>

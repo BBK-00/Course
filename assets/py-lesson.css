@@ -104,3 +104,5 @@ body.pl{background:#eef2fb;padding-bottom:40px;background-image:radial-gradient(
 @media (max-width:900px){.pl-hero,.pl-flowgrid,.pl-exgrid{grid-template-columns:minmax(0,1fr)}.pl-brand span{display:none}.pl-stage{min-height:410px}}
 @media (max-width:620px){body.pl{font-size:16px}.pl-card{padding:14px 12px;border-radius:18px}.pl-seg button{padding:7px 10px;font-size:.88rem}.pl-back{padding:6px}.pl-goals h1{font-size:1.4rem}.pl .pl-top .topbar-in{gap:6px}.pl-tasks .py-bar{top:56px}}
 @media (prefers-reduced-motion:reduce){.pl-pane{animation:none}.pl-fi,.pl-token,.pl-scene,.pl-video,.pl-goal,.pl-node{transition:none}}
+/* тар экранда «Сабаққа кіру» батырмасы көрінуі үшін бөлімдер екінші қатарға түседі */
+@media (max-width:760px){.pl .pl-top .topbar-in{flex-wrap:wrap;row-gap:6px}.pl-seg{order:5;flex:1 1 100%;margin:0}.pl-seg button{flex:1}.pl .join-chip{max-width:none}.pl-tasks .py-bar{top:104px}}

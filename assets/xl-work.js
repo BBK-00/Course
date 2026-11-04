@@ -4,7 +4,7 @@
 'use strict';
 const { el } = window.L;
 const mmss = s => Math.floor(Math.max(0, s) / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
-const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', closed:'Сабақ жабылған немесе бұл тапсырма әзірге ашылмаған.', already:'Жұмыс жіберіліп қойған.', auth:'Сабаққа қайта кіріңіз.',
+const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', closed:'Сабақ жабылған немесе бұл тапсырма әзірге ашылмаған.', already:'Жіберу саны бітті (барлығы 3 рет).', auth:'Сабаққа қайта кіріңіз.',
   not_yours:'Бұл файл сіздікі емес немесе бастапқы деректер өзгерген. Тек өз файлыңызды жүктеңіз (аты мен «ID» жолын, бастапқы сандарды өзгертпеңіз).',
   bad_file:'Бұл дұрыс Excel (.xlsx) файлы емес. Файлды Excel-де «.xlsx» ретінде сақтап жүктеңіз.', wait:'Тым жиі. Бір минуттан кейін қайта көріңіз.' };
 const TITLE = ['1-лист · Оңай', '2-лист · Орташа', '3-лист · Күрделі'];
@@ -30,7 +30,7 @@ window.XlWork = { mount(host){
     if (!f){ msg('Алдымен орындалған Excel файлын таңдаңыз.', 'bad'); return; }
     if (!/\.xlsx$/i.test(f.name)){ msg('Файл .xlsx форматында болуы керек.', 'bad'); return; }
     if (f.size > 3e6){ msg('Файл тым үлкен (3 МБ-тан аспауы керек).', 'bad'); return; }
-    if (!confirm('Жұмысты жібересіз бе? Жібергеннен кейін қайта жіберуге болмайды.')) return;
+    if (!confirm('Жұмысты жібересіз бе? Барлығы 3 рет жіберуге болады, әр лист бойынша ең жақсы нәтиже сақталады.')) return;
     btn.disabled = true; busy = true; msg('Жұмыс тексеріліп жатыр…');
     try {
       const r = await window.Join.raw('xl/upload', { method:'POST', headers:{ 'Content-Type':'application/octet-stream' }, body:f });
@@ -38,6 +38,15 @@ window.XlWork = { mount(host){
       if (j.ok){ result = j.sheets; await window.Join.refresh(); } else { msg(err(j.error), 'bad'); btn.disabled = false; }
     } catch (e) { msg('Желі қатесі. Қайта көріңіз.', 'bad'); btn.disabled = false; }
     busy = false; if (result) render();
+  }
+
+  function resend(me, now){
+    const x = me.xl || { used:1, max:1 }, left = x.max - x.used, live = now <= me.session.work_until + 90;
+    if (left <= 0) return [el('p', { class:'muted', text:'Жіберу саны бітті (' + x.max + ' рет).' })];
+    if (!live) return [];
+    const inp = el('input', { type:'file', accept:'.xlsx', 'aria-label':'Түзетілген Excel файлы' }), up = el('button', { type:'button', class:'btn', text:'⬆ Қайта жіберу' });
+    up.addEventListener('click', () => upload(up, inp));
+    return [el('h4', { text:'Қайта жіберу' }), el('p', { class:'muted', text:'Қателерді түзетіп, файлды қайта жіберуге болады: ' + left + ' мүмкіндік қалды. Әр лист бойынша ең жақсы нәтиже есептеледі.' }), el('div', { class:'xl-up' }, [inp, up]), el('div', { class:'xl-msg', role:'status' })];
   }
 
   function head(me){
@@ -61,13 +70,13 @@ window.XlWork = { mount(host){
   function render(){
     if (busy) return;
     const me = window.Join.get(), now = Math.floor(window.Join.serverNow() / 1000);
-    const key = JSON.stringify(me ? [me.student && me.student.name, me.guest, me.session && me.session.topic, me.session && me.session.work_until, me.tasks && me.tasks[1].sent, me.total, me.session && now > me.session.work_until + 90] : null);
+    const key = JSON.stringify(me ? [me.student && me.student.name, me.guest, me.session && me.session.topic, me.session && me.session.work_until, me.tasks && me.tasks[1].sent, me.xl && me.xl.used, me.total, me.session && now > me.session.work_until + 90] : null);
     if (key === last && box.firstChild) return; last = key;
     box.innerHTML = '';
     if (!me){ box.append(el('p', { class:'notice', text:'Практикалық жұмысқа кіру үшін оқытушы көрсеткен кодпен сабаққа кіріңіз.' }), el('div', { class:'stepbar' }, el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру', onclick:() => window.Join.open() }))); return; }
     if (me.guest){ box.append(el('p', { class:'notice', text:'Мұғалім ретінде кірдіңіз. Excel жұмысын студенттер орындайды.' })); return; }
     if (!me.session || me.session.topic !== '10'){ box.append(el('p', { class:'notice', text:'Бұл тақырып бойынша сабақ әлі ашылмаған. Оқытушы сабақты бастағанда осы бет жаңарады.' })); return; }
-    if (me.tasks[1].sent){ box.append(...report(me)); return; }
+    if (me.tasks[1].sent){ box.append(...report(me), ...resend(me, now)); return; }
     if (!me.session.work_until){ box.append(el('p', { class:'notice', text:'✓ Сабаққа кірдіңіз (қатысым 40 балл). Оқытушы жұмысты бастағанда файл жүктеп алуға болады. Бет өзі жаңарады.' })); return; }
     const over = Math.floor(window.Join.serverNow() / 1000) > me.session.work_until + 90;
     if (over){ box.append(el('p', { class:'errbox', text:'Жұмыс уақыты бітті.' })); return; }
@@ -77,7 +86,7 @@ window.XlWork = { mount(host){
       el('ol', { class:'xl-steps' }, [
         el('li', {}, [el('b', { text:'Файлды жүктеп ал. ' }), 'Ішінде 3 лист бар: оңай (15 мин), орташа (20 мин), күрделі (25 мин). Сандар тек сіздікі, басқа студенттің файлы сәйкес келмейді.']),
         el('li', {}, [el('b', { text:'Excel-де орында. ' }), 'Сары ұяшықтарға формула жазыңыз. Нұсқаулық әр листтің оң жағында (K бағанында).']),
-        el('li', {}, [el('b', { text:'.xlsx ретінде сақтап, жүктеп жібер. ' }), 'Жіберілген соң жұмыс бірден тексеріліп, балл шығады.'])]),
+        el('li', {}, [el('b', { text:'.xlsx ретінде сақтап, жүктеп жібер. ' }), 'Жіберілген соң жұмыс бірден тексеріліп, балл шығады. Қателерді түзетіп, 3 рет дейін қайта жіберуге болады: әр лист бойынша ең жақсы нәтиже сақталады.'])]),
       el('div', { class:'stepbar' }, dl),
       el('div', { class:'xl-up' }, [inp, up]),
       el('div', { class:'xl-msg', role:'status', text:note }));

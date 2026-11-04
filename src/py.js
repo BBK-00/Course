@@ -4,11 +4,16 @@
    Бірінші әрекет толық балл береді. Қате кетсе, студент қатемен жұмыс жасап қайта жібере алады: жоғалтқан баллдың бір бөлігі қайтады.
    Модуль таза: код орындауды сырттан берілген `run` функциясы жасайды, сондықтан жергілікті Python-мен тексеруге болады. */
 
+import { buildP8, P8_MAX, CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT } from './py8.js';
+export { CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT };
+
 export const PY_MAX = { 1: 20, 2: 40, 3: 20, 4: 20 };
+export const PY_MAXS = { P7: PY_MAX, P8: P8_MAX };   /* тақырып → тапсырма → максимум балл */
+export const pyTasks = topic => Object.keys(PY_MAXS[String(topic)] || PY_MAX).map(Number);
 export const REV = { code: 0.7, quiz: 0.5 };          /* қайта жіберу арқылы қайтарылатын жоғалған баллдың үлесі */
 export const REV_TRIES = { code: 3, quiz: 1 };        /* қайта жіберу әрекеттерінің саны */
 export const REVISE_MIN = 15;                         /* жұмыс біткен соң қатемен жұмысқа берілетін минут */
-export const PY_TOPICS = ['P7'];
+export const PY_TOPICS = ['P7', 'P8'];
 export const isPy = t => PY_TOPICS.includes(String(t));
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -25,6 +30,9 @@ export const SKILLS = {
   nested: { name: 'Кірістірілген шарттар', tip: 'if ішіне екінші if жазуға болады. Екінші шарт тек бірінші шарт орындалғанда тексеріледі. Ішкі if тағы 4 бос орынға ығады.' },
   modulo: { name: '% амалы (қалдық)', tip: 'n % 2 санды 2-ге бөлгендегі қалдықты береді. Жұп санда қалдық 0 болады: n % 2 == 0.' },
   output: { name: 'Хабарламаны дұрыс шығару', tip: 'Хабарлама мәтіні тапсырмадағыдай дәл жазылады. Қажет жерде есептелген сан print ішінде шығарылады.' },
+  ifelse: { name: 'if–else құрылымы', tip: 'else шартсыз, қос нүктемен (else:) жазылады және if-пен бір тік сызықта тұрады. Ол if шарты False болғанда орындалады, сондықтан екі блоктың біреуі міндетті орындалады.' },
+  elif: { name: 'elif арқылы көп шарт', tip: 'Бірнеше шартты if → elif → else тізбегімен жаз. «else if» емес, тек elif деп жазылады. Python бірінші True шартта тоқтайды.' },
+  order: { name: 'Шарттар реті', tip: 'Шарттар жоғарыдан төмен тексеріледі. Қатаң шартты (мысалы, >= 90) бірінші қой, әйтпесе жеңілірек шарт (>= 50) оны жауып кетеді. Бөлек if-тер бір-біріне тәуелсіз тексеріледі.' },
   logic: { name: 'Логика және есептеу', tip: 'Формуланы қағазда бір санмен тексеріп көр, содан кейін кодқа аудар.' }
 };
 
@@ -157,14 +165,17 @@ export function lessonP7(variant) {
   T.forEach(t => t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') { it.cases.forEach(c => { c.in = c.in.map(String); }); } }));
   return T;
 }
+export function lessonOf(topic, variant, pv) {
+  return String(topic) === 'P8' ? buildP8(variant, { rng, pick, shuffle }, pv).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; }) : lessonP7(variant);
+}
 export function itemOf(variant, id) { for (const t of lessonP7(variant)) for (const it of t.items) if (it.id === id) return it; return null; }
 export const allItemIds = () => lessonP7(1).flatMap(t => t.items.map(i => i.id));
 
 /* Студентке жіберілетін көрініс: тест жағдайлары мен дұрыс жауап жасырылады */
-export function publicLesson(variant, seedBase) {
-  return lessonP7(variant).map(t => ({ n: t.n, title: t.title, items: t.items.map(it => {
-    if (it.kind === 'quiz') return { id: it.id, kind: 'quiz', max: it.max, title: it.title, q: it.q, opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
-    return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length };
+export function publicLesson(variant, seedBase, topic = 'P7', pv) {
+  return lessonOf(topic, variant, pv).map(t => ({ n: t.n, title: t.title, info: t.info || '', pair: !!t.pair, items: t.items.map(it => {
+    if (it.kind === 'quiz') return { id: it.id, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
+    return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, tag: it.tag || '', text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length };
   }) }));
 }
 
@@ -250,6 +261,12 @@ export async function execCases(run, code, cases) {
 /* Кодтағы талап: and болмауы және кірістірілген if болуы */
 export function stripCode(code) { return String(code || '').replace(/#.*$/gm, '').replace(/("""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/g, '""'); }
 export function constraintOk(item, code) {
+  if (item.constraint === 'else' || item.constraint === 'elif') {
+    const t = stripCode(code), hasElse = /^\s*else\s*:/m.test(t), hasElif = /^\s*elif\b/m.test(t);
+    if (item.constraint === 'else' && !hasElse) return { ok: false, text: 'Талап бұзылған: есепті if–else арқылы жаз. else: блогы жоқ.', skill: 'ifelse' };
+    if (item.constraint === 'elif' && !(hasElif && hasElse)) return { ok: false, text: 'Талап бұзылған: бұл есепте if–elif–else тізбегін қолдан (elif және else болуы керек).', skill: 'elif' };
+    return { ok: true };
+  }
   if (item.constraint !== 'and') return { ok: true };
   const s = stripCode(code), hasAnd = /\band\b/.test(s), ifs = s.split(/\r?\n/).filter(l => /^\s*if\b/.test(l)), nested = ifs.length >= 2 && ifs.some(l => /^\s+if\b/.test(l));
   if (hasAnd) return { ok: false, text: 'Талап бұзылған: and қолдануға болмайды. Екі шартты кірістірілген if арқылы жаз.', skill: 'nested' };

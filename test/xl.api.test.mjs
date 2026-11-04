@@ -56,7 +56,11 @@ console.log('Дұрыс жұмыс');
 r = await upload(t1, full1); ok(r.j.ok && r.j.sheets.length === 3, 'студент 1 жүктеді');
 ok(r.j.tasks[1].pts === 14 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 25, 'листер: ' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ' (сұрыптаусыз 14)');
 ok(r.j.total === 40 + 59, 'жиынтық 40 + 59 = ' + r.j.total);
-r = await upload(t1, full1); ok(r.s === 409 && r.j.error === 'already', 'екінші рет жіберуге болмайды');
+ok(r.j.xl && r.j.xl.used === 1 && r.j.xl.max === 3, 'жіберу саны: 1 / 3');
+r = await upload(t1, await getFile(t1)); ok(r.j.ok && r.j.xl.used === 2, 'екінші файл жіберілді (бос файл, 2 / 3)');
+ok(r.j.tasks[1].pts === 14 && r.j.tasks[2].pts === 20 && r.j.tasks[3].pts === 25 && r.j.total === 99, 'нашар файл ұпайды түсірмейді: әр лист бойынша ең жақсысы сақталды (' + [1, 2, 3].map(n => r.j.tasks[n].pts) + ')');
+r = await upload(t1, full1); ok(r.j.ok && r.j.xl.used === 3, 'үшінші файл жіберілді (3 / 3)');
+r = await upload(t1, full1); ok(r.s === 409 && r.j.error === 'already', 'төртінші рет жіберуге болмайды');
 
 console.log('Бос жұмыс (ең төменгі балл)');
 r = await upload(t3, f2 && (await getFile(t3))); ok(r.j.ok && r.j.total === 50, 'бос файл → 50 балл: ' + r.j.total);

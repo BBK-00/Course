@@ -7,7 +7,7 @@
 const { el } = window.L;
 const J = () => window.Join;
 const mmss = s => Math.floor(Math.max(0, s) / 60) + ':' + String(Math.floor(Math.max(0, s)) % 60).padStart(2, '0');
-const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', closed:'Сабақ жабылған.', wait:'Тым жиі жіберіп жатырсың. Бірнеше секундтан кейін қайта көр.', full:'Бұл есеп толық дұрыс.', no_tries:'Түзету әрекеттері бітті.', runner:'Бағдарламаны іске қосатын қызмет жауап бермеді. Бірнеше секундтан кейін қайта көр.', auth:'Сабаққа қайта кіріңіз.', bad_request:'Алдымен кодты жаз.', hint_limit:'Кеңес саны бітті (сабақта 6).', ai:'Кеңес беретін қызмет жауап бермеді. Түсініктемені қайта оқып көр.', no_attempt:'Алдымен есепті жіберу керек.', nothing:'Жіберуге болатын есеп жоқ.' };
+const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', time_over:'Жұмыс уақыты бітті.', closed:'Сабақ жабылған.', wait:'Тым жиі жіберіп жатырсың. Бірнеше секундтан кейін қайта көр.', full:'Бұл есеп толық дұрыс.', no_tries:'Түзету әрекеттері бітті.', runner:'Бағдарламаны іске қосатын қызмет жауап бермеді. Бірнеше секундтан кейін қайта көр.', auth:'Сабаққа қайта кіріңіз.', bad_request:'Алдымен кодты жаз.', hint_limit:'Кеңес саны бітті (сабақта 6).', ai:'Кеңес беретін қызмет жауап бермеді. Түсініктемені қайта оқып көр.', no_attempt:'Алдымен есепті жіберу керек.', nothing:'Жіберуге болатын есеп жоқ.', no_pair:'Оқытушы әлі жұп құрған жоқ.', already:'Сандық ашылып қойған.' };
 const CHIP = { none:['Жіберілмеген', ''], full:['✓ Толық дұрыс', 'ok'], fixed:['✓ Түзетілді', 'ok'], part:['Қатемен жұмыс', 'mid'], zero:['Қатемен жұмыс', 'bad'] };
 
 let D = null, root = null, hosts = {}, items = {}, taskBars = {}, quizBox = null, busy = {}, polling = 0, tick = 0, away = 0, opened = {};
@@ -15,6 +15,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) away+
 const me = () => J().get();
 const nowS = () => Math.floor(J().serverNow() / 1000);
 const phase = () => { if (!D || !D.ready) return 'wait'; const t = nowS(); return t <= D.work_until + 45 ? 'work' : t <= D.revise_until + 45 ? 'revise' : 'over'; };
+const maxTotal = () => Object.values((D && D.scores) || {}).reduce((a, x) => a + x.max, 0) || 100;
 const fmt = v => typeof v === 'number' ? String(v) : '«' + v + '»';
 const keyOf = id => { const m = me(); return 'pydraft|' + (m && m.session ? m.session.id : 0) + '|' + (m && m.student ? m.student.name : '') + '|' + id; };
 const load = id => { try { return localStorage.getItem(keyOf(id)); } catch (e) { return null; } };
@@ -54,7 +55,7 @@ function resultBox(it, s, extra){
 }
 
 /* ---------- Есеп карточкасы (код және қатені түзету) ---------- */
-function codeCard(it){
+function codeCard(it, opt){
   const card = el('div', { class:'py-item', id:'pyi' + it.id }), st = { typed:0, assist:0, pasted:0, paste:0, tpl:0 };
   const head = el('h4', {}, [el('span', { text:it.title }), el('span', { class:'pt', text:it.max + ' балл' }), el('span', { class:'py-chip' })]);
   const text = el('div', { class:'py-text', html:it.text });
@@ -70,7 +71,7 @@ function codeCard(it){
   ed.setValue(saved !== null ? saved : (last && last.code) || it.starter || '# Жауабыңды осы жерде жаз\n', saved === null && !(last && last.code));
   ed.ta.addEventListener('focus', () => { if (!opened[it.id]){ opened[it.id] = 1; J().api('py/open', { item:it.id }); } });
   const o = items[it.id];
-  Object.assign(o, { card, ed, st, bSend, bHint, msg, res, head, hint, stdin, bRun });
+  Object.assign(o, { card, ed, st, bSend, bHint, msg, res, head, hint, stdin, bRun, single:!!(opt && opt.single) });
   bRun.addEventListener('click', async () => {
     bRun.disabled = true; out.hidden = false; out.textContent = 'Орындалып жатыр…';
     const j = await J().api('run', { code:ed.getValue(), language:'python', stdin:stdin.value });
@@ -78,7 +79,8 @@ function codeCard(it){
     if (!j.ok){ out.textContent = ERR[j.error] || 'Орындау мүмкін болмады.'; return; }
     const r = j.run || {}; out.textContent = (r.stdout || '') + (r.stderr ? (r.stdout ? '\n' : '') + 'Қате:\n' + r.stderr : '') || '(шығыс жоқ)';
   });
-  bSend.hidden = true;   /* бірінші жіберу — тапсырманың соңындағы батырма; бұл батырма тек түзетіп қайта жіберу үшін */
+  bSend.hidden = !(opt && opt.single);   /* бірінші жіберу — тапсырманың соңындағы батырма; бұл батырма тек түзетіп қайта жіберу үшін (жұптық кеңес есебінде бірінші жіберу де осы жерде) */
+  if (opt && opt.single) bHint.textContent = '🧠 ЖИ-көмек';
   bSend.addEventListener('click', () => submit(it, { code:ed.getValue(), signals:{ ...st, away } }));
   bHint.addEventListener('click', async () => {
     bHint.disabled = true; hint.innerHTML = ''; hint.append(el('p', { class:'py-note', text:'Кеңес дайындалып жатыр…' }));
@@ -112,7 +114,8 @@ function quizCard(task){
   const send = el('button', { type:'button', class:'btn primary', text:'✓ Тестті жіберу' }), msg = el('div', { class:'xl-msg', role:'status' });
   task.items.forEach(q => {
     const box = el('div', { class:'mq' }), pick = { v:null }, fb = el('div', { class:'py-fb' }), re = el('button', { type:'button', class:'btn sm', text:'Қайта жауап беру', hidden:true });
-    box.append(el('p', { text:(q.id - 40) + '. ' + q.q }));
+    box.append(el('p', { text:(task.items.indexOf(q) + 1) + '. ' + q.q + (q.diff ? '  [' + q.diff + ']' : '') }));
+    if (q.code) box.append(el('pre', { class:'py-qcode', text:q.code }));
     const btns = q.opts.map(op => { const b = el('button', { type:'button', text:op.t }); b.addEventListener('click', () => { if (b.disabled) return; pick.v = op.i; btns.forEach(x => x.classList.toggle('sel', x === b)); }); box.append(b); return b; });
     box.append(fb, re);
     re.addEventListener('click', () => { if (pick.v === null){ fb.textContent = 'Алдымен жауапты таңда.'; return; } submit(q, { choice:pick.v }, msg); });
@@ -145,20 +148,97 @@ async function submit(it, body, msgEl, btn, keyArg){
   D.total = j.total; D.scores = j.scores;
   if (msg){ msg.className = 'xl-msg ok'; msg.textContent = 'Тексерілді.'; }
   paint(); if (it) { const t = items[it.id].card.querySelector('.py-res'); if (t) t.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+  if (D.pair && D.pair.has) refreshPair();
+}
+
+/* ---------- Жұптық «Сандық»: жұпты оқытушы құрады; сандық және төрт кеңес ---------- */
+let pairTimer = 0, chestUi = null, hintUi = [];
+async function refreshPair(){
+  const j = await J().api('py/data'); if (!j.ok || !j.ready || !D) return;
+  if (j.pair && j.pair.has && !(D.pair && D.pair.has)){ D = null; loadData(); return; }
+  D.pair = j.pair; D.total = j.total; D.scores = j.scores;
+  Object.keys(j.state || {}).forEach(id => { if (items[id]) items[id].state = j.state[id]; });
+  paint();
+}
+function chestPanel(){
+  const C = D.pair.chest, chip = el('span', { class:'py-chip' }), msg = el('div', { class:'xl-msg', role:'status' }), info = el('p', { class:'py-note' }), win = el('p', { class:'py-ok' });
+  const send = async (k, inp, go) => {
+    const v = inp.value.trim(); if (!v){ msg.className = 'xl-msg bad'; msg.textContent = 'Жауапты жазыңдар.'; return; }
+    go.disabled = true; msg.className = 'xl-msg'; msg.textContent = 'Тексерілуде…';
+    const r = await J().api('py/chest', { riddle:k, answer:v }); go.disabled = false;
+    if (!r.ok){ msg.className = 'xl-msg bad'; msg.textContent = r.error === 'wait' ? 'Келесі болжамға дейін 10 секунд күтіңіздер.' : (ERR[r.error] || 'Қате. Қайта көріңдер.'); return; }
+    D.pair = r.pair; D.total = r.total; D.scores = r.scores; paint();
+    if (!r.good){ msg.className = 'xl-msg bad'; msg.textContent = 'Жауап дұрыс емес. Қате жауап сыйлықтан 1 балл алады. Ойланыңдар немесе кеңес алыңдар.'; }
+    else if (!r.pair.chest.open){ msg.className = 'xl-msg ok'; msg.textContent = (k + 1) + '-сұрақтың жауабы дұрыс! Екінші сұрақты да тауып, сандықты ашыңдар.'; }
+  };
+  const ui = C.riddles.map((R, k) => {
+    const inp = el('input', { type:'text', maxlength:'60', class:'cf-input py-ans', placeholder:'Жауабың', autocomplete:'off', 'aria-label':(k + 1) + '-сұрақтың жауабы' });
+    const go = el('button', { type:'button', class:'btn primary', text:'Тексеру' }), st = el('span', { class:'py-chip' });
+    const body = [el('div', { class:'py-rtop' }, [el('b', { text:'❓ ' + (k + 1) + '-сұрақ' }), st])];
+    if (R.lines) body.push(el('div', { class:'py-riddle' }, R.lines.map(t => el('p', { text:t }))));
+    if (R.img) body.push(el('img', { class:'py-rimg', src:R.img, alt:R.alt || '' }));
+    body.push(el('p', { class:'py-text', text:R.ask }));
+    const form = el('div', { class:'py-codebox' }, [inp, go]); body.push(form);
+    go.addEventListener('click', () => send(k, inp, go));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(k, inp, go); });
+    return { card:el('div', { class:'py-rcard' }, body), inp, go, st, form };
+  });
+  chestUi = { chip, msg, info, win, ui };
+  return el('div', { class:'py-chest' }, [el('h4', {}, [el('span', { text:'🧰 Сандық' }), el('span', { class:'pt', text:C.max + ' балл' }), chip]), el('p', { class:'py-text', text:C.intro }), ...ui.map(u => u.card), msg, info, win]);
+}
+function paintChest(){
+  if (!chestUi || !D.pair || !D.pair.chest) return;
+  const C = D.pair.chest, u = chestUi, ph = phase(), live = ph === 'work' || ph === 'revise';
+  u.chip.textContent = C.open ? '🔓 ашылды' : '🔒 жабық'; u.chip.className = 'py-chip ' + (C.open ? 'ok' : '');
+  u.ui.forEach((r, k) => { const done = C.riddles[k].solved; r.form.hidden = done; r.go.disabled = !live; r.st.textContent = done ? '✓ жауабы табылды' : 'жауап күтілуде'; r.st.className = 'py-chip ' + (done ? 'ok' : ''); r.card.classList.toggle('done', done); });
+  u.info.hidden = C.open; u.info.textContent = 'Қазіргі сыйлық: ' + C.now + ' / ' + C.max + ' балл (кеңес: ' + C.used + ', қате жауап: ' + C.tries + '). Әр кеңес 2 балл, әр қате жауап 1 балл алады.';
+  u.win.hidden = !C.open; u.win.textContent = C.open ? '🎉 Сандық ашылды! Сыйлық: ' + C.pts + ' / ' + C.max + ' балл (кеңес: ' + C.used + ', қате жауап: ' + C.tries + ').' : '';
+  if (C.open) u.msg.textContent = '';
+}
+function quizOne(q){
+  const card = el('div', { class:'py-item py-quiz' }), box = el('div', { class:'mq' }), pick = { v:null }, fb = el('div', { class:'py-fb' });
+  const re = el('button', { type:'button', class:'btn sm', text:'Қайта жауап беру', hidden:true }), go = el('button', { type:'button', class:'btn primary', text:'✓ Жауап беру' }), msg = el('div', { class:'xl-msg', role:'status' });
+  box.append(el('p', { text:q.q }));
+  if (q.code) box.append(el('pre', { class:'py-qcode', text:q.code }));
+  const btns = q.opts.map(op => { const b = el('button', { type:'button', text:op.t }); b.addEventListener('click', () => { if (b.disabled) return; pick.v = op.i; btns.forEach(x => x.classList.toggle('sel', x === b)); }); box.append(b); return b; });
+  box.append(fb, re);
+  const send = () => { if (pick.v === null){ msg.className = 'xl-msg bad'; msg.textContent = 'Алдымен жауапты таңда.'; return; } submit(q, { choice:pick.v }, msg); };
+  re.addEventListener('click', send); go.addEventListener('click', send);
+  items[q.id].q = { box, pick, fb, re, go, btns, q, sig:'' };
+  card.append(box, el('div', { class:'stepbar' }, go), msg);
+  return card;
+}
+const TAGS = { code:'Код', test:'Тест', bug:'Қатені тап', trace:'Нәтижені тап' };
+function hintSlot(it, i){
+  const chip = el('span', { class:'py-chip' }), txt = el('div', { class:'py-hint', hidden:true });
+  hintUi[i] = { chip, txt };
+  return el('div', { class:'py-hcard' }, [el('div', { class:'py-htop' }, [el('b', { text:'💡 Кеңес · ' + (i < 2 ? 1 : 2) + '-сұраққа · ' + (TAGS[it.tag] || '') }), el('span', { class:'pt', text:it.max + ' балл' }), chip]), txt, it.kind === 'quiz' ? quizOne(it) : codeCard(it, { single:true })]);
+}
+function paintHints(){
+  if (!D.pair || !D.pair.hints) return;
+  D.pair.hints.forEach((h, i) => { const u = hintUi[i]; if (!u) return; u.txt.hidden = !h.got; u.txt.textContent = h.got ? '🔑 ' + h.text : ''; u.chip.textContent = h.got ? '✓ кеңес ашылды' : '🔒 жабық'; u.chip.className = 'py-chip ' + (h.got ? 'ok' : ''); });
+}
+function pairSection(sec, t){
+  const P = D.pair;
+  if (!P || !P.has){ sec.append(el('div', { class:'py-pairbox' }, [el('b', { text:'⏳ Жұп күтілуде' }), el('p', { class:'py-note', text:'Оқытушы жұптарды құрып жатыр. Жұбың белгілі болғанда бет өзі жаңарады (8 секунд сайын тексеріледі).' })])); return; }
+  sec.append(el('p', { class:'py-note', text:P.solo ? '👤 Жеке орындап жатырсың.' : '👥 Жұбың: ' + P.partner.name + '. Нәтиже екеуіңе де ортақ: серіктесің шешкен кеңес сенде де ашылады. Кеңес есептерін бөліп алуға болады.' }));
+  sec.append(chestPanel(), el('p', { class:'py-note', text:'Жауапты білмесеңдер, кеңес алыңдар. Кеңес есебін дұрыс шешсеңдер, кеңес мәтіні ашылады. Есептерді бөліп алуға болады.' }));
+  t.items.forEach((it, i) => { if (i % 2 === 0) sec.append(el('h4', { class:'a2h', text:(i / 2 + 1) + '-сұраққа арналған кеңестер' })); sec.append(hintSlot(it, i)); });
 }
 
 /* ---------- Көрсету ---------- */
 function paint(){
   if (!D || !D.ready) return;
+  paintChest(); paintHints();
   const ph = phase();
   Object.values(items).forEach(o => {
     const it = o.it, s = o.state;
     if (it.kind === 'quiz'){ paintQuiz(o, ph); return; }
     const [t, cls] = status(it, s); const chip = o.head.querySelector('.py-chip'); chip.textContent = t; chip.className = 'py-chip ' + cls;
     const can = s && s.done ? (s.canRevise && ph !== 'wait' && ph !== 'over') : ph === 'work';
-    o.bSend.hidden = !(s && s.done && s.best < 1);
+    o.bSend.hidden = o.single ? !!(s && s.best >= 1) : !(s && s.done && s.best < 1);
     o.bSend.disabled = !can || !!busy[it.id];
-    o.bSend.textContent = '↻ Түзетіп қайта жіберу (қалды ' + (s ? s.revLeft : 0) + ')';
+    o.bSend.textContent = s && s.done ? '↻ Түзетіп қайта жіберу (қалды ' + (s ? s.revLeft : 0) + ')' : '✓ Тексеруге жіберу';
     o.bHint.hidden = !(s && s.done && s.best < 1);
     o.ed.setDisabled(!(ph === 'work' || (s && s.done && s.canRevise && ph === 'revise')) );
     o.res.innerHTML = ''; o.res.append(resultBox(it, s));
@@ -167,15 +247,16 @@ function paint(){
   paintBar();
 }
 function paintQuiz(o, ph){
-  const q = o.q, s = o.state, it = o.it;
-  q.fb.innerHTML = ''; q.re.hidden = true;
+  const q = o.q, s = o.state, it = o.it, sig = ph + '|' + (s && s.done ? s.tries + ':' + s.best + ':' + (s.choice !== undefined ? s.choice : '') : '');
+  if (q.sig === sig) return; q.sig = sig;   /* 8 секундтық жаңартуда таңдалған нұсқа ысырылмауы үшін */
+  q.fb.innerHTML = ''; q.re.hidden = true; if (q.go) q.go.hidden = !!(s && s.done);
   if (s && s.done){
     q.btns.forEach(b => { b.disabled = true; });
     const chosen = s.choice !== undefined ? s.choice : null;
     q.btns.forEach((b, i) => { const op = q.q.opts[i]; b.classList.toggle('sel', op.i === chosen); b.classList.toggle('no', op.i === chosen && s.best < 1 && s.f1 < 1); b.classList.toggle('ok', op.i === chosen && s.f1 >= 1); });
     q.fb.append(resultBox(it, s, { explain:o.explain }));
     if (s.canRevise && ph !== 'over' && ph !== 'wait'){ q.btns.forEach(b => { b.disabled = false; b.classList.remove('sel'); }); q.re.hidden = false; q.pick.v = null; }
-  } else q.btns.forEach(b => { b.disabled = ph !== 'work'; });
+  } else { q.btns.forEach(b => { b.disabled = ph !== 'work'; }); if (q.go) q.go.disabled = ph !== 'work'; }
 }
 let barEl = null;
 function paintBar(){
@@ -184,22 +265,23 @@ function paintBar(){
   const label = ph === 'work' ? '⏱ Жұмыс: ' + mmss(left) : ph === 'revise' ? '🔁 Қатемен жұмыс: ' + mmss(left) : ph === 'over' ? 'Уақыт бітті' : 'Күтіңіз';
   const tot = barEl.querySelector('.py-bar-t'), sc = barEl.querySelector('.py-bar-s');
   tot.textContent = label; tot.className = 'py-bar-t' + (ph === 'work' && left <= 300 ? ' late' : ph === 'revise' ? ' rev' : '');
-  sc.textContent = 'Жиыны: ' + (Math.round((D.total || 0) * 10) / 10) + ' / 100';
+  sc.textContent = 'Жиыны: ' + (Math.round((D.total || 0) * 10) / 10) + ' / ' + maxTotal();
   barEl.querySelector('.py-bar-p').innerHTML = '';
-  [1, 2, 3, 4].forEach(n => { const x = D.scores && D.scores[n]; barEl.querySelector('.py-bar-p').append(el('span', { class:'py-pill' + (x && x.sent ? ' on' : ''), text:n + ': ' + (x && x.sent ? Math.round(x.pts * 10) / 10 : 0) + '/' + (x ? x.max : '') })); });
+  Object.keys(D.scores || {}).forEach(n => { const x = D.scores && D.scores[n]; barEl.querySelector('.py-bar-p').append(el('span', { class:'py-pill' + (x && x.sent ? ' on' : ''), text:n + ': ' + (x && x.sent ? Math.round(x.pts * 10) / 10 : 0) + '/' + (x ? x.max : '') })); });
   if (ph !== D._ph){ D._ph = ph; if (ph === 'revise' || ph === 'over') loadSummary(); }
 }
 
 /* ---------- Құру ---------- */
 function build(){
-  hosts.tasks.innerHTML = ''; items = {};
+  hosts.tasks.innerHTML = ''; items = {}; chestUi = null; hintUi = [];
   D.tasks.forEach(t => t.items.forEach(it => { items[it.id] = { it, state:D.state[it.id] }; }));
   barEl = el('div', { class:'py-bar', role:'status' }, [el('div', { class:'py-bar-t' }), el('div', { class:'py-bar-s' }), el('div', { class:'py-bar-p' })]);
   hosts.tasks.append(barEl);
   const info = { 1:'Берілген есептерге Python кодын жаз. Әр есеп жеке тексеріледі.', 2:'Күрделірек есептер. Кірістірілген шарттарды қолдан.', 3:'Кодта қате бар. Қатені тауып түзет.', 4:'5 сұрақ. Бір жауап таңда.' };
   D.tasks.forEach(t => {
-    const sec = el('div', { class:'tsk' + (t.n === 2 ? ' main' : '') }, [el('h3', {}, [el('span', { class:'num', text:String(t.n) }), t.title, el('span', { class:'pt', text:t.items.reduce((a, i) => a + i.max, 0) + ' балл' })]), el('p', { class:'muted', text:info[t.n] })]);
-    if (t.n === 4) sec.append(quizCard(t));
+    const sec = el('div', { class:'tsk' + (t.n === 2 ? ' main' : '') }, [el('h3', {}, [el('span', { class:'num', text:String(t.n) }), t.title, el('span', { class:'pt', text:t.items.reduce((a, i) => a + i.max, 0) + ' балл' })]), el('p', { class:'muted', text:t.info || info[t.n] })]);
+    if (t.pair) pairSection(sec, t);
+    else if (t.items[0].kind === 'quiz') sec.append(quizCard(t));
     else { t.items.forEach(it => sec.append(codeCard(it))); sec.append(taskBar(t)); }
     hosts.tasks.append(sec);
   });
@@ -211,7 +293,7 @@ async function loadData(){
   const m = me();
   if (!m){ hosts.tasks.innerHTML = ''; hosts.tasks.append(el('p', { class:'notice', text:'Тапсырмаларды көру үшін оқытушы көрсеткен кодпен сабаққа кіріңіз.' }), el('div', { class:'stepbar' }, el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру', onclick:() => J().open() }))); D = null; return; }
   if (m.guest){ hosts.tasks.innerHTML = ''; hosts.tasks.append(el('p', { class:'notice', text:'Мұғалім ретінде кірдіңіз. Тапсырмаларды студенттер орындайды.' })); return; }
-  if (!m.session || m.session.topic !== 'P7'){ hosts.tasks.innerHTML = ''; hosts.tasks.append(el('p', { class:'notice', text:'Бұл тақырып бойынша сабақ әлі ашылмаған. Оқытушы сабақты бастағанда осы бет жаңарады.' })); D = null; return; }
+  if (!m.session || m.session.topic !== (hosts.topic || 'P7')){ hosts.tasks.innerHTML = ''; hosts.tasks.append(el('p', { class:'notice', text:'Бұл тақырып бойынша сабақ әлі ашылмаған. Оқытушы сабақты бастағанда осы бет жаңарады.' })); D = null; return; }
   const who = m.student.name + '|' + m.session.id;
   if (D && D.ready && D.who === who){ paint(); return; }
   const j = await J().api('py/data');
@@ -227,13 +309,14 @@ async function loadData(){
 /* ---------- Қорытынды: дағдылар, уақыт, қайталау ---------- */
 async function loadSummary(){
   if (!hosts.summary) return;
+  if (!me()){ hosts.summary.innerHTML = ''; hosts.summary.append(el('p', { class:'notice', text:'Нәтижеңді көру үшін алдымен сабаққа кіріңіз.' }), el('div', { class:'stepbar' }, el('button', { type:'button', class:'btn primary', text:'🔑 Сабаққа кіру', onclick:() => J().open() }))); return; }
   const j = await J().api('py/summary'); if (!j.ok) return;
   const box = hosts.summary; box.innerHTML = '';
   const mm = s => s === null ? '—' : mmss(s);
-  box.append(el('div', { class:'py-total' }, [el('b', { text:'Жиыны: ' + (Math.round(j.total * 10) / 10) + ' / 100' }), el('span', { text:' (қатемен жұмыс есепке алынған)' })]));
+  box.append(el('div', { class:'py-total' }, [el('b', { text:'Жиыны: ' + (Math.round(j.total * 10) / 10) + ' / ' + Object.values(j.scores || {}).reduce((a, x) => a + x.max, 0) }), el('span', { text:' (қатемен жұмыс есепке алынған)' })]));
   const done = j.rows.filter(r => r.done);
   if (!done.length){ box.append(el('p', { class:'muted', text:'Әлі есеп жіберілген жоқ.' })); return; }
-  box.append(el('div', { class:'tbwrap' }, el('table', { class:'tb' }, [el('thead', {}, el('tr', {}, ['Есеп', 'Балл', 'Әрекет', 'Бірінші әрекет', 'Уақыт'].map(t => el('th', { text:t })))), el('tbody', {}, j.rows.map(r => el('tr', {}, [el('td', { text:r.task + '.' + (r.id % 10) + ' ' + r.title }), el('td', { text:r.done ? (Math.round(r.pts * 10) / 10) + ' / ' + r.max : '—' }), el('td', { text:r.done ? String(r.tries) : '—' }), el('td', { text:r.done ? Math.round(r.f1 * 100) + '%' : '—' }), el('td', { text:mm(r.secs) })])))])));
+  box.append(el('div', { class:'tbwrap' }, el('table', { class:'tb' }, [el('thead', {}, el('tr', {}, ['Есеп', 'Балл', 'Әрекет', 'Бірінші әрекет', 'Уақыт'].map(t => el('th', { text:t })))), el('tbody', {}, j.rows.map(r => el('tr', {}, [el('td', { text:r.task + '.' + (r.k || (r.id % 10)) + ' ' + r.title }), el('td', { text:r.done ? (Math.round(r.pts * 10) / 10) + ' / ' + r.max : '—' }), el('td', { text:r.done ? String(r.tries) : '—' }), el('td', { text:r.done ? Math.round(r.f1 * 100) + '%' : '—' }), el('td', { text:mm(r.secs) })])))])));
   const rep = j.skills.filter(s => s.state === 'repeat'), fx = j.skills.filter(s => s.state === 'fixed'), okk = j.skills.filter(s => s.state === 'ok');
   const list = (arr, cls, ico) => arr.map(s => el('li', { class:cls }, [el('b', { text:ico + ' ' + s.name }), el('p', { text:s.tip })]));
   if (rep.length) box.append(el('h4', { class:'a2h', text:'Қайталауға тұрады' }), el('ul', { class:'py-skills' }, list(rep, 'bad', '⚠')));
@@ -246,6 +329,7 @@ window.PyWork = {
   mount(h){
     hosts = h; root = h.tasks;
     J().on(() => loadData());
+    clearInterval(pairTimer); pairTimer = setInterval(() => { if (document.hidden || !D || !D.pair) return; if (!D.pair.has){ J().api('py/data').then(j => { if (j.ok && j.pair && j.pair.has){ D = null; loadData(); } }); } else if (!D.pair.solo && phase() !== 'over') refreshPair(); }, 8000);
     if (h.summaryBtn) h.summaryBtn.addEventListener('click', loadSummary);
     loadData();
   }

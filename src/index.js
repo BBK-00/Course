@@ -9,8 +9,8 @@ import { gradeSb3 } from './scratch.js';
 import { gradeA2Task } from './a2.js';
 import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
-import { pyStudent, pyStats } from './pyapi.js';
-import { isPy } from './py.js';
+import { pyStudent, pyStats, pyPairsLive, pyPairAdmin } from './pyapi.js';
+import { isPy, pyTasks } from './py.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} ready = true; }
@@ -99,14 +99,17 @@ async function route(request, env, ctx, url) {
     const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
     if (busy.n >= 6) return err('wait', 429);
     await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
-    if ((await DB.prepare('SELECT COUNT(*) AS n FROM submissions WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first()).n) return err('already', 409);
+    const prev = await all(DB.prepare('SELECT task, payload, auto_score FROM submissions WHERE session_id=? AND student_id=? AND task IN (1,2,3)').bind(p.ses, p.st)), used = xlUsed(prev);
+    if (used >= XL_TRIES) return err('already', 409);
     const buf = await request.arrayBuffer();
     if (!buf.byteLength || buf.byteLength > 3e6) return err('bad_file');
     const res = await gradeFile(dataFor(p.st, p.ses), buf, await stampOf(env, p.st, p.ses));
     if (res.error) return err(res.error);
     const t0 = now();
-    await DB.batch(res.sheets.map((sh, i) => DB.prepare('INSERT OR REPLACE INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?)').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, match: res.match }), '{}', sh.pts, t0)));
-    return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: res.sheets });
+    /* 3 жібергенге дейін рұқсат: әр лист бойынша бұрынғы және жаңа файлдың ең жақсы нәтижесі сақталады */
+    const keep = res.sheets.map((sh, i) => { const o = prev.find(r => r.task === i + 1); if (o && o.auto_score > sh.pts) { try { return { items: JSON.parse(o.payload).items, pts: o.auto_score }; } catch (e) {} } return sh; });
+    await DB.batch(keep.map((sh, i) => DB.prepare('INSERT INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id, task) DO UPDATE SET payload=excluded.payload, auto_score=excluded.auto_score, submitted_at=excluded.submitted_at').bind(p.ses, p.st, i + 1, JSON.stringify({ items: sh.items, match: res.match, n: used + 1 }), '{}', sh.pts, t0)));
+    return json({ ok: true, ...(await studentState(env, p.ses, p.st)), sheets: keep });
   }
 
   /* АКТ 2: 4 тапсырма сайттың өзінде орындалады, әрқайсысы жеке жіберіледі және автоматты тексеріледі */
@@ -380,6 +383,10 @@ async function loadFor(DB, ses_id, st_id) {
   return { att, subs, res, bonus: bn ? bn.n : 0 };
 }
 
+/* Excel жұмысын ең көбі 3 рет жіберуге болады; жіберу саны 1-лист жолының payload.n өрісінде тұрады */
+const XL_TRIES = 3;
+const xlUsed = subs => { const s = (subs || []).find(x => Number(x.task) === 1); if (!s) return 0; try { const pl = typeof s.payload === 'string' ? JSON.parse(s.payload) : (s.payload || {}); return Math.max(1, Number(pl.n) || 1); } catch (e) { return 1; } };
+
 /* Студентке көрінетін күй: ұпайлар, таймер. ЖИ түсініктемесі көрсетілмейді. */
 async function studentState(env, ses_id, st_id) {
   const DB = env.DB;
@@ -391,9 +398,9 @@ async function studentState(env, ses_id, st_id) {
   const fbk = await DB.prepare('SELECT 1 AS x FROM feedback WHERE session_id=? AND student_id=?').bind(ses_id, st_id).first();
   const starts = {}; (await all(DB.prepare('SELECT task, started_at FROM task_starts WHERE session_id=? AND student_id=?').bind(ses_id, st_id))).forEach(r => { starts[r.task] = r.started_at; });
   const tasks = {};
-  (ses.topic === 'A2' || isPy(ses.topic) ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: (TOPICS[ses.topic].limits[n] || 0), zero: t.zero || '', late: t.late || 0, lf: t.late_factor || 1 }; });
+  (isPy(ses.topic) ? pyTasks(ses.topic) : ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, started_at: starts[n] || null, limit: (TOPICS[ses.topic].limits[n] || 0), zero: t.zero || '', late: t.late || 0, lf: t.late_factor || 1 }; });
   const data = ses.topic === '7' ? data7(att.variant) : undefined;
-  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, data, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete };
+  return { ok: true, student: { name: st.full_name, group: st.gname }, variant: att.variant, data, session: { id: ses.id, topic: ses.topic, status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at }, now: now(), attendance: c.attendance, tasks, total: c.final, bonus: c.bonus, feedback: !!fbk, complete: c.complete, ...(ses.topic === '10' ? { xl: { used: xlUsed(subs), max: XL_TRIES } } : {}) };
 }
 
 /* ---------------- Оқытушы маршруттары ---------------- */
@@ -487,6 +494,7 @@ async function teacher(path, method, b, env, ctx, url) {
     return json({ ok: true });
   }
 
+  if (path.startsWith('pairs/') && method === 'POST') return pyPairAdmin(path, b, DB);
   if (path === 'py_stats' && method === 'GET') return pyStats(DB, Number(url.searchParams.get('session')) || 0);
 
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */
@@ -510,10 +518,11 @@ async function teacher(path, method, b, env, ctx, url) {
       const a = A.get(s.id);
       s.present = !!a; s.joined_at = a ? a.joined_at : null; s.variant = a ? a.variant : null; s.device = a ? !!a.device_id : false; s.manual = a ? !!a.manual : false;
       const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0, ses.topic);
-      s.bonus = c.bonus; s.tasks = {}; (ses.topic === 'A2' || isPy(ses.topic) ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
+      s.bonus = c.bonus; s.tasks = {}; (isPy(ses.topic) ? pyTasks(ses.topic) : ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests });
+    const pr = ses.topic === 'P8' ? await pyPairsLive(DB, ses) : null;
+    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests, ...(pr ? { pairs: pr.pairs, free: pr.free } : {}) });
   }
 
   /* Бір студенттің толық жұмысы */
@@ -523,7 +532,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ['10', 'S7', 'A13', 'A2', 'P7'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    const x10 = ['10', 'S7', 'A13', 'A2', 'P7', 'P8'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });

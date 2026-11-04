@@ -17,5 +17,7 @@ export const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS join_fails ( student_id INTEGER NOT NULL, at INTEGER NOT NULL )",
   "CREATE TABLE IF NOT EXISTS py_attempts ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, item INTEGER NOT NULL, n INTEGER NOT NULL, at INTEGER NOT NULL, frac REAL NOT NULL, passed INTEGER, total INTEGER, code TEXT, detail TEXT, signals TEXT, hash TEXT, UNIQUE (session_id, student_id, item, n) )",
   "CREATE INDEX IF NOT EXISTS idx_py_att ON py_attempts(session_id, student_id)",
-  "CREATE TABLE IF NOT EXISTS py_hints ( session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, item INTEGER NOT NULL, at INTEGER NOT NULL )"
+  "CREATE TABLE IF NOT EXISTS py_hints ( session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, item INTEGER NOT NULL, at INTEGER NOT NULL )",
+  "CREATE TABLE IF NOT EXISTS py_pairs ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, a_id INTEGER NOT NULL, b_id INTEGER, created_at INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0, try_at INTEGER, last TEXT, open_at INTEGER, hints INTEGER, UNIQUE (session_id, a_id) )",
+  "CREATE INDEX IF NOT EXISTS idx_py_pairs_b ON py_pairs(session_id, b_id)"
 ];
