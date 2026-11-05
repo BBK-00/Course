@@ -1,0 +1,36 @@
+/* Run only against an isolated local Wrangler DB after py4.api.test.mjs. */
+import assert from 'node:assert/strict';
+const base = process.env.BASE || 'http://127.0.0.1:8788';
+if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base)) throw new Error('Local test server only');
+const call = async (p, body, token) => {
+  const r = await fetch(base + '/api/' + p, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer '+token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  return { status:r.status, ...await r.json() };
+};
+const login = await call('teacher/login', { password:process.env.PASS || 'test123' });
+assert(login.ok);
+const T = (p,b) => call('teacher/'+p,b,login.token);
+assert.equal((await call('teacher/homework')).status,401);
+const hw = await T('homework'); assert(hw.ok && hw.rows.length);
+assert(hw.rows.every(r => !('photo' in r)), 'Summary must not transfer full images');
+const item = hw.rows[0], path = 'work?session='+item.session_id+'&student='+item.student_id;
+let work = await T(path); assert(work.ok && work.hw.photo);
+assert(work.attempts.some(a => a.code && a.task === 2), 'Teacher can inspect original code attempts');
+const sub = work.subs.find(s=>s.task===1);
+assert((await T('task_grade',{id:sub.id,task:1,score:13,comment:'Сақталуын тексеру'})).ok);
+const snapshot = () => T(path).then(({calc,subs,hw,attempts})=>JSON.stringify({calc,subs,hw,attempts}));
+const before = await snapshot();
+const groupsBefore = JSON.stringify((await T('roster')).groups);
+const sessions = await T('sessions');
+const session = sessions.rows.find(r=>r.id===item.session_id);
+assert((await T('session/start',{topic:'P7',group_id:session.group_id})).ok);
+assert.equal((await T('consolidate?session='+item.session_id)).session.id,item.session_id);
+assert.equal((await T('feedback?session='+item.session_id)).present,2);
+await T('live?session='+item.session_id); await T('homework');
+await T('py_stats?session='+item.session_id); await T('sessions');
+const journal = await T('journal');
+const score = journal.groups.flatMap(g=>g.students).find(s=>s.id===item.student_id).scores.P4;
+assert.equal(score.sent,work.subs.filter(s=>[1,2,3,4,5].includes(s.task)).length,'Homework included in sent-task count');
+assert.equal(await snapshot(),before,'Read-only dashboard views must preserve answers, images, scores and teacher comments');
+assert.equal(JSON.stringify((await T('roster')).groups),groupsBefore,'Roster must remain unchanged');
+await T('session/close',{});
+console.log('Dashboard: teacher-only access, archived context, 5-task journal and stored-data preservation passed.');

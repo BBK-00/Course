@@ -10,7 +10,7 @@ import { gradeA2Task } from './a2.js';
 import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
 import { pyStudent, pyStats, pyPairsLive, pyPairAdmin, pyWins, pyWinAdmin } from './pyapi.js';
-import { isPy, pyTasks, consoleHarness, NEED_MARK } from './py.js';
+import { isPy, pyTasks, lessonOf, consoleHarness, NEED_MARK } from './py.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} ready = true; }
@@ -507,6 +507,12 @@ async function teacher(path, method, b, env, ctx, url) {
   if (path.startsWith('pairs/') && method === 'POST') return pyPairAdmin(path, b, DB);
   if (path === 'py_stats' && method === 'GET') return pyStats(DB, Number(url.searchParams.get('session')) || 0);
 
+  /* Teacher-only summary; images are fetched only when a student's work is opened. */
+  if (path === 'homework' && method === 'GET') {
+    const rows = await all(DB.prepare("SELECT h.session_id, h.student_id, h.score, h.attempts, h.at, s.full_name AS name, g.name AS gname, se.topic, x.teacher_score FROM py_hw h JOIN students s ON s.id=h.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=h.session_id LEFT JOIN submissions x ON x.session_id=h.session_id AND x.student_id=h.student_id AND x.task=5 ORDER BY h.at DESC"));
+    return json({ ok: true, rows: rows.map(r => ({ ...r, group: r.gname })) });
+  }
+
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */
   if (path === 'live' && method === 'GET') {
     const want = Number(url.searchParams.get('session')) || 0;
@@ -528,7 +534,7 @@ async function teacher(path, method, b, env, ctx, url) {
       const a = A.get(s.id);
       s.present = !!a; s.joined_at = a ? a.joined_at : null; s.variant = a ? a.variant : null; s.device = a ? !!a.device_id : false; s.manual = a ? !!a.manual : false;
       const c = compute(a, S[s.id] || [], R.get(s.id), BN.get(s.id) || 0, ses.topic);
-      s.bonus = c.bonus; s.tasks = {}; (isPy(ses.topic) ? pyTasks(ses.topic) : ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; s.tasks[n] = { sent: t.sent, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
+      s.bonus = c.bonus; s.tasks = {}; (isPy(ses.topic) ? pyTasks(ses.topic) : ses.topic === 'A2' ? [1, 2, 3, 4] : [1, 2, 3]).forEach(n => { const t = c.tasks[n]; let payload = {}; try { payload = JSON.parse((S[s.id] || []).find(x => x.task === n)?.payload || '{}'); } catch {} s.tasks[n] = { sent: t.sent, done: isPy(ses.topic) ? !!payload.done : t.sent && !t.pending, pts: t.pts, max: t.max, pending: !!t.pending, ai_pct: t.ai_pct === undefined ? null : t.ai_pct }; });
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
     const pr = ses.topic === 'P8' ? await pyPairsLive(DB, ses) : null;
@@ -544,9 +550,16 @@ async function teacher(path, method, b, env, ctx, url) {
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
     const x10 = ['10', 'S7', 'A13', 'A2', 'P4', 'P7', 'P8'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    let attempts;
+    if (isPy(ses.topic) && att) {
+      const labels = Object.fromEntries(lessonOf(ses.topic, att.variant).flatMap(t => t.items.map(i => [i.id, { task: t.n, title: i.title }])));
+      const rows = await all(DB.prepare('SELECT item, n, at, frac, code, detail FROM py_attempts WHERE session_id=? AND student_id=? ORDER BY item, n').bind(sid, stu));
+      attempts = rows.map(r => { let detail = {}; try { detail = JSON.parse(r.detail || '{}'); } catch {} return { ...r, ...labels[r.item], detail }; });
+    }
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
       subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })),
+      ...(attempts ? { attempts } : {}),
       ...(ses.topic === 'P4' ? { hw: await DB.prepare('SELECT photo, mime, score, comment, attempts FROM py_hw WHERE session_id=? AND student_id=?').bind(sid, stu).first() } : {}) });
   }
   if (path === 'task_grade' && method === 'POST') {
@@ -584,7 +597,8 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Бекіту: ең аз балл алған 10 студент, бонус балл */
   if (path === 'consolidate' && method === 'GET') {
-    const ses = await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    const requested = Number(url.searchParams.get('session')) || 0;
+    const ses = requested ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(requested).first() : await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
     if (!ses) return json({ ok: true, session: null, low: [], log: [] });
     const [atts, subs, ress, bns, studs, log] = await Promise.all([
       all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)), all(DB.prepare('SELECT * FROM submissions WHERE session_id=?').bind(ses.id)),
@@ -609,7 +623,8 @@ async function teacher(path, method, b, env, ctx, url) {
     return json({ ok: true });
   }
   if (path === 'feedback' && method === 'GET') {
-    const ses = await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    const requested = Number(url.searchParams.get('session')) || 0;
+    const ses = requested ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(requested).first() : await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
     if (!ses) return json({ ok: true, rows: [], levels: [0, 0, 0, 0, 0], present: 0 });
     const rows = await all(DB.prepare('SELECT f.level, f.learned, f.hard, f.comment, f.at, s.full_name, g.name AS gname FROM feedback f JOIN students s ON s.id=f.student_id JOIN groups g ON g.id=s.group_id WHERE f.session_id=? ORDER BY f.at DESC').bind(ses.id));
     const present = (await DB.prepare('SELECT COUNT(*) AS n FROM attendance WHERE session_id=?').bind(ses.id).first()).n;
@@ -629,7 +644,7 @@ async function teacher(path, method, b, env, ctx, url) {
     const S = {}; subs.forEach(s => { (S[key(s.session_id, s.student_id)] = S[key(s.session_id, s.student_id)] || []).push(s); });
     groups.forEach(g => g.students.forEach(s => {
       s.scores = {};
-      topics.forEach(t => { let best = null; sess.filter(x => x.topic === t).forEach(se => { const k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t); if (!best || c.final > best.c.final || (c.final === best.c.final && se.id > best.se.id)) best = { se, c }; }); const { se, c } = best; s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, present: !!A.get(key(se.id, s.id)), sent: [1, 2, 3, 4].filter(n => c.tasks[n] && c.tasks[n].sent).length, topic: t, edited: c.edited_total }; });   /* бір тақырып бірнеше рет өтсе, студенттің ең жақсы нәтижесі */
+      topics.forEach(t => { let best = null; sess.filter(x => x.topic === t).forEach(se => { const k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t); if (!best || c.final > best.c.final || (c.final === best.c.final && se.id > best.se.id)) best = { se, c }; }); const { se, c } = best; s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, present: !!A.get(key(se.id, s.id)), sent: Object.values(c.tasks).filter(t => t.sent).length, topic: t, edited: c.edited_total }; });   /* бір тақырып бірнеше рет өтсе, студенттің ең жақсы нәтижесі */
     }));
     return json({ ok: true, topics, titles: Object.fromEntries(topics.map(t => [t, (TOPICS[t] || {}).title || t])), groups });
   }
