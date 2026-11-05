@@ -19,6 +19,10 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 const err = (code, status = 400, extra) => json({ ok: false, error: code, ...(extra || {}) }, status);
 const now = () => Math.floor(Date.now() / 1000);
 const all = async st => (await st.all()).results || [];
+// Trashed lessons retain all their data, but never become the default lesson.
+const visibleSession = (DB, id = 0) => id
+  ? DB.prepare('SELECT * FROM sessions s WHERE id=? AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)').bind(id).first()
+  : DB.prepare("SELECT * FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id) ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
 
 export default {
   async fetch(request, env, ctx) {
@@ -473,16 +477,39 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   /* Кездейсоқ жабылған сабақты қайта ашу: ашық сабақ болса, ол жабылады; қатысым мен жұмыстар сақталады */
   if (path === 'sessions' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM students st WHERE st.group_id=s.group_id AND st.active=1) AS total, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs FROM sessions s ORDER BY s.id DESC LIMIT 300"));
-    return json({ ok: true, now: now(), rows: rows.filter(r => r.att > 0) });
+    const trash = url.searchParams.get('trash') === '1';
+    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, t.removed_at, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM students st WHERE st.group_id=s.group_id AND st.active=1) AS total, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs, (SELECT COUNT(*) FROM submissions x WHERE x.session_id=s.id) AS work_count, (SELECT COUNT(*) FROM py_hw h WHERE h.session_id=s.id) AS homework, (SELECT COUNT(*) FROM py_attempts p WHERE p.session_id=s.id) AS attempts, (SELECT COUNT(*) FROM results r WHERE r.session_id=s.id) AS results_count, (SELECT COUNT(*) FROM feedback f WHERE f.session_id=s.id) AS feedback_count FROM sessions s LEFT JOIN session_trash t ON t.session_id=s.id WHERE t.session_id IS " + (trash ? 'NOT NULL' : 'NULL') + ' ORDER BY ' + (trash ? 't.removed_at DESC, ' : '') + 's.id DESC'));
+    const counts = await DB.prepare('SELECT COUNT(*) AS total, COUNT(t.session_id) AS trash FROM sessions s LEFT JOIN session_trash t ON t.session_id=s.id').first();
+    return json({ ok: true, now: now(), rows, counts: { archive: counts.total - counts.trash, trash: counts.trash } });
+  }
+  if ((path === 'session/trash' || path === 'session/restore') && method === 'POST') {
+    const input = b.ids ?? [b.id];
+    if (!Array.isArray(input) || !input.length || input.length > 1000 || input.some(id => !Number.isSafeInteger(id) || id <= 0)) return err('bad_request');
+    const ids = [...new Set(input)], packed = JSON.stringify(ids);
+    const rows = await all(DB.prepare('SELECT id, status FROM sessions WHERE id IN (SELECT value FROM json_each(?))').bind(packed));
+    if (rows.length !== ids.length) return err('not_found', 404);
+    if (path === 'session/restore') {
+      const r = await DB.prepare('DELETE FROM session_trash WHERE session_id IN (SELECT value FROM json_each(?))').bind(packed).run();
+      return json({ ok: true, changed: r.meta.changes });
+    }
+    if (rows.some(r => r.status === 'open')) return err('session_open', 409);
+    // One statement: if even one selected lesson is reopened concurrently, none move to trash.
+    const r = await DB.prepare("INSERT OR IGNORE INTO session_trash (session_id, removed_at) SELECT id, ? FROM sessions WHERE id IN (SELECT value FROM json_each(?)) AND NOT EXISTS (SELECT 1 FROM sessions WHERE status='open' AND id IN (SELECT value FROM json_each(?)))").bind(now(), packed, packed).run();
+    const remaining = await DB.prepare('SELECT COUNT(*) AS n FROM sessions s WHERE id IN (SELECT value FROM json_each(?)) AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)').bind(packed).first();
+    if (remaining.n) return err('session_open', 409);
+    return json({ ok: true, changed: r.meta.changes });
   }
   if (path === 'session/reopen' && method === 'POST') {
     const id = Number(b.id), ses = await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(id).first();
     if (!ses) return err('not_found', 404);
+    if (await DB.prepare('SELECT 1 FROM session_trash WHERE session_id=?').bind(id).first()) return err('session_trashed', 409);
     const extra = Math.max(0, Math.min(120, Math.round(Number(b.minutes) || 0))), t = now();
     const until = ses.work_until && extra ? Math.max(ses.work_until, t) + extra * 60 : ses.work_until;
-    await DB.prepare("UPDATE sessions SET status='closed' WHERE status='open' AND id!=?").bind(id).run();
-    await DB.prepare("UPDATE sessions SET status='open', work_until=? WHERE id=?").bind(until === undefined ? null : until, id).run();
+    await DB.batch([
+      DB.prepare("UPDATE sessions SET status='closed' WHERE status='open' AND id!=? AND NOT EXISTS (SELECT 1 FROM session_trash WHERE session_id=?)").bind(id, id),
+      DB.prepare("UPDATE sessions SET status='open', work_until=? WHERE id=? AND NOT EXISTS (SELECT 1 FROM session_trash WHERE session_id=?)").bind(until === undefined ? null : until, id, id)
+    ]);
+    if (await DB.prepare('SELECT 1 FROM session_trash WHERE session_id=?').bind(id).first()) return err('session_trashed', 409);
     return json({ ok: true });
   }
   if (path === 'session/close' && method === 'POST') {
@@ -509,14 +536,14 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Teacher-only summary; images are fetched only when a student's work is opened. */
   if (path === 'homework' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT h.session_id, h.student_id, h.score, h.attempts, h.at, s.full_name AS name, g.name AS gname, se.topic, x.teacher_score FROM py_hw h JOIN students s ON s.id=h.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=h.session_id LEFT JOIN submissions x ON x.session_id=h.session_id AND x.student_id=h.student_id AND x.task=5 ORDER BY h.at DESC"));
+    const rows = await all(DB.prepare("SELECT h.session_id, h.student_id, h.score, h.attempts, h.at, s.full_name AS name, g.name AS gname, se.topic, x.teacher_score FROM py_hw h JOIN students s ON s.id=h.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=h.session_id LEFT JOIN submissions x ON x.session_id=h.session_id AND x.student_id=h.student_id AND x.task=5 WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=se.id) ORDER BY h.at DESC"));
     return json({ ok: true, rows: rows.map(r => ({ ...r, group: r.gname })) });
   }
 
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */
   if (path === 'live' && method === 'GET') {
     const want = Number(url.searchParams.get('session')) || 0;
-    const ses = want ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(want).first() : await DB.prepare('SELECT * FROM sessions ORDER BY (status=\'open\') DESC, id DESC LIMIT 1').first();
+    const ses = await visibleSession(DB, want);
     let groups = await roster(DB);
     const allGroups = groups.map(g => ({ id: g.id, name: g.name, students: g.students }));
     if (ses && ses.group_id) groups = groups.filter(g => g.id === ses.group_id);
@@ -598,7 +625,7 @@ async function teacher(path, method, b, env, ctx, url) {
   /* Бекіту: ең аз балл алған 10 студент, бонус балл */
   if (path === 'consolidate' && method === 'GET') {
     const requested = Number(url.searchParams.get('session')) || 0;
-    const ses = requested ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(requested).first() : await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    const ses = await visibleSession(DB, requested);
     if (!ses) return json({ ok: true, session: null, low: [], log: [] });
     const [atts, subs, ress, bns, studs, log] = await Promise.all([
       all(DB.prepare('SELECT * FROM attendance WHERE session_id=?').bind(ses.id)), all(DB.prepare('SELECT * FROM submissions WHERE session_id=?').bind(ses.id)),
@@ -624,7 +651,7 @@ async function teacher(path, method, b, env, ctx, url) {
   }
   if (path === 'feedback' && method === 'GET') {
     const requested = Number(url.searchParams.get('session')) || 0;
-    const ses = requested ? await DB.prepare('SELECT * FROM sessions WHERE id=?').bind(requested).first() : await DB.prepare("SELECT * FROM sessions ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
+    const ses = await visibleSession(DB, requested);
     if (!ses) return json({ ok: true, rows: [], levels: [0, 0, 0, 0, 0], present: 0 });
     const rows = await all(DB.prepare('SELECT f.level, f.learned, f.hard, f.comment, f.at, s.full_name, g.name AS gname FROM feedback f JOIN students s ON s.id=f.student_id JOIN groups g ON g.id=s.group_id WHERE f.session_id=? ORDER BY f.at DESC').bind(ses.id));
     const present = (await DB.prepare('SELECT COUNT(*) AS n FROM attendance WHERE session_id=?').bind(ses.id).first()).n;
@@ -634,7 +661,7 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Журнал: студент × тақырып (қатысым + қорытынды) */
   if (path === 'journal' && method === 'GET') {
-    const sess = await all(DB.prepare('SELECT * FROM sessions ORDER BY id'));
+    const sess = await all(DB.prepare('SELECT * FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id) ORDER BY id'));
     const groups = await roster(DB, true);
     const [atts, subs, ress, bns] = await Promise.all([all(DB.prepare('SELECT * FROM attendance')), all(DB.prepare('SELECT * FROM submissions')), all(DB.prepare('SELECT * FROM results')), all(DB.prepare('SELECT session_id, student_id, SUM(points) AS n FROM bonus GROUP BY session_id, student_id'))]);
     const topics = [...new Set(sess.map(s => s.topic))].sort(), latest = {};
