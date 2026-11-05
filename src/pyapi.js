@@ -52,9 +52,16 @@ const HW_PROMPT = [
   'SCORE 0-25: input() is used for all 5 fields (10 points, 2 per field); the result is printed with print() (5); the output is neatly formatted as a card, for example a frame, lines, labels, f-string or joined text (6); syntax and readability: correct brackets, quotes, variable names (4).',
   'If the image is unreadable, unrelated or empty, give 0-3 and say in the comment what to retake. If only the output is shown without the code, judge by what is visible and give at most 18. Be fair and encouraging; a minor typo costs at most 1 point.'
 ].join('\n');
+export const gradeHomeworkPhoto = (env, photo, mime) => callGemini(env, HW_PROMPT, 5, { mime, data: photo }, HW_SCHEMA, { score: 20, comment: 'Жақсы жұмыс! Тест бағасы.' }, {
+  model: env.GEMINI_HOMEWORK_MODEL || 'gemini-flash-lite-latest', budgetMs: 28000, timeoutMs: 8000,
+  validate: result => typeof result.score === 'number' && Number.isFinite(result.score) && typeof result.comment === 'string' && !!result.comment.trim()
+});
 async function hwInfo(DB, p, wins, t0) {
-  const w = wins[5], row = await DB.prepare('SELECT score, comment, attempts, at FROM py_hw WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
-  return { open: true, until: null,   /* үй жұмысы әрқашан ашық: сабаққа кірген студент кез келген уақытта жүктейді */ done: !!row, score: row ? row.score : null, comment: row ? row.comment : '', attempts: row ? row.attempts : 0, max: HW_MAX, tries: 3 };
+  const row = await DB.prepare('SELECT score, comment, attempts, at FROM py_hw WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
+  const upload = await DB.prepare('SELECT status,error_kind,updated_at FROM py_hw_uploads WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
+  const status = upload?.status === 'checking' ? (upload.updated_at > t0 - 90 ? 'checking' : 'error') : upload?.status === 'error' ? 'error' : row ? 'graded' : 'none';
+  return { open: true, until: null, done: !!row, score: row ? row.score : null, comment: row ? row.comment : '', attempts: row ? row.attempts : 0, max: HW_MAX, tries: 3,
+    status, saved: !!upload || !!row, retryable: status === 'error', error_kind: status === 'error' ? upload.error_kind || 'timeout' : null };
 }
 const seedOf = (p) => p.st * 7 + p.ses;
 
@@ -101,7 +108,8 @@ async function pairView(DB, pair, st, task2, by) {
     hints: task2.items.map((it, i) => ({ id: it.id, tag: it.tag, label: it.label, riddle: RIDDLE_OF_HINT(i), got: got[i], text: got[i] ? ch.hints[i] : '' })),
     chest: { intro: ch.intro, riddles: ch.riddles.map((r, k) => ({ ...r, solved: solvedOf(pair)[k] })), open, tries: pair.tries, max: CHEST.max, pts: open ? chestPts(pair.hints, pair.tries) : 0, now: chestPts(found, pair.tries), used: open ? pair.hints : found } };
 }
-const writeSub = (DB, ses, st, tn, pl, auto, flags) => DB.prepare('INSERT INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id, task) DO UPDATE SET payload=excluded.payload, auto_score=excluded.auto_score, submitted_at=excluded.submitted_at, flags=excluded.flags').bind(ses, st, tn, JSON.stringify({ items: pl.items, done: pl.done }), '{}', auto, now(), flags).run();
+const subStatement = (DB, ses, st, tn, pl, auto, flags) => DB.prepare('INSERT INTO submissions (session_id, student_id, task, payload, signals, auto_score, submitted_at, flags) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id, task) DO UPDATE SET payload=excluded.payload, auto_score=excluded.auto_score, submitted_at=excluded.submitted_at, flags=excluded.flags').bind(ses, st, tn, JSON.stringify({ items: pl.items, done: pl.done }), '{}', auto, now(), flags);
+const writeSub = (...args) => subStatement(...args).run();
 /* жұптың нәтижесін екі студенттің қатарына да жазады */
 async function syncPair(DB, ses, p, pair, task2, by, myName) {
   const pt = await partnerOf(DB, pair, p.st), pl = pairPayload(task2, by, pair, pt && pt.name);
@@ -288,15 +296,30 @@ export async function pyStudent(path, method, b, request, env) {
   if (path === 'py/hw' && method === 'POST') {
     if (ses.topic !== 'P4') return err('not_found', 404);
     const wins = await pyWins(DB, p.ses);
-    const photo = String(b.photo || ''), mime = /^image\/(jpeg|png|webp)$/.test(String(b.mime)) ? String(b.mime) : 'image/jpeg';
+    const saved = await DB.prepare('SELECT photo,mime,status,updated_at FROM py_hw_uploads WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
+    const photo = b.retry && saved ? saved.photo : String(b.photo || ''), mime = b.retry && saved ? saved.mime : /^image\/(jpeg|png|webp)$/.test(String(b.mime)) ? String(b.mime) : 'image/jpeg';
     if (photo.length < 2000 || photo.length > 950000 || !/^[A-Za-z0-9+/=]+$/.test(photo.slice(0, 400))) return err('bad_request');
     const prev = await DB.prepare('SELECT attempts, at FROM py_hw WHERE session_id=? AND student_id=?').bind(p.ses, p.st).first();
     if (prev && prev.attempts >= 3) return err('no_tries', 409);
     if (prev && t0 - prev.at < 20) return err('wait', 429);
-    let r; try { r = await callGemini(env, HW_PROMPT, 5, { mime, data: photo }, HW_SCHEMA, { score: 20, comment: 'Жақсы жұмыс! Тест бағасы.' }); } catch (e) { return err('ai', 502); }
+    if (saved?.status === 'error' && t0 - saved.updated_at < 5) return err('wait', 429);
+    const job = crypto.randomUUID();
+    const lock = await DB.prepare("INSERT INTO py_hw_uploads (session_id,student_id,photo,mime,status,error_kind,job_id,started_at,updated_at) VALUES (?,?,?,?,'checking',NULL,?,?,?) ON CONFLICT(session_id,student_id) DO UPDATE SET photo=excluded.photo,mime=excluded.mime,status='checking',error_kind=NULL,job_id=excluded.job_id,started_at=excluded.started_at,updated_at=excluded.updated_at WHERE py_hw_uploads.status!='checking' OR py_hw_uploads.updated_at<?").bind(p.ses,p.st,photo,mime,job,t0,t0,t0-90).run();
+    if (!lock.meta.changes) return err('checking',409,{saved:true,hw:await hwInfo(DB,p,wins,t0)});
+    let r; try {
+      r = await gradeHomeworkPhoto(env, photo, mime);
+    } catch (e) {
+      const reason = ['quota','auth','config','timeout','image','model','invalid_response'].includes(e.kind) ? e.kind : 'unavailable';
+      console.warn(JSON.stringify({event:'homework_ai_failed',reason,attempts:e.attempts||[]}));
+      await DB.prepare("UPDATE py_hw_uploads SET status='error',error_kind=?,updated_at=? WHERE session_id=? AND student_id=? AND job_id=?").bind(reason,now(),p.ses,p.st,job).run();
+      return err('ai',502,{reason,saved:true,hw:await hwInfo(DB,p,wins,now())});
+    }
     const score = Math.max(0, Math.min(HW_MAX, Math.round((Number(r.score) || 0) * 10) / 10)), comment = String(r.comment || '').slice(0, 700), attempts = (prev ? prev.attempts : 0) + 1;
-    await DB.prepare('INSERT INTO py_hw (session_id, student_id, photo, mime, score, comment, attempts, at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id) DO UPDATE SET photo=excluded.photo, mime=excluded.mime, score=excluded.score, comment=excluded.comment, attempts=excluded.attempts, at=excluded.at').bind(p.ses, p.st, photo, mime, score, comment, attempts, t0).run();
-    await writeSub(DB, p.ses, p.st, 5, { items: [{ id: 61, label: 'Үй жұмысы «Студент визитқасы» — ЖИ бағасы, ' + attempts + ' әрекет', got: score, max: HW_MAX, done: true }], pts: score, done: true }, score, 'ЖИ бағалады: ' + score + '/' + HW_MAX);
+    await DB.batch([
+      DB.prepare('INSERT INTO py_hw (session_id, student_id, photo, mime, score, comment, attempts, at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(session_id, student_id) DO UPDATE SET photo=excluded.photo, mime=excluded.mime, score=excluded.score, comment=excluded.comment, attempts=excluded.attempts, at=excluded.at').bind(p.ses, p.st, photo, mime, score, comment, attempts, now()),
+      subStatement(DB, p.ses, p.st, 5, { items: [{ id: 61, label: 'Үй жұмысы «Студент визитқасы» — ЖИ бағасы, ' + attempts + ' әрекет', got: score, max: HW_MAX, done: true }], pts: score, done: true }, score, 'ЖИ бағалады: ' + score + '/' + HW_MAX),
+      DB.prepare("UPDATE py_hw_uploads SET status='graded',error_kind=NULL,updated_at=? WHERE session_id=? AND student_id=? AND job_id=?").bind(now(),p.ses,p.st,job)
+    ]);
     return json({ ok: true, hw: await hwInfo(DB, p, wins, t0), ...(await totals(env, DB, p, ses, att)) });
   }
 

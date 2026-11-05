@@ -2,6 +2,7 @@
 import { V6 } from './variants.js';
 import { V7, MAX7, AI7, LIMIT7, prompt7 } from './approx.js';
 import { PY_MAX, PY_MAXS, pyTasks } from './py.js';
+import { geminiJson } from './gemini.js';
 
 export const TOPICS = {
   '6': {
@@ -111,29 +112,9 @@ function prompt(task, topic, variant, p, sig, auto) {
   if (task === 1) return common.concat(['AUTOMATIC CHECK (already scored): final answers typed by the student are correct ' + (auto / 3) + '/3.', 'The student solved the system BY HAND and attached a photo of the notebook page' + (p.photo ? '.' : ' (no photo; only the typed steps below).'), '', '<steps>\n' + String(p.steps || '').slice(0, 6000) + '\n</steps>', '', behaviour, '', 'Return:', '1) score: ' + t.steps + ' Read the handwriting in the photo carefully.', '2) (ignore)'], own).join('\n');
   return common.concat(['AUTOMATIC CHECK (already scored): printed output correct: ' + (auto ? 'yes' : 'no') + '.', '', 'PROGRAM WAS ACTUALLY EXECUTED on the server (language: ' + (p.lang || 'python') + '). Expected solution of this system: ' + ex.out.map(v => Math.round(v * 1e4) / 1e4).join(', ') + '. The program stdout: ' + String((p.run && p.run.stdout) || '').slice(0, 300) + (p.run && p.run.stderr ? ' | errors: ' + String(p.run.stderr).slice(0, 300) : '') + '. If the output does not match the expected solution, the program does not work: give at most 3 points.', '<code>\n' + String(p.code || '').slice(0, 6000) + '\n</code>', '', behaviour, '', 'Return:', '1) score: ' + t.code, '2) (ignore)'], own).join('\n');
 }
-let good = 0;
-export async function callGemini(env, text, task, image, schema, stub) {
+export async function callGemini(env, text, task, image, schema, stub, options = {}) {
   if (env.GEMINI_STUB) return stub ||  { score: task === 1 ? 13 : 16, ai_suspicion: Number(env.GEMINI_STUB_AI) || 10, comment: 'Тест түсініктеме' };
-  /* Бірнеше кілтті үтір немесе жаңа жол арқылы жазуға болады: біреуі істемесе (квота, қате), келесісі алынады */
-  const keys = String(env.GEMINI_API_KEY || '').split(/[\s,;]+/).filter(Boolean);
-  if (!keys.length) throw new Error('GEMINI_API_KEY бапталмаған');
-  const models = [env.GEMINI_MODEL || 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
-  let last = '';
-  const tries = Math.min(9, Math.max(5, keys.length * 3));
-  for (let t = 0; t < tries; t++) {
-    const key = keys[(good + t) % keys.length];
-    try {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[Math.floor(t / keys.length) % models.length] + ':generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: image ? [{ text }, { inlineData: { mimeType: image.mime, data: image.data } }] : [{ text }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema || SCHEMA } })
-      });
-      const j = await res.json();
-      if (j.candidates && j.candidates[0].content) { good = (good + t) % keys.length; return JSON.parse(j.candidates[0].content.parts.map(x => x.text || '').join('')); }
-      last = j.error ? j.error.message : 'бос жауап';
-    } catch (e) { last = e.message; }
-    await new Promise(r => setTimeout(r, t < keys.length ? 300 : 1500 * (t + 1 - keys.length)));
-  }
-  throw new Error(last);
+  return geminiJson(env, image ? [{ text }, { inlineData: { mimeType: image.mime, data: image.data } }] : [{ text }], schema || SCHEMA, options);
 }
 
 /* 1-тапсырма (қолмен: шешу /15, фото) және 2-тапсырма (бағдарлама: код /18) */

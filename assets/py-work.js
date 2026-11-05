@@ -366,7 +366,8 @@ function paintRail(){
 }
 
 /* ---------- 5-тапсырма: үй жұмысы (фото не скриншот), ЖИ бағалайды ---------- */
-let hwUi = null;
+let hwUi = null, hwBusy = false, hwRevision = 0;
+const HW_AI_ERRORS = {quota:'ЖИ сұраныстарының шегі уақытша толды. Кейін қайта тексеріңіз.',auth:'ЖИ кілтін оқытушы тексеруі қажет.',config:'ЖИ кілті бапталмаған.',timeout:'ЖИ уақытында жауап бермеді. Қайта тексеруге болады.',image:'Суретті оқу мүмкін болмады. Басқа фото таңдаңыз.',unavailable:'ЖИ қызметі уақытша бос емес. Қайта тексеруге болады.',model:'ЖИ моделі қолжетімсіз. Қайта тексеріңіз.',invalid_response:'ЖИ дұрыс жауап қайтармады. Қайта тексеріңіз.'};
 function shrinkImg(file){
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
@@ -396,10 +397,16 @@ function hwSection(){
     try { photo = await shrinkImg(fi.files[0]); pv.src = 'data:image/jpeg;base64,' + photo; pv.hidden = false; msg.textContent = ''; paintHw(); } catch (e) { msg.className = 'xl-msg bad'; msg.textContent = 'Суретті оқу мүмкін болмады. Басқа сурет таңда.'; }
   });
   send.addEventListener('click', async () => {
-    if (!photo) return; send.disabled = true; msg.className = 'xl-msg'; msg.textContent = 'Жасанды интеллект тексеріп жатыр, 10–20 секунд күтіңіз…';
-    let r; try { r = await J().api('py/hw', { photo, mime:'image/jpeg' }); } catch (e) { r = { ok:false, error:'net' }; }
-    if (!r.ok){ msg.className = 'xl-msg bad'; msg.textContent = { time_over:'Үй жұмысын жіберу уақыты бітті.', not_started:'Оқытушы үй жұмысын әлі ашқан жоқ.', no_tries:'Жіберу әрекеті бітті (ең көбі 3).', wait:'Бірнеше секундтан кейін қайта көр.', ai:'Тексеретін қызмет жауап бермеді. Қайта көр.', bad_request:'Сурет дұрыс емес. Басқа сурет таңда.' }[r.error] || 'Желі қатесі. Қайта көр.'; paintHw(); return; }
-    D.hw = r.hw; D.total = r.total; D.scores = r.scores; msg.className = 'xl-msg ok'; msg.textContent = 'Тексерілді.'; fi.value = ''; photo = ''; pv.hidden = true; paintHw(); paintBar();
+    if(hwBusy || (!photo && !D.hw?.retryable))return;
+    hwBusy=true;hwRevision++;paintHw();msg.className='xl-msg';msg.textContent='Сурет жіберіліп, ЖИ тексеріп жатыр…';
+    let r;try{r=await J().api('py/hw',photo?{photo,mime:'image/jpeg'}:{retry:true});}catch(e){r={ok:false,error:'net'};}
+    hwBusy=false;hwRevision++;
+    if(r.hw)D.hw=r.hw;
+    const message=hwUi?.msg||msg;
+    if(!r.ok){
+      message.className='xl-msg bad';message.textContent=(r.error==='ai'?HW_AI_ERRORS[r.reason]||HW_AI_ERRORS.unavailable:{closed:'Сабақ жабылған. Оқытушыға хабарласыңыз.',auth:'Сабаққа қайта кіріңіз.',no_tries:'Бағаланатын әрекет саны бітті (ең көбі 3).',wait:'Бірнеше секундтан кейін қайта көріңіз.',checking:'Бұл фото қазір тексеріліп жатыр.',bad_request:'Сурет дұрыс емес. Басқа фото таңдаңыз.'}[r.error]||'Байланыс үзілді. Қайта көріңіз.')+(r.saved?' Фото серверде сақталған.':'');paintHw();return;
+    }
+    D.total=r.total;D.scores=r.scores;message.className='xl-msg ok';message.textContent='Тексерілді.';fi.value='';photo='';pv.hidden=true;paintHw();paintBar();
   });
   hwUi = { fi, send, msg, res, getPhoto:() => photo };
   sec.append(task, how, el('div', { class:'hw-up' }, [fi, pv, send]), msg, res);
@@ -409,10 +416,14 @@ function hwSection(){
 function paintHw(){
   if (!hwUi || !D || !D.hw) return;
   const H = D.hw, u = hwUi, left = Math.max(0, (H.tries || 3) - (H.attempts || 0));
-  u.send.disabled = !(H.open && left > 0 && u.getPhoto());
-  u.fi.disabled = !(H.open && left > 0);
+  const checking=hwBusy||H.status==='checking';
+  u.send.disabled = checking||!(H.open && left>0 && (u.getPhoto()||H.retryable));
+  u.send.textContent=checking?'Тексерілуде…':!u.getPhoto()&&H.retryable?'↻ Қайта тексеру':'✓ Жіберу';
+  u.fi.disabled = checking||!(H.open && left>0);
   u.res.innerHTML = '';
-  if (H.done) u.res.append(el('div', { class:'hw-score' }, [el('b', { text:'Баллың: ' + H.score + ' / ' + H.max }), el('span', { text:' · әрекет: ' + H.attempts + ' / ' + (H.tries || 3) })]), el('p', { class:'py-diag', text:'💡 ' + (H.comment || '') }), el('p', { class:'py-note', text: H.open && left > 0 ? 'Жақсартқың келсе, жаңа фото жүктеп қайта жібер. Соңғы балл есепке алынады.' : 'Бұл баллды оқытушы қарап, қаласа өзгертеді.' }));
+  if(H.status==='checking')u.res.append(el('p',{class:'py-note',text:'Фото сақталды. Жасанды интеллект тексеріп жатыр…'}));
+  if(H.status==='error')u.res.append(el('p',{class:'py-diag',text:'Фото сақталды. '+(HW_AI_ERRORS[H.error_kind]||HW_AI_ERRORS.unavailable)+' Бұл қате бағаланатын 3 әрекетке кірмейді.'}));
+  if (H.done) u.res.append(el('div', { class:'hw-score' }, [el('b', { text:(H.status==='error'||H.status==='checking'?'Алдыңғы баға: ':'Баллың: ') + H.score + ' / ' + H.max }), el('span', { text:' · әрекет: ' + H.attempts + ' / ' + (H.tries || 3) })]), el('p', { class:'py-diag', text:'💡 ' + (H.comment || '') }), el('p', { class:'py-note', text: H.open && left > 0 ? 'Жақсартқың келсе, жаңа фото жүктеп қайта жібер. Соңғы балл есепке алынады.' : 'Бұл баллды оқытушы қарап, қаласа өзгертеді.' }));
 }
 
 /* ---------- Құру ---------- */
@@ -479,7 +490,9 @@ window.PyWork = {
     clearInterval(pairTimer); pairTimer = setInterval(() => { if (document.hidden || !D || !D.pair) return; if (!D.pair.has){ J().api('py/data').then(j => { if (j.ok && j.pair && j.pair.has){ D = null; loadData(); } }); } else if (!D.pair.solo && phase() !== 'over') refreshPair(); }, 8000);
     clearInterval(winTimer); winTimer = setInterval(async () => {   /* 4-сабақ: оқытушы тапсырманы бастағанда бет өзі жаңарады */
       if (document.hidden || !D || !D.ready || hosts.topic !== 'P4') return;
+      const revision=hwRevision;
       const j = await J().api('py/data'); if (!j.ok || !j.ready || !D) return;
+      if(hwBusy||revision!==hwRevision){j.hw=D.hw;j.total=D.total;if(j.scores&&D.scores)j.scores[5]=D.scores[5];}
       if (lockKey(j) !== D._lk){ const who = D.who; D = j; D.who = who; D._lk = lockKey(j); build(); return; }
       D.wins = j.wins; D.hw = j.hw; D.total = j.total; D.scores = j.scores; paintHw(); Object.keys(j.state || {}).forEach(id => { if (items[id]) items[id].state = j.state[id]; }); paint();
     }, 5000);
