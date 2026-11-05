@@ -5,15 +5,17 @@
    Модуль таза: код орындауды сырттан берілген `run` функциясы жасайды, сондықтан жергілікті Python-мен тексеруге болады. */
 
 import { buildP8, P8_MAX, CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT } from './py8.js';
+import { buildP4, P4_MAX, OP_SKILLS, gradeTyped } from './py4.js';
 export { CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT };
 
 export const PY_MAX = { 1: 20, 2: 40, 3: 20, 4: 20 };
-export const PY_MAXS = { P7: PY_MAX, P8: P8_MAX };   /* тақырып → тапсырма → максимум балл */
+export const PY_MAXS = { P4: P4_MAX, P7: PY_MAX, P8: P8_MAX };   /* тақырып → тапсырма → максимум балл */
 export const pyTasks = topic => Object.keys(PY_MAXS[String(topic)] || PY_MAX).map(Number);
 export const REV = { code: 0.7, quiz: 0.5 };          /* қайта жіберу арқылы қайтарылатын жоғалған баллдың үлесі */
 export const REV_TRIES = { code: 3, quiz: 1 };        /* қайта жіберу әрекеттерінің саны */
 export const REVISE_MIN = 15;                         /* жұмыс біткен соң қатемен жұмысқа берілетін минут */
-export const PY_TOPICS = ['P7', 'P8'];
+export const reviseMin = topic => (String(topic) === 'P4' ? 10 : REVISE_MIN);   /* 4-сабақта 90 минутқа сыю үшін 10 минут */
+export const PY_TOPICS = ['P4', 'P7', 'P8'];
 export const isPy = t => PY_TOPICS.includes(String(t));
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -33,7 +35,8 @@ export const SKILLS = {
   ifelse: { name: 'if–else құрылымы', tip: 'else шартсыз, қос нүктемен (else:) жазылады және if-пен бір тік сызықта тұрады. Ол if шарты False болғанда орындалады, сондықтан екі блоктың біреуі міндетті орындалады.' },
   elif: { name: 'elif арқылы көп шарт', tip: 'Бірнеше шартты if → elif → else тізбегімен жаз. «else if» емес, тек elif деп жазылады. Python бірінші True шартта тоқтайды.' },
   order: { name: 'Шарттар реті', tip: 'Шарттар жоғарыдан төмен тексеріледі. Қатаң шартты (мысалы, >= 90) бірінші қой, әйтпесе жеңілірек шарт (>= 50) оны жауып кетеді. Бөлек if-тер бір-біріне тәуелсіз тексеріледі.' },
-  logic: { name: 'Логика және есептеу', tip: 'Формуланы қағазда бір санмен тексеріп көр, содан кейін кодқа аудар.' }
+  logic: { name: 'Логика және есептеу', tip: 'Формуланы қағазда бір санмен тексеріп көр, содан кейін кодқа аудар.' },
+  ...OP_SKILLS
 };
 
 /* ---------- Мәтінді салыстыру ---------- */
@@ -166,6 +169,7 @@ export function lessonP7(variant) {
   return T;
 }
 export function lessonOf(topic, variant, pv) {
+  if (String(topic) === 'P4') return buildP4(variant, { rng, shuffle }).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind === 'code') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; });
   return String(topic) === 'P8' ? buildP8(variant, { rng, pick, shuffle }, pv).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; }) : lessonP7(variant);
 }
 export function itemOf(variant, id) { for (const t of lessonP7(variant)) for (const it of t.items) if (it.id === id) return it; return null; }
@@ -174,8 +178,9 @@ export const allItemIds = () => lessonP7(1).flatMap(t => t.items.map(i => i.id))
 /* Студентке жіберілетін көрініс: тест жағдайлары мен дұрыс жауап жасырылады */
 export function publicLesson(variant, seedBase, topic = 'P7', pv) {
   return lessonOf(topic, variant, pv).map(t => ({ n: t.n, title: t.title, info: t.info || '', pair: !!t.pair, items: t.items.map(it => {
-    if (it.kind === 'quiz') return { id: it.id, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
-    return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, tag: it.tag || '', text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length };
+    if (it.typed) return { id: it.id, task: it.task, kind: 'quiz', typed: true, max: it.max, title: it.title, q: it.q, code: it.code || '', diff: '', opts: [] };
+    if (it.kind === 'quiz') return { id: it.id, task: it.task, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
+    return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, tag: it.tag || '', text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length, fig: it.fig || '', formula: it.formula || '' };
   }) }));
 }
 
@@ -242,6 +247,40 @@ real_out.write("\\n" + NONCE + json.dumps(allres) + "\\n")
 real_out.flush()
 `;
 }
+/* Консоль (онлайн компилятор сияқты): input() жолдың өзінде сұрайды. Енгізулер тізімі беріледі: орындалу басынан жүреді, енгізу жетпесе, консоль келесі мәнді сұрайды.
+   Шығыста сұрау мәтіні мен студент жазған жауап (эхо) бар. Енгізу керек болса, stderr-де белгі қалады. */
+export const NEED_MARK = '@@NEED_INPUT@@';
+export function consoleHarness(code, inputs) {
+  const data = { s: String(code || ''), i: (inputs || []).map(String) };
+  return `import sys, json, base64, builtins, traceback
+D = json.loads(base64.b64decode("${b64(JSON.stringify(data))}").decode("utf-8"))
+it = iter(D["i"])
+class _Need(BaseException):
+    pass
+def _input(prompt=""):
+    sys.stdout.write(str(prompt))
+    try:
+        v = next(it)
+    except StopIteration:
+        raise _Need()
+    sys.stdout.write(v + "\\n")
+    return v
+builtins.input = _input
+try:
+    code = compile(D["s"], "main.py", "exec")
+except SyntaxError as e:
+    traceback.print_exception(type(e), e, None)
+    sys.exit(0)
+try:
+    exec(code, {"__name__": "__main__"})
+except _Need:
+    sys.stderr.write("${NEED_MARK}")
+except SystemExit:
+    pass
+except BaseException as e:
+    traceback.print_exception(type(e), e, e.__traceback__.tb_next)
+`;
+}
 const nonce = () => { const a = new Uint8Array(8); crypto.getRandomValues(a); return 'R' + [...a].map(x => x.toString(16).padStart(2, '0')).join('') + ':'; };
 
 /* run(source) → { ok, stdout, stderr, infra? }. Нәтиже: { infra } | { timeout } | { all: [ { syntax } | { results } ] } */
@@ -266,6 +305,10 @@ export function constraintOk(item, code) {
     if (item.constraint === 'else' && !hasElse) return { ok: false, text: 'Талап бұзылған: есепті if–else арқылы жаз. else: блогы жоқ.', skill: 'ifelse' };
     if (item.constraint === 'elif' && !(hasElif && hasElse)) return { ok: false, text: 'Талап бұзылған: бұл есепте if–elif–else тізбегін қолдан (elif және else болуы керек).', skill: 'elif' };
     return { ok: true };
+  }
+  if (item.constraint === 'expr') {   /* айнымалысыз есеп: жауапты санмен емес, өрнекпен жазу керек */
+    const ops = (stripCode(code).match(/\*\*|\/\/|[-+*\/%]/g) || []).length;
+    return ops >= (item.minOps || 1) ? { ok: true } : { ok: false, text: 'Талап бұзылған: жауапты өзің есептеп жазба. Өрнекті амалдарымен (жақша, дәреже, * - + /) print ішіне жаз.', skill: 'prec' };
   }
   if (item.constraint !== 'and') return { ok: true };
   const s = stripCode(code), hasAnd = /\band\b/.test(s), ifs = s.split(/\r?\n/).filter(l => /^\s*if\b/.test(l)), nested = ifs.length >= 2 && ifs.some(l => /^\s+if\b/.test(l));
@@ -307,6 +350,7 @@ export function diagnose(item, code, exec, results) {
   const con = constraintOk(item, code); if (!con.ok) add({ skill: con.skill, text: con.text });
   const H = item.hints || {};
   bad.filter(b => !b.r.err).forEach(b => {
+    if (item.arith) { const sk = item.skills[0]; if (b.c.tag === 'edge' && H.edge) add({ skill: sk, text: H.edge }); else if (H.under) add({ skill: sk, text: H.under }); return; }
     const c = b.c, shouldPrint = (c.exp || []).length > 0, printed = String(b.r.out || '').trim().length > 0;
     if (c.tag === 'edge' && H.edge) add({ skill: 'boundary', text: H.edge });
     else if (c.tag === 'special' && H.special) add({ skill: 'branch', text: H.special });
@@ -326,7 +370,7 @@ export function gradeFromExec(item, code, ex) {
   const passed = per.filter(p => p.ok).length, con = constraintOk(item, code);
   /* талап бұзылса, балл 80%-дан аспайды */
   let frac = passed / item.cases.length;
-  if (!con.ok) frac = Math.min(frac, 0.8);
+  if (!con.ok) frac = item.constraint === 'expr' ? 0 : Math.min(frac, 0.8);
   const diag = diagnose(item, code, ex, per);
   return { frac, passed, total: item.cases.length, cases: per.map(p => ({ ok: p.ok, in: p.in, exp: p.exp, got: p.raw ? String(p.raw.out || '').trim().slice(0, 160) : '', err: p.raw && p.raw.err ? p.raw.err.type + (p.raw.err.line ? ' (' + p.raw.err.line + '-жол)' : '') : '', tag: p.tag })), diag, syntax: !!ex.syntax, constraint: con.ok };
 }
@@ -344,6 +388,7 @@ export async function gradeCodeItems(run, list) {
 }
 
 export function gradeQuizItem(item, choice) {
+  if (item.typed) return gradeTyped(item, choice);
   const ok = Number(choice) === item.correct;
   return { frac: ok ? 1 : 0, passed: ok ? 1 : 0, total: 1, cases: [], diag: ok ? [] : [{ skill: item.skills[0], text: item.why }], quiz: true };
 }
@@ -352,10 +397,10 @@ export function gradeQuizItem(item, choice) {
 /* attempts: { n, frac }[] — бірінші әрекет толық, келесілері қатемен жұмыс. */
 export function itemScore(item, attempts) {
   const kind = item.kind === 'quiz' ? 'quiz' : 'code', list = (attempts || []).slice().sort((a, b) => a.n - b.n);
-  if (!list.length) return { pts: 0, f1: 0, best: 0, tries: 0, left: 1 + REV_TRIES[kind], revLeft: REV_TRIES[kind], done: false, full: false };
+  if (!list.length) return { pts: 0, f1: 0, best: 0, tries: 0, left: 1 + (item.typed ? 0 : REV_TRIES[kind]), revLeft: item.typed ? 0 : REV_TRIES[kind], done: false, full: false };
   const f1 = list[0].frac, best = Math.max(f1, ...list.slice(1).map(a => a.frac));
   const pts = Math.round(item.max * (f1 + REV[kind] * (best - f1)) * 100) / 100;
-  const revUsed = list.length - 1, revLeft = Math.max(0, REV_TRIES[kind] - revUsed);
+  const revUsed = list.length - 1, revLeft = item.typed ? 0 : Math.max(0, REV_TRIES[kind] - revUsed);   /* жылдам есептер (typed) қайта жіберілмейді */
   return { pts, f1, best, tries: list.length, revLeft, done: true, full: best >= 1 || f1 >= 1, canRevise: f1 < 1 && best < 1 && revLeft > 0 };
 }
 

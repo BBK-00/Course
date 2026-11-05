@@ -19,5 +19,7 @@ export const SCHEMA = [
   "CREATE INDEX IF NOT EXISTS idx_py_att ON py_attempts(session_id, student_id)",
   "CREATE TABLE IF NOT EXISTS py_hints ( session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, item INTEGER NOT NULL, at INTEGER NOT NULL )",
   "CREATE TABLE IF NOT EXISTS py_pairs ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, a_id INTEGER NOT NULL, b_id INTEGER, created_at INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0, try_at INTEGER, last TEXT, open_at INTEGER, hints INTEGER, UNIQUE (session_id, a_id) )",
-  "CREATE INDEX IF NOT EXISTS idx_py_pairs_b ON py_pairs(session_id, b_id)"
+  "CREATE INDEX IF NOT EXISTS idx_py_pairs_b ON py_pairs(session_id, b_id)",
+  "CREATE TABLE IF NOT EXISTS py_hw ( session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, photo TEXT NOT NULL, mime TEXT NOT NULL, score REAL NOT NULL, comment TEXT, attempts INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (session_id, student_id) )",
+  "CREATE TABLE IF NOT EXISTS py_wins ( session_id INTEGER NOT NULL, task INTEGER NOT NULL, start_at INTEGER NOT NULL, until_at INTEGER NOT NULL, PRIMARY KEY (session_id, task) )"
 ];

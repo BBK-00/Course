@@ -9,8 +9,8 @@ import { gradeSb3 } from './scratch.js';
 import { gradeA2Task } from './a2.js';
 import { gradePptx, designGrade, compose, heuristicDesign } from './mm.js';
 import { data7, auto7, desc7, LIMIT7 } from './approx.js';
-import { pyStudent, pyStats, pyPairsLive, pyPairAdmin } from './pyapi.js';
-import { isPy, pyTasks } from './py.js';
+import { pyStudent, pyStats, pyPairsLive, pyPairAdmin, pyWins, pyWinAdmin } from './pyapi.js';
+import { isPy, pyTasks, consoleHarness, NEED_MARK } from './py.js';
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} ready = true; }
@@ -269,10 +269,15 @@ async function route(request, env, ctx, url) {
     const p = await verify(env, bearer(request));
     if (!p || p.r !== 's') return err('auth', 401);
     const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, now() - 60).first();
-    if (busy.n >= 12) return err('wait', 429);
+    if (busy.n >= (b.console ? 40 : 12)) return err('wait', 429);
     await DB.prepare('INSERT INTO runs (student_id, at) VALUES (?, ?)').bind(p.st, now()).run();
     const code = String(b.code || '');
     if (!code.trim()) return err('bad_request');
+    if (b.console) {   /* консоль: input() жолдың өзінде сұралады, енгізулер қайта орындау арқылы беріледі */
+      const inputs = (Array.isArray(b.inputs) ? b.inputs : []).slice(0, 30).map(x => String(x).replace(/[\r\n]+/g, ' ').slice(0, 200));
+      const r0 = await runCode(env, 'python', consoleHarness(code, inputs), ''), need = String(r0.stderr || '').includes(NEED_MARK);
+      return json({ ok: true, run: { ...r0, stderr: String(r0.stderr || '').split(NEED_MARK).join(''), need } });
+    }
     const r = await runCode(env, LANGS.includes(b.language) ? b.language : 'python', code, String(b.stdin || '').slice(0, 500));
     return json({ ok: true, run: r });
   }
@@ -448,6 +453,11 @@ async function teacher(path, method, b, env, ctx, url) {
     await DB.prepare('INSERT INTO sessions (topic, code, status, created_at, group_id) VALUES (?,?,?,?,?)').bind(topic, code, 'open', now(), gid).run();
     return json({ ok: true });
   }
+  if (path === 'pywin' && method === 'POST') {   /* 4-сабақ: тапсырманы жеке бастау / тоқтату / ұзарту */
+    const sx = await DB.prepare("SELECT * FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
+    if (!sx || sx.topic !== 'P4') return err('no_session');
+    return pyWinAdmin(b, DB, sx);
+  }
   if (path === 'session/work' && method === 'POST') {
     const ses = await DB.prepare("SELECT * FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
     if (!ses) return err('no_session');
@@ -522,7 +532,8 @@ async function teacher(path, method, b, env, ctx, url) {
       s.total = c.final; s.auto = c.auto; s.ai_pct = c.ai_pct; s.edited = c.edited_total; s.complete = c.complete;
     }));
     const pr = ses.topic === 'P8' ? await pyPairsLive(DB, ses) : null;
-    return json({ ok: true, now: now(), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests, ...(pr ? { pairs: pr.pairs, free: pr.free } : {}) });
+    const pyw = ses.topic === 'P4' ? await pyWins(DB, ses.id) : null;
+    return json({ ok: true, now: now(), ...(pyw ? { pywins: pyw } : {}), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests, ...(pr ? { pairs: pr.pairs, free: pr.free } : {}) });
   }
 
   /* Бір студенттің толық жұмысы */
@@ -532,10 +543,11 @@ async function teacher(path, method, b, env, ctx, url) {
     const st = await DB.prepare('SELECT s.*, g.name AS gname FROM students s JOIN groups g ON g.id=s.group_id WHERE s.id=?').bind(stu).first();
     if (!ses || !st) return err('not_found', 404);
     const { att, subs, res, bonus } = await loadFor(DB, sid, stu), c = compute(att, subs, res, bonus, ses.topic);
-    const x10 = ['10', 'S7', 'A13', 'A2', 'P7', 'P8'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
+    const x10 = ['10', 'S7', 'A13', 'A2', 'P4', 'P7', 'P8'].includes(ses.topic), x7 = ses.topic === '7', ex = att && !x10 && !x7 ? variantOf(ses.topic, att.variant) : null, d7 = att && x7 ? desc7(att.variant) : null;
     return json({ ok: true, student: { id: st.id, name: st.full_name, group: st.gname }, session: { id: ses.id, topic: ses.topic }, attendance: att ? { variant: att.variant, joined_at: att.joined_at, manual: !!att.manual } : null,
       sys: d7 ? d7.sys : att && !x10 ? sysText(ses.topic, att.variant) : '', note: d7 ? d7.note : ex ? ex.noteKk : '', result: res || null, calc: c,
-      subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })) });
+      subs: subs.map(s => ({ ...s, payload: JSON.parse(s.payload), signals: s.signals ? JSON.parse(s.signals) : {} })),
+      ...(ses.topic === 'P4' ? { hw: await DB.prepare('SELECT photo, mime, score, comment, attempts FROM py_hw WHERE session_id=? AND student_id=?').bind(sid, stu).first() } : {}) });
   }
   if (path === 'task_grade' && method === 'POST') {
     const tp = await DB.prepare('SELECT s.topic FROM submissions x JOIN sessions s ON s.id=x.session_id WHERE x.id=?').bind(Number(b.id)).first();

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4-тақырып: арифметикалық операторлар және типтерді түрлендіру — Python</title>
+<meta name="description" content="Python-дағы арифметикалық операторлар, олардың орындалу реті, int(), float(), str() арқылы типтерді түрлендіру және input() мәнімен жұмыс. Интерактивті мысалдар мен қатені табу.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-work.css">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson4.css">
+</head>
+<body class="pl p4">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>4</i><span>Арифметикалық операторлар</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button type="button" role="tab" data-tab="teo" class="on">1 Түсіндіру</button>
+    <button type="button" role="tab" data-tab="task">2 Тапсырмалар</button>
+    <button type="button" role="tab" data-tab="sum">3 Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+
+<section class="pl-pane" id="teo" data-pane="teo">
+  <div class="pl-card p4-hero">
+    <div class="pl-hero">
+      <div class="pl-video"><div class="p4-player" id="pHero" role="region" aria-label="Қысқаша анимация"></div></div>
+      <div class="pl-goals">
+        <h1>Арифметикалық операторлар және типтерді түрлендіру</h1>
+        <p>Python сандармен қалай есептейтінін және мәтінді санға қалай айналдыратынын үйренесің.</p>
+        <div class="pl-goal"><b>1</b>Жеті амалды және олардың орындалу ретін білесің.</div>
+        <div class="pl-goal"><b>2</b>int(), float(), str() арқылы типті түрлендіресің.</div>
+        <div class="pl-goal"><b>3</b>input() мәнімен дұрыс есептейсің.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">1</span>Арифметикалық операторлар</h2>
+    <p class="pl-lead">Бұл бөлімде Python-дағы жеті арифметикалық амалды үйренесің. a және b мәндерін өзгертіп, нәтиженің қалай өзгеретінін көр. Жолды бассаң, амалдың түсініктемесі шығады.</p>
+    <div id="pOps"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Операторлардың реттілігі</h2>
+    <p class="pl-lead">Бұл бөлімде бір өрнектегі амалдар қай ретпен орындалатынын үйренесің. Дайын өрнекті таңда не өз өрнегіңді жаз, «Алға» батырмасымен әр қадамды көр.</p>
+    <div id="pOrder"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Типтерді түрлендіру</h2>
+    <p class="pl-lead">Бұл бөлімде int(), float() және str() функцияларын үйренесің. Мәнді таңда, функцияны бас, нәтиже мен оның типін көр. Тырнақтағы мән мәтін болып саналады.</p>
+    <div id="pConv"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">4</span>input() және типтер</h2>
+    <p class="pl-lead">Бұл бөлімде input() мәні не үшін санға айналдырылатынын көресің. Енгізілетін мәнді өзгертіп, үш нұсқаны салыстыр.</p>
+    <div id="pInp"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">5</span>Жазылу ережелері және қатені тап</h2>
+    <p class="pl-lead">Бұл бөлімде математикалық жазбаны Python жолына дұрыс аударуды үйренесің. Алдымен төрт ереже, содан кейін бес қате код.</p>
+    <div id="pRules"></div>
+    <h3 class="p4-sub">Қатені тап</h3>
+    <div id="pErr"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">6</span>Қысқаша қорытынды</h2>
+    <ul class="p4-recap">
+      <li><span>Арифметикалық операторлар математикалық есептеулер үшін қолданылады: <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>//</code> <code>%</code> <code>**</code>.</span></li>
+      <li><span>Операторлар белгілі реттілікпен орындалады: жақша → дәреже → <code>* / // %</code> → <code>+ -</code>. Бір деңгейде солдан оңға.</span></li>
+      <li><span><code>input()</code> алынған ақпаратты әрқашан мәтін (<code>str</code>) түрінде қабылдайды.</span></li>
+      <li><span><code>int()</code> және <code>float()</code> мәтінді санға айналдырады, <code>str()</code> мәтінге айналдырады.</span></li>
+      <li><span>Түрлендіру дұрыс қолданылмаса, қате пайда болуы мүмкін: <code>print(int("3.5"))</code>, <code>print("15" + 1)</code>.</span></li>
+    </ul>
+  </div>
+
+  <div class="pl-next"><button type="button" class="btn primary big" data-go="task">Тапсырмаларға өту →</button></div>
+</section>
+
+<section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Тапсырмалар</h2>
+    <div class="pl-rules">
+      <div class="pl-rule"><b>Не істейсің</b><p>Әр есепте бір <code>print(...)</code> жолы берілген. Жолды оқып, экранға шығатын нәтижені жаз. Мысалы: <code>print(10 + 25)</code> → <code>35</code>.</p></div>
+      <div class="pl-rule"><b>Не жазасың</b><p>Тек нәтижені жаз, <code>print</code> жазба. Бөлшек сан нүктемен жазылады: <code>2.5</code>. Теріс сан минуспен: <code>-7</code>.</p></div>
+      <div class="pl-rule"><b>1-тапсырма · 7 минут · 15 балл</b><p>15 өте оңай қысқа жол, ойша шығады: қағаз бен калькулятор керек емес. Қиын көрінген есепті бос қалдырып, соңынан қайта орал. Барлығын бірден жібер.</p></div>
+      <div class="pl-rule"><b>2-тапсырма · 22 минут · 30 балл</b><p>4 есеп: екі оңай (бір амал) және екі орташа (екі амал). Әр есепте сурет бар, жағдайы, енгізуі мен шығаруы толық жазылған. Есепті Python кодына айналдыр: <code>input()</code> оқы, <code>int()</code> қолдан, амалдармен есепте, <code>print</code> шығар. «▶ Орындау» консольде жұмыс істейді: <code>input()</code> сұрағанда жауапты консольдің өзіне жазасың.</p></div>
+      <div class="pl-rule"><b>Нәтиже</b><p>Жіберген соң дұрыс жауап пен түсініктеме шығады. «Қорытынды» бөлімінде қай амалды қайталау керегі көрсетіледі.</p></div>
+    </div>
+    <p class="pl-lead" style="margin-top:8px">3-тапсырма · 15 минут · 20 балл: математикалық өрнекті (оңайдан қиынға) Python-да жазасың. 4-тапсырма · 5 минут · 10 балл: 5 тест сұрағы. 5-тапсырма · үй жұмысы · 25 балл: «Студент визитқасы» жобасы. Пайдаланушыдан ақпаратты <code>input()</code> арқылы сұрап, <code>print()</code> арқылы әдемі етіп шығаратын бағдарламаны дәптерге жазып, фотосын (не скриншотын) жібересің. Жасанды интеллект тексеріп, баллды қояды.</p>
+  </div>
+  <div id="pyTasks"></div>
+  <div id="pyPreview"></div>
+</section>
+
+<section class="pl-pane" id="sum" data-pane="sum" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Қорытынды және бекіту</h2>
+    <p class="pl-lead">Бұл бөлімде нәтижеңді және қайталауға тұратын амалдарды көресің.</p>
+    <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
+    <div id="pySum"></div>
+  </div>
+</section>
+</main>
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/join.js"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-figs.js"></script>
+<script src="../assets/py-demos4.js"></script>
+<script src="../assets/py-demos4-ui.js"></script>
+<script src="../assets/py-work.js"></script>
+<script>
+(function(){
+const { $ } = L;
+const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
+function go(id, push){
+  if (!panes.some(p => p.id === id)) id = 'teo';
+  panes.forEach(p => { p.hidden = p.id !== id; });
+  tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  if (push !== false) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
+}
+tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+go((location.hash || '').slice(1), false);
+window.Join.mount({ title:'Python, 4-тақырып: арифметикалық операторлар' });   /* теория ашық, тапсырма үшін жоғарыдағы «Сабаққа кіру» батырмасы */
+window.PyWork.mount({ topic:'P4', tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
+/* нақты тапсырмалар көрінгенде үлгі жасырылады; кірмеген кезде (оқытушы да) үлгі көрінеді */
+{ const tk = $('#pyTasks'), pv = $('#pyPreview'), sync = () => { pv.hidden = !!tk.querySelector('.py-bar'); }; new MutationObserver(sync).observe(tk, { childList:true, subtree:true }); sync(); }
+PyDemos4.mount({ preview:$('#pyPreview'), hero:$('#pHero'), ops:$('#pOps'), order:$('#pOrder'), conv:$('#pConv'), inp:$('#pInp'), rules:$('#pRules'), err:$('#pErr') });
+})();
+</script>
+</body>
+</html>
