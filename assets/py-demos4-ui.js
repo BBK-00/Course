@@ -91,6 +91,69 @@ function order(host){
 }
 
 /* ---------- 3. Типтерді түрлендіру ---------- */
+/* ---------- Қысқартылған меншіктеу амалдары: a += b ---------- */
+const AUG = [
+  ['=', 'a = b', 'a = b', 'a-ға b мәні жазылады.'], ['+', 'a = (a + b)', 'a += b', 'a-ға b қосылып, нәтиже a-ға қайта жазылады.'], ['-', 'a = (a - b)', 'a -= b', 'a-дан b азайтылады.'],
+  ['*', 'a = (a * b)', 'a *= b', 'a b-ға көбейтіледі.'], ['/', 'a = (a / b)', 'a /= b', 'a b-ға бөлінеді, нәтиже әрқашан бөлшек (float).'], ['%', 'a = (a % b)', 'a %= b', 'a-ның b-ға бөлгендегі қалдығы a-ға жазылады.'],
+  ['//', 'a = (a // b)', 'a //= b', 'a-ның b-ға бөлгендегі бүтін бөлігі a-ға жазылады.'], ['**', 'a = (a ** b)', 'a **= b', 'a b-ші дәрежеге шығарылады.']
+];
+function aug(host){
+  let sel = 1;
+  const ia = el('input', { type:'text', inputmode:'decimal', value:'10', 'aria-label':'a бастапқы мәні', autocomplete:'off', maxlength:'12' }), ib = el('input', { type:'text', inputmode:'decimal', value:'3', 'aria-label':'b мәні', autocomplete:'off', maxlength:'12' });
+  const msg = el('p', { class:'p4-msg', role:'status' }), tip = el('p', { class:'p4-tip', role:'status' }), body = el('tbody');
+  const th = t => el('th', { text:t });
+  const table = el('table', { class:'p4-table' }, [el('thead', {}, el('tr', {}, [th('№'), th('Таңба'), th('Толық жазылуы'), th('Қысқа жазылуы'), th('Нәтиже: a')])), body]);
+  function run(){
+    body.innerHTML = '';
+    let x, y;
+    try { x = E.parseLit(ia.value); y = E.parseLit(ib.value); if (x.t === 'str' || y.t === 'str') throw 0; }
+    catch (e) { msg.textContent = 'a және b орнына сан енгіз: 10, -7 не 2.5.'; msg.className = 'p4-msg no'; tip.textContent = ''; return; }
+    msg.textContent = ''; msg.className = 'p4-msg';
+    AUG.forEach(([op, full, short], i) => {
+      let r, err = '';
+      try { r = op === '=' ? y : E.binop(op, x, y); } catch (e) { err = e.kind; }
+      const tr = el('tr', { class:i === sel ? 'on' : '', tabindex:'0' }, [
+        el('td', { text:String(i + 1) }), el('td', {}, el('span', { class:'p4-op o' + (i % 7), text:op === '=' ? '=' : op + '=' })), el('td', {}, el('code', { text:full })), el('td', {}, el('code', { class:'p4-rs', text:short })),
+        el('td', {}, err ? el('code', { class:'p4-er', text:err }) : [el('code', { text:'a = ' + E.fmt(r) }), typeChip(r.t)])]);
+      tr.addEventListener('click', () => { sel = i; run(); });
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sel = i; run(); } });
+      body.append(tr);
+    });
+    tip.innerHTML = '<b>' + esc(AUG[sel][2]) + '</b> — бұл <code>' + esc(AUG[sel][1]) + '</code> дегенмен бірдей. ' + esc(AUG[sel][3]);
+  }
+  ia.addEventListener('input', run); ib.addEventListener('input', run);
+  host.append(el('div', { class:'p4-ins' }, [el('label', {}, [el('span', { text:'a =' }), ia]), el('label', {}, [el('span', { text:'b =' }), ib])]), msg, el('div', { class:'p4-twrap' }, table), tip);
+  run();
+}
+
+/* ---------- abs(), int(), round() ---------- */
+const NF = [
+  { f:'abs', name:'abs()', note:'abs(x) — санның модулі, яғни таңбасыз мәні: abs(-7.5) = 7.5, abs(4) = 4.' },
+  { f:'int', name:'int()', note:'int(x) бөлшек бөлігін кесіп тастайды, дөңгелектемейді: int(3.9) = 3, int(-3.9) = -3. Нәтиже — бүтін сан.' },
+  { f:'round', name:'round()', note:'round(x) бүтін санға дөңгелектейді. Дәл ортасында жұп санға: round(2.5) = 2, round(3.5) = 4. round(x, n) — n таңбаға дейін дөңгелектейді, нәтиже бөлшек (float).' }
+];
+function nfun(host){
+  let m = 2;
+  const tabs = el('div', { class:'pl-tabs2', role:'tablist' }), term = el('div', { class:'p4-term', 'aria-live':'polite' }), msg = el('p', { class:'p4-msg', role:'status' }), note = el('p', { class:'p4-tip' });
+  const inp = el('input', { type:'text', inputmode:'decimal', value:'2.5', 'aria-label':'Сан', autocomplete:'off', maxlength:'14' }), dig = el('input', { type:'text', inputmode:'numeric', value:'', 'aria-label':'Таңба саны (n)', autocomplete:'off', maxlength:'3', style:'width:5em' });
+  const digBox = el('label', { class:'p4-lbl' }, [el('span', { text:'n (таңба саны, бос қалдыруға болады): ' }), dig]);
+  const quick = el('div', { class:'p4-quick' }, el('span', { text:'Мәнді таңда:' }));
+  ['-7.5', '3.9', '-3.9', '2.5', '3.5', '3.14159', '10'].forEach(v => quick.append(el('button', { type:'button', class:'pl-chipbtn', text:v, onclick:() => { inp.value = v; run(); } })));
+  function run(){
+    const N = NF[m]; digBox.hidden = N.f !== 'round'; term.innerHTML = ''; msg.className = 'p4-msg'; msg.textContent = ''; note.textContent = N.note;
+    tabs.querySelectorAll('button').forEach((b, i) => { b.classList.toggle('on', i === m); b.setAttribute('aria-selected', i === m ? 'true' : 'false'); });
+    let x; try { x = E.parseLit(inp.value); if (x.t === 'str') throw 0; } catch (e) { msg.className = 'p4-msg no'; msg.textContent = 'Сан енгіз: 3.9, -7.5 не 10.'; return; }
+    let nd; if (N.f === 'round' && dig.value.trim() !== '') { if (!/^-?\d{1,2}$/.test(dig.value.trim()) || Math.abs(+dig.value) > 10) { msg.className = 'p4-msg no'; msg.textContent = 'n — бүтін сан, -10-нан 10-ға дейін.'; return; } nd = +dig.value.trim(); }
+    const call = N.f + '(' + E.fmt(x) + (nd !== undefined ? ', ' + nd : '') + ')', r = N.f === 'abs' ? E.pyAbs(x) : N.f === 'int' ? E.pyInt(x) : E.pyRound(x, nd);
+    term.append(el('small', { text:'print(' + call + ')' }), el('pre', { class:'good', text:E.fmt(r) }), el('span', { class:'p4-tg', text:'✓ Нәтиже типі: ' + r.t }));
+    if (N.f === 'round' && nd === undefined && x.t === 'float' && Math.abs(x.v % 1) === 0.5) { msg.className = 'p4-msg hint'; msg.textContent = 'Дәл ортасында Python жұп санға дөңгелектейді: ' + E.fmt(x) + ' → ' + E.fmt(r) + '.'; }
+  }
+  NF.forEach((N, i) => tabs.append(el('button', { type:'button', role:'tab', text:N.name, onclick:() => { m = i; run(); } })));
+  inp.addEventListener('input', run); dig.addEventListener('input', run);
+  host.append(tabs, el('div', { class:'p4-own' }, [el('label', { class:'p4-lbl', text:'Сан:' }), inp]), digBox, quick, term, msg, note);
+  run();
+}
+
 const CONV_ERR = { int:'int() тек бүтін санға ұқсас мәтінді айналдырады: «25», « 7 ». «3.5» не «abc» айналмайды.', float:'float() «1.75», «3» сияқты мәтінді айналдырады. Үтірлі «1,5» не әріпті «abc» айналмайды.' };
 function conv(host){
   const cards = el('div', { class:'p4-cv3' }, [
@@ -302,5 +365,5 @@ async function preview2(host){
   host.append(hwNote);
 }
 
-window.PyDemos4 = { mount(h){ if (h.preview) preview(h.preview); if (h.hero) hero(h.hero); ops(h.ops); order(h.order); conv(h.conv); inputDemo(h.inp); rules(h.rules); err(h.err); } };
+window.PyDemos4 = { mount(h){ if (h.preview) preview(h.preview); if (h.hero) hero(h.hero); ops(h.ops); order(h.order); if (h.aug) aug(h.aug); conv(h.conv); if (h.nfun) nfun(h.nfun); inputDemo(h.inp); rules(h.rules); err(h.err); } };
 })();

@@ -239,5 +239,24 @@ function convert(fn, x){
 Engine.parseLit = parseLit; Engine.convert = convert; Engine.pyRepr = pyRepr;
 Engine.show = v => v.t === 'str' ? pyRepr(v.v) : fmt(v);
 
+/* abs(), int(), round() — Python ережесімен. round(): тең жартыда жұп санға (round(2.5) = 2), round(x, n) — n таңбаға дейін */
+const halfEven = m => { const f = Math.floor(m), d = m - f; return d < 0.5 ? f : d > 0.5 ? f + 1 : (f % 2 === 0 ? f : f + 1); };
+Engine.pyAbs = x => (isInt(x) ? { t:'int', v:x.v < 0n ? -x.v : x.v } : F(Math.abs(x.v)));
+Engine.pyInt = x => (isInt(x) ? x : { t:'int', v:BigInt(Math.trunc(x.v)) });
+/* ондық жолдағы дәл мән бойынша дөңгелектеу (Python сияқты): тең жартыда жұп санға */
+function roundDec(v, nd) {
+  const neg = v < 0 || Object.is(v, -0), str = Math.abs(v).toFixed(Math.min(100, nd + 30)), dot = str.indexOf('.'), ip = str.slice(0, dot), fp = str.slice(dot + 1), keep = fp.slice(0, nd), rest = fp.slice(nd);
+  let n = BigInt(ip + keep); const up = rest[0] > '5' || (rest[0] === '5' && /[1-9]/.test(rest.slice(1))) || (rest[0] === '5' && n % 2n === 1n);
+  if (up) n += 1n;
+  let d = n.toString().padStart(nd + 1, '0'); const r = parseFloat(nd ? d.slice(0, -nd) + '.' + d.slice(-nd) : d);
+  return neg ? -r : r;
+}
+Engine.pyRound = (x, nd) => {
+  if (nd === undefined) return isInt(x) ? x : { t:'int', v:BigInt(halfEven(x.v)) };
+  if (isInt(x)) { if (nd >= 0) return x; const p = 10n ** BigInt(-nd), q = x.v / p, r = x.v % p, a2 = (r < 0n ? -r : r) * 2n, up = a2 > p || (a2 === p && (q % 2n !== 0n)); return { t:'int', v:(q + (up ? (x.v < 0n ? -1n : 1n) : 0n)) * p }; }
+  if (nd >= 0) return F(roundDec(x.v, nd));
+  const p = Math.pow(10, -nd), r = halfEven(x.v / p) * p; return F(r === 0 && (x.v < 0 || Object.is(x.v, -0)) ? -0 : r);
+};
+
 if (typeof module === 'object' && module.exports) module.exports = Engine; else root.PyEngine4 = Engine;
 })(typeof window !== 'undefined' ? window : globalThis);

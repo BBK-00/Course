@@ -50,19 +50,31 @@
   </div>
 
   <div class="pl-card">
-    <h2><span class="ic">3</span>Типтерді түрлендіру</h2>
+    <h2><span class="ic">3</span>Амалдардың қысқартылып жазылуы</h2>
+    <p class="pl-lead">Бұл бөлімде <code>a = a + b</code> жолын <code>a += b</code> деп қысқа жазуды үйренесің. Кез келген амалдың алдына «=» қосылады. a мен b мәнін өзгертіп, нәтижені көр. Жолды бассаң, түсініктеме шығады.</p>
+    <div id="pAug"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">4</span>Типтерді түрлендіру</h2>
     <p class="pl-lead">Бұл бөлімде int(), float() және str() функцияларын үйренесің. Мәнді таңда, функцияны бас, нәтиже мен оның типін көр. Тырнақтағы мән мәтін болып саналады.</p>
     <div id="pConv"></div>
   </div>
 
   <div class="pl-card">
-    <h2><span class="ic">4</span>input() және типтер</h2>
+    <h2><span class="ic">5</span>Сандармен жұмыс функциялары: abs(), int(), round()</h2>
+    <p class="pl-lead">Бұл бөлімде санды өңдейтін үш функцияны үйренесің: <code>abs()</code> — модуль, <code>int()</code> — бөлшек бөлігін кесу, <code>round()</code> — дөңгелектеу. Функцияны таңдап, санды өзгерт.</p>
+    <div id="pNfun"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">6</span>input() және типтер</h2>
     <p class="pl-lead">Бұл бөлімде input() мәні не үшін санға айналдырылатынын көресің. Енгізілетін мәнді өзгертіп, үш нұсқаны салыстыр.</p>
     <div id="pInp"></div>
   </div>
 
   <div class="pl-card">
-    <h2><span class="ic">5</span>Жазылу ережелері және қатені тап</h2>
+    <h2><span class="ic">7</span>Жазылу ережелері және қатені тап</h2>
     <p class="pl-lead">Бұл бөлімде математикалық жазбаны Python жолына дұрыс аударуды үйренесің. Алдымен төрт ереже, содан кейін бес қате код.</p>
     <div id="pRules"></div>
     <h3 class="p4-sub">Қатені тап</h3>
@@ -70,12 +82,13 @@
   </div>
 
   <div class="pl-card">
-    <h2><span class="ic">6</span>Қысқаша қорытынды</h2>
+    <h2><span class="ic">8</span>Қысқаша қорытынды</h2>
     <ul class="p4-recap">
       <li><span>Арифметикалық операторлар математикалық есептеулер үшін қолданылады: <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>//</code> <code>%</code> <code>**</code>.</span></li>
       <li><span>Операторлар белгілі реттілікпен орындалады: жақша → дәреже → <code>* / // %</code> → <code>+ -</code>. Бір деңгейде солдан оңға.</span></li>
       <li><span><code>input()</code> алынған ақпаратты әрқашан мәтін (<code>str</code>) түрінде қабылдайды.</span></li>
       <li><span><code>int()</code> және <code>float()</code> мәтінді санға айналдырады, <code>str()</code> мәтінге айналдырады.</span></li>
+      <li><span>Қысқа жазу: <code>a += b</code> дегеніміз <code>a = a + b</code>. Функциялар: <code>abs()</code> — модуль, <code>int()</code> — бөлшекті кесу, <code>round()</code> — дөңгелектеу.</span></li>
       <li><span>Түрлендіру дұрыс қолданылмаса, қате пайда болуы мүмкін: <code>print(int("3.5"))</code>, <code>print("15" + 1)</code>.</span></li>
     </ul>
   </div>
@@ -135,7 +148,7 @@ window.Join.mount({ title:'Python, 4-тақырып: арифметикалық 
 window.PyWork.mount({ topic:'P4', tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
 /* нақты тапсырмалар көрінгенде үлгі жасырылады; кірмеген кезде (оқытушы да) үлгі көрінеді */
 { const tk = $('#pyTasks'), pv = $('#pyPreview'), sync = () => { pv.hidden = !!tk.querySelector('.py-bar'); }; new MutationObserver(sync).observe(tk, { childList:true, subtree:true }); sync(); }
-PyDemos4.mount({ preview:$('#pyPreview'), hero:$('#pHero'), ops:$('#pOps'), order:$('#pOrder'), conv:$('#pConv'), inp:$('#pInp'), rules:$('#pRules'), err:$('#pErr') });
+PyDemos4.mount({ preview:$('#pyPreview'), hero:$('#pHero'), ops:$('#pOps'), order:$('#pOrder'), aug:$('#pAug'), conv:$('#pConv'), nfun:$('#pNfun'), inp:$('#pInp'), rules:$('#pRules'), err:$('#pErr') });
 })();
 </script>
 </body>
