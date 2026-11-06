@@ -102,6 +102,7 @@ let hwr = await call('py/data', {}, t1); ok(hwr.j.hw && hwr.j.hw.open === true &
 const photo = 'A'.repeat(3000);
 hwr = await call('py/hw', { body: { photo: 'short', mime: 'image/jpeg' } }, t1); ok(!hwr.j.ok && hwr.j.error === 'bad_request', 'жарамсыз сурет қабылданбайды');
 hwr = await call('py/hw', { body: { photo, mime: 'image/jpeg' } }, t1);
+for(let n=0;hwr.j.ok&&hwr.j.hw.status!=='graded'&&n<80;n++){await new Promise(r=>setTimeout(r,100));const d=await call('py/data',{},t1);hwr.j={...hwr.j,...d.j};}
 ok(hwr.j.ok && hwr.j.hw.done && hwr.j.hw.score === 20 && hwr.j.hw.attempts === 1 && hwr.j.scores[5].pts === 20 && hwr.j.scores[5].max === 25, 'үй жұмысы бағаланды: 20 / 25, баллға енді');
 hwr = await call('py/hw', { body: { photo, mime: 'image/jpeg' } }, t1); ok(!hwr.j.ok && hwr.j.error === 'wait', 'жиі қайта жіберуге болмайды (20 секунд)');
 const ldx = (await T('live')).j, rowx = ldx.groups.flatMap(x => x.students).find(x => x.id === s1.id);

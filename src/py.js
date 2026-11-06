@@ -395,12 +395,13 @@ export function gradeQuizItem(item, choice) {
 
 /* ---------- Қайта жіберу арқылы балл ---------- */
 /* attempts: { n, frac }[] — бірінші әрекет толық, келесілері қатемен жұмыс. */
-export function itemScore(item, attempts) {
+export function itemScore(item, attempts, allowTypedRevision = false) {
   const kind = item.kind === 'quiz' ? 'quiz' : 'code', list = (attempts || []).slice().sort((a, b) => a.n - b.n);
-  if (!list.length) return { pts: 0, f1: 0, best: 0, tries: 0, left: 1 + (item.typed ? 0 : REV_TRIES[kind]), revLeft: item.typed ? 0 : REV_TRIES[kind], done: false, full: false };
+  const revisions = item.typed && !allowTypedRevision && list.length < 2 ? 0 : REV_TRIES[kind];
+  if (!list.length) return { pts: 0, f1: 0, best: 0, tries: 0, left: 1 + revisions, revLeft: revisions, done: false, full: false };
   const f1 = list[0].frac, best = Math.max(f1, ...list.slice(1).map(a => a.frac));
   const pts = Math.round(item.max * (f1 + REV[kind] * (best - f1)) * 100) / 100;
-  const revUsed = list.length - 1, revLeft = item.typed ? 0 : Math.max(0, REV_TRIES[kind] - revUsed);   /* жылдам есептер (typed) қайта жіберілмейді */
+  const revUsed = list.length - 1, revLeft = Math.max(0, revisions - revUsed);
   return { pts, f1, best, tries: list.length, revLeft, done: true, full: best >= 1 || f1 >= 1, canRevise: f1 < 1 && best < 1 && revLeft > 0 };
 }
 

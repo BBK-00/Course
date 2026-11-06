@@ -2,6 +2,7 @@
   "name": "bbk-courses",
   "main": "src/index.js",
   "compatibility_date": "2025-06-01",
+  "triggers": {"crons":["* * * * *"]},
   "assets": { "directory": ".", "binding": "ASSETS" },
   "d1_databases": [
     { "binding": "DB", "database_name": "bbk-courses-db", "database_id": "6483d0d5-f133-452a-a8f7-5b0b82154961" }

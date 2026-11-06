@@ -17,8 +17,9 @@ const nowS = () => Math.floor(J().serverNow() / 1000);
 const phase = () => { if (!D || !D.ready) return 'wait'; const t = nowS(); return t <= D.work_until + 45 ? 'work' : t <= D.revise_until + 45 ? 'revise' : 'over'; };
 /* 4-сабақ: әр тапсырма жеке басталады. D.wins: { 1..5: {from, until}, 0: қатемен жұмыс }. Басқа сабақтарда бір ортақ таймер. */
 const isP4 = () => hosts.topic === 'P4';
-const tphase = n => { if (!isP4() || !D || !D.wins) return phase(); const w = D.wins[n], t = nowS(); if (!w) return 'wait'; if (t <= w.until + 45) return 'work'; const r = D.wins[0]; if (!r) return 'closed'; return t <= r.until + 45 ? 'revise' : 'over'; };
+const tphase = n => { if (!isP4() || !D || !D.wins) return phase(); const w = D.wins[n], t = nowS(); if (!w) return 'wait'; if(D.wins[0]&&t<=D.wins[0].until)return 'revise'; if (t <= w.until + 45) return 'work'; const r = D.wins[0]; if (!r) return 'closed'; return t <= r.until + 45 ? 'revise' : 'over'; };
 const active = ph => ph === 'work' || ph === 'revise';
+const revisionActive = () => !!(isP4() && D?.wins?.[0] && nowS()<=D.wins[0].until);
 const lockKey = j => (j.tasks || []).map(t => (t.locked ? 1 : 0)).join('') + (j.hw && (j.hw.open || j.hw.done) ? 'H' : 'h');
 const maxTotal = () => Object.values((D && D.scores) || {}).reduce((a, x) => a + x.max, 0) || 100;
 const fmt = v => typeof v === 'number' ? String(v) : '«' + v + '»';
@@ -37,8 +38,8 @@ function status(it, s){
 function resultBox(it, s, extra){
   const box = el('div', { class:'py-res', role:'status' });
   if (!s || !s.done) return box;
-  const left = s.canRevise && (isP4() ? active(tphase(it.task)) : phase() !== 'over');
-  box.append(el('div', { class:'py-score' }, [el('b', { text:(it.kind === 'quiz' ? (s.f1 >= 1 ? 'Дұрыс' : 'Қате') : s.passed + ' / ' + s.total + ' тест өтті') }), el('span', { text:' · ' + s.pts + ' / ' + it.max + ' балл' })]));
+  const left = s.canRevise && (isP4() ? revisionActive() : phase() !== 'over');
+  box.append(el('div', { class:'py-score' }, [el('b', { text:(it.kind === 'quiz' ? (s.best >= 1 ? 'Дұрыс' : 'Қате') : s.passed + ' / ' + s.total + ' тест өтті') }), el('span', { text:' · ' + s.pts + ' / ' + it.max + ' балл' })]));
   if (s.syntax) box.append(el('p', { class:'py-syn', text:'Бағдарлама іске қосылмады: синтаксис қатесі бар.' }));
   if ((s.cases || []).length && s.best < 1){
     const bad = s.cases.filter(c => !c.ok);
@@ -217,7 +218,7 @@ async function submit(it, body, msgEl, btn, keyArg){
   j.results.forEach(r => { const o2 = items[r.item]; if (o2){ o2.state = r; o2.explain = r.explain; } });
   D.total = j.total; D.scores = j.scores;
   if (msg){ msg.className = 'xl-msg ok'; msg.textContent = 'Тексерілді.'; }
-  paint(); if (it) { const t = items[it.id].card.querySelector('.py-res'); if (t) t.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+  paint(); if (it) { const t = (revisionCards[it.id]?.card || items[it.id].card)?.querySelector('.py-res'); if (t) t.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
   if (D.pair && D.pair.has) refreshPair();
 }
 
@@ -306,11 +307,11 @@ function paint(){
     if (it.kind === 'quiz'){ if (it.typed) paintAns(o, ph); else paintQuiz(o, ph); return; }
     const [t, cls] = status(it, s); const chip = o.head.querySelector('.py-chip'); chip.textContent = t; chip.className = 'py-chip ' + cls;
     const can = s && s.done ? (s.canRevise && active(ph)) : ph === 'work';
-    o.bSend.hidden = o.single ? !!(s && s.best >= 1) : !(s && s.done && s.best < 1);
+    o.bSend.hidden = isP4() ? true : o.single ? !!(s && s.best >= 1) : !(s && s.done && s.best < 1);
     o.bSend.disabled = !can || !!busy[it.id];
     o.bSend.textContent = s && s.done ? '↻ Түзетіп қайта жіберу (қалды ' + (s ? s.revLeft : 0) + ')' : '✓ Тексеруге жіберу';
     o.bHint.hidden = !(s && s.done && s.best < 1);
-    o.ed.setDisabled(!(ph === 'work' || (s && s.done && s.canRevise && ph === 'revise')) );
+    o.ed.setDisabled(isP4()?!(ph==='work'&&!s?.done):!(ph === 'work' || (s && s.done && s.canRevise && ph === 'revise')));
     o.res.innerHTML = ''; o.res.append(resultBox(it, s));
   });
   Object.values(ansBars).forEach(b => {
@@ -319,7 +320,7 @@ function paint(){
     b.sum.hidden = left > 0 || !b.t.items.length; b.sum.textContent = 'Нәтиже: ' + ok + ' / ' + b.t.items.length + ' дұрыс. Қай амалда қателескеніңді «Қорытынды» бөлімінде көресің.';
   });
   Object.values(taskBars).forEach(tb => { const n = tb.t.n, left = tb.t.items.filter(i => !(items[i.id].state && items[i.id].state.done)).length; tb.btn.disabled = !(tphase(n) === 'work' && left) || !!busy['t' + n]; tb.btn.textContent = left ? '✓ ' + n + '-тапсырманы жіберу' + (left < tb.t.items.length ? ' (қалған ' + left + ' есеп)' : '') : '✓ ' + n + '-тапсырма жіберілді'; });
-  paintBar();
+  paintBar();paintRevision();
 }
 function paintQuiz(o, ph){
   const q = o.q, s = o.state, it = o.it, sig = ph + '|' + (s && s.done ? s.tries + ':' + s.best + ':' + (s.choice !== undefined ? s.choice : '') : '');
@@ -330,7 +331,7 @@ function paintQuiz(o, ph){
     const chosen = s.choice !== undefined ? s.choice : null;
     q.btns.forEach((b, i) => { const op = q.q.opts[i]; b.classList.toggle('sel', op.i === chosen); b.classList.toggle('no', op.i === chosen && s.best < 1 && s.f1 < 1); b.classList.toggle('ok', op.i === chosen && s.f1 >= 1); });
     q.fb.append(resultBox(it, s, { explain:o.explain }));
-    if (s.canRevise && active(ph)){ q.btns.forEach(b => { b.disabled = false; b.classList.remove('sel'); }); q.re.hidden = false; q.pick.v = null; }
+    if (s.canRevise && active(ph) && !isP4()){ q.btns.forEach(b => { b.disabled = false; b.classList.remove('sel'); }); q.re.hidden = false; q.pick.v = null; }
   } else { q.btns.forEach(b => { b.disabled = ph !== 'work'; }); if (q.go) q.go.disabled = ph !== 'work'; }
 }
 let barEl = null;
@@ -406,7 +407,7 @@ function hwSection(){
     if(!r.ok){
       message.className='xl-msg bad';message.textContent=(r.error==='ai'?HW_AI_ERRORS[r.reason]||HW_AI_ERRORS.unavailable:{closed:'Сабақ жабылған. Оқытушыға хабарласыңыз.',auth:'Сабаққа қайта кіріңіз.',no_tries:'Бағаланатын әрекет саны бітті (ең көбі 3).',wait:'Бірнеше секундтан кейін қайта көріңіз.',checking:'Бұл фото қазір тексеріліп жатыр.',bad_request:'Сурет дұрыс емес. Басқа фото таңдаңыз.'}[r.error]||'Байланыс үзілді. Қайта көріңіз.')+(r.saved?' Фото серверде сақталған.':'');paintHw();return;
     }
-    D.total=r.total;D.scores=r.scores;message.className='xl-msg ok';message.textContent='Тексерілді.';fi.value='';photo='';pv.hidden=true;paintHw();paintBar();
+    D.total=r.total;D.scores=r.scores;message.className='xl-msg ok';message.textContent=r.hw?.status==='graded'?'Тексерілді.':'Фото сақталды. Тексеру кезегіне қосылды.';fi.value='';photo='';pv.hidden=true;paintHw();paintBar();
   });
   hwUi = { fi, send, msg, res, getPhoto:() => photo };
   sec.append(task, how, el('div', { class:'hw-up' }, [fi, pv, send]), msg, res);
@@ -416,19 +417,84 @@ function hwSection(){
 function paintHw(){
   if (!hwUi || !D || !D.hw) return;
   const H = D.hw, u = hwUi, left = Math.max(0, (H.tries || 3) - (H.attempts || 0));
-  const checking=hwBusy||H.status==='checking';
+  const checking=hwBusy||H.status==='checking'||H.status==='queued';
   u.send.disabled = checking||!(H.open && left>0 && (u.getPhoto()||H.retryable));
-  u.send.textContent=checking?'Тексерілуде…':!u.getPhoto()&&H.retryable?'↻ Қайта тексеру':'✓ Жіберу';
+  u.send.textContent=H.status==='queued'?'Кезекте':checking?'Тексерілуде…':!u.getPhoto()&&H.retryable?'↻ Қайта тексеру':'✓ Жіберу';
   u.fi.disabled = checking||!(H.open && left>0);
   u.res.innerHTML = '';
+  if(H.status==='queued')u.res.append(el('p',{class:'py-note',text:H.error_kind?'Фото сақталған. ЖИ қызметін күтіп тұр, жүйе тексеруді өзі қайталайды.':'Фото сақталған. Кезегің келгенде автоматты түрде тексеріледі.'}));
   if(H.status==='checking')u.res.append(el('p',{class:'py-note',text:'Фото сақталды. Жасанды интеллект тексеріп жатыр…'}));
   if(H.status==='error')u.res.append(el('p',{class:'py-diag',text:'Фото сақталды. '+(HW_AI_ERRORS[H.error_kind]||HW_AI_ERRORS.unavailable)+' Бұл қате бағаланатын 3 әрекетке кірмейді.'}));
-  if (H.done) u.res.append(el('div', { class:'hw-score' }, [el('b', { text:(H.status==='error'||H.status==='checking'?'Алдыңғы баға: ':'Баллың: ') + H.score + ' / ' + H.max }), el('span', { text:' · әрекет: ' + H.attempts + ' / ' + (H.tries || 3) })]), el('p', { class:'py-diag', text:'💡 ' + (H.comment || '') }), el('p', { class:'py-note', text: H.open && left > 0 ? 'Жақсартқың келсе, жаңа фото жүктеп қайта жібер. Соңғы балл есепке алынады.' : 'Бұл баллды оқытушы қарап, қаласа өзгертеді.' }));
+  if (H.done) u.res.append(el('div', { class:'hw-score' }, [el('b', { text:(H.status==='error'||H.status==='checking'||H.status==='queued'?'Алдыңғы баға: ':'Баллың: ') + H.score + ' / ' + H.max }), el('span', { text:' · әрекет: ' + H.attempts + ' / ' + (H.tries || 3) })]), el('p', { class:'py-diag', text:'💡 ' + (H.comment || '') }), el('p', { class:'py-note', text: H.open && left > 0 ? 'Жақсартқың келсе, жаңа фото жүктеп қайта жібер. Соңғы балл есепке алынады.' : 'Бұл баллды оқытушы қарап, қаласа өзгертеді.' }));
+}
+
+/* 6-тапсырма: бастапқы тапсырмалардағы қателерді жеке ортада түзету. */
+let revisionCards={},revisionHost=null;
+function paintRevision(){
+  if(!isP4()||!D)return;
+  const win=D.wins?.[0];
+  if(!win){if(revisionHost)revisionHost.hidden=true;return;}
+  if(!revisionHost){
+    revisionHost=el('section',{class:'tsk py-revision',id:'pyRevision','aria-label':'6-тапсырма: қатемен жұмыс'},[
+      el('h3',{},[el('span',{class:'num',text:'6'}),'Қатемен жұмыс',el('span',{class:'py-tchip','data-revision-clock':'1'})]),
+      el('p',{class:'muted',text:'Қате жіберген есептеріңді осы жерде түзетіп, әрқайсысын қайта жібер. Түзетілген балл бастапқы тапсырмаға қосылады.'}),
+      el('p',{class:'py-note',text:'Жылдам есептер мен тестте жоғалтқан баллдың 50%-ын, код есептерінде 70%-ын қайтара аласың.'}),
+      el('div',{class:'py-revision-list'})]);
+    hosts.tasks.append(revisionHost);
+  }
+  revisionHost.hidden=false;
+  const live=revisionActive(),clock=revisionHost.querySelector('[data-revision-clock]');
+  clock.className='py-tchip '+(live?'work':'closed');clock.textContent=live?'⏱ '+mmss(win.until-nowS()):'Уақыт аяқталды';
+  const list=revisionHost.querySelector('.py-revision-list');
+  const wrong=Object.values(items).filter(o=>o.state?.done&&o.state.f1<1);
+  if(!wrong.length){list.textContent='Қате жауаптар жоқ. Жарайсың!';return;}
+  if(!Object.keys(revisionCards).length)list.replaceChildren();
+  wrong.forEach(o=>{
+    const it=o.it,s=o.state;let r=revisionCards[it.id];
+    if(!r){
+      list.querySelector('.py-revision-empty')?.remove();
+      const task=D.tasks.find(t=>t.n===it.task),index=task.items.findIndex(i=>i.id===it.id)+1;
+      const card=el('article',{class:'py-item py-revision-item','data-revision-item':String(it.id)});
+      card.append(el('h4',{text:it.task+'-тапсырма · '+index+'-есеп · '+(it.title||it.q||'Есеп')}));
+      const msg=el('div',{class:'xl-msg',role:'status'}),res=el('div');
+      const send=el('button',{type:'button',class:'btn primary',text:'Түзетіп жіберу'});
+      r=revisionCards[it.id]={card,msg,res,send,signature:'',buttons:[]};
+      if(it.kind==='code'){
+        const text=el('div',{class:'py-text',html:it.text});if(it.fig&&window.PyFig)text.append(window.PyFig.make(it.fig));
+        if(it.formula)text.append(el('p',{class:'pf-formula',text:'Формула: '+it.formula}));
+        const host=el('div',{class:'py-ed'}),stats={typed:0,assist:0,pasted:0,paste:0,tpl:0};
+        card.append(text,host);r.ed=window.CodeEditor.create(host,{lang:'python',stats,onChange:v=>save('r'+it.id,v)});
+        r.ed.setValue(load('r'+it.id)??o.ed?.getValue()??s.code??it.starter??'');
+        const run=el('button',{type:'button',class:'btn',text:'▶ Орындау'}),con=consoleBox();con.bind(()=>r.ed.getValue(),run);
+        card.append(el('div',{class:'stepbar'},[run,send]),con.box);
+        send.onclick=()=>submit(it,{code:r.ed.getValue(),signals:{...stats,away}},msg,send);
+      }else if(it.typed){
+        card.append(el('pre',{class:'py-qcode',text:it.code}));
+        r.input=el('input',{class:'field py-ans-in',type:'text',maxlength:'20','aria-label':'Түзетілген жауап',placeholder:'Дұрыс нәтижені жаз'});
+        r.input.value=String(s.best>=1?s.choice:load('r'+it.id)??s.choice??'');r.input.oninput=()=>save('r'+it.id,r.input.value);
+        card.append(r.input,el('div',{class:'stepbar'},send));
+        send.onclick=()=>{if(!r.input.value.trim()){msg.textContent='Алдымен жауап жаз.';return;}submit(it,{choice:r.input.value.trim()},msg,send);};
+      }else{
+        card.append(el('p',{text:it.q}));if(it.code)card.append(el('pre',{class:'py-qcode',text:it.code}));
+        const saved=load('r'+it.id);r.choice=saved===null?null:Number(saved);
+        it.opts.forEach(op=>{const b=el('button',{type:'button',class:'btn',text:op.t});b.onclick=()=>{r.choice=op.i;save('r'+it.id,String(op.i));r.buttons.forEach(x=>x.b.classList.toggle('sel',x.i===op.i));};r.buttons.push({b,i:op.i});card.append(b);});
+        card.append(el('div',{class:'stepbar'},send));send.onclick=()=>{if(r.choice===null){msg.textContent='Жауапты таңда.';return;}submit(it,{choice:r.choice},msg,send);};
+      }
+      card.append(msg,res);list.append(card);
+    }
+    const enabled=live&&s.canRevise&&!busy[it.id];r.send.disabled=!enabled;
+    r.send.textContent=s.best>=1?'✓ Түзетілді':!s.canRevise?'Әрекет саны аяқталды':'Түзетіп жіберу ('+s.revLeft+' әрекет)';
+    if(r.ed)r.ed.setDisabled(!enabled);if(r.input)r.input.disabled=!enabled;
+    r.buttons.forEach(x=>{x.b.disabled=!enabled;x.b.classList.toggle('sel',x.i===(s.best>=1?s.choice:r.choice));});
+    r.card.classList.toggle('fixed',s.best>=1);
+    const signature=JSON.stringify([s.tries,s.best,s.pts,live]);
+    if(r.signature!==signature){r.signature=signature;r.res.replaceChildren(resultBox(it,s));}
+  });
 }
 
 /* ---------- Құру ---------- */
 function build(){
-  hosts.tasks.innerHTML = ''; items = {}; ansBars = {}; chestUi = null; hintUi = [];
+  hosts.tasks.innerHTML = ''; items = {}; ansBars = {}; taskBars={};revisionCards={};revisionHost=null;chestUi = null; hintUi = [];
   D.tasks.forEach(t => t.items.forEach(it => { items[it.id] = { it, state:D.state[it.id] }; }));
   barEl = el('div', { class:'py-bar', role:'status' }, [el('div', { class:'py-bar-t' }), el('div', { class:'py-bar-s' }), el('div', { class:'py-bar-p' })]);
   hosts.tasks.append(barEl);
@@ -443,7 +509,7 @@ function build(){
     hosts.tasks.append(sec);
   });
   if (isP4()) hosts.tasks.append(hwSection());
-  paint(); clearInterval(tick); tick = setInterval(() => { if (!document.hidden) { paintBar(); const p = phase(); if (p !== lastPh){ lastPh = p; paint(); } } }, 1000);
+  paint(); clearInterval(tick); tick = setInterval(() => { if (!document.hidden) { paintBar();paintRevision(); const p = phase(); if (p !== lastPh){ lastPh = p; paint(); } } }, 1000);
 }
 let lastPh = '';
 

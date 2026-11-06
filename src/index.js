@@ -2,6 +2,7 @@
 import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
 import { dataFor, stampOf, buildFile, gradeFile } from './excel.js';
 import { TOPICS, MAX, MAXT, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
+import { drainHomeworkQueue } from './homework-queue.js';
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
@@ -25,6 +26,7 @@ const visibleSession = (DB, id = 0) => id
   : DB.prepare("SELECT * FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id) ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
 
 export default {
+  async scheduled(event,env,ctx){await ensureSchema(env.DB);await drainHomeworkQueue(env,{budgetMs:50000});},
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
@@ -43,7 +45,7 @@ async function route(request, env, ctx, url) {
   const b = method === 'GET' || path === 'xl/upload' || path === 'sb/upload' || path === 'mm/upload' ? {} : await body(request);
 
   /* ---------------- Студент: ашық жол ---------------- */
-  if (path.startsWith('py/')) return await pyStudent(path, method, b, request, env);
+  if (path.startsWith('py/')) return await pyStudent(path, method, b, request, env, ctx);
 
   if (path === 'public/roster' && method === 'GET') {
     const ses = await DB.prepare("SELECT id, topic, group_id FROM sessions WHERE status='open' ORDER BY id DESC LIMIT 1").first();
@@ -536,7 +538,7 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Teacher-only summary; images are fetched only when a student's work is opened. */
   if (path === 'homework' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT k.session_id,k.student_id,h.score,COALESCE(h.attempts,0) AS attempts,COALESCE(u.updated_at,h.at) AS at,s.full_name AS name,g.name AS gname,se.topic,x.teacher_score,CASE WHEN u.status='checking' AND u.updated_at>? THEN 'checking' WHEN u.status IN ('checking','error') THEN 'error' ELSE 'graded' END AS status,u.error_kind FROM (SELECT session_id,student_id FROM py_hw UNION SELECT session_id,student_id FROM py_hw_uploads) k JOIN students s ON s.id=k.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=k.session_id LEFT JOIN py_hw h ON h.session_id=k.session_id AND h.student_id=k.student_id LEFT JOIN py_hw_uploads u ON u.session_id=k.session_id AND u.student_id=k.student_id LEFT JOIN submissions x ON x.session_id=k.session_id AND x.student_id=k.student_id AND x.task=5 WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=se.id) ORDER BY at DESC").bind(now()-90));
+    const rows = await all(DB.prepare("SELECT k.session_id,k.student_id,h.score,COALESCE(h.attempts,0) AS attempts,COALESCE(u.updated_at,h.at) AS at,s.full_name AS name,g.name AS gname,se.topic,x.teacher_score,CASE WHEN u.status='queued' THEN 'queued' WHEN u.status='checking' AND u.updated_at>? THEN 'checking' WHEN u.status IN ('checking','error') THEN 'error' ELSE 'graded' END AS status,u.error_kind FROM (SELECT session_id,student_id FROM py_hw UNION SELECT session_id,student_id FROM py_hw_uploads) k JOIN students s ON s.id=k.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=k.session_id LEFT JOIN py_hw h ON h.session_id=k.session_id AND h.student_id=k.student_id LEFT JOIN py_hw_uploads u ON u.session_id=k.session_id AND u.student_id=k.student_id LEFT JOIN submissions x ON x.session_id=k.session_id AND x.student_id=k.student_id AND x.task=5 WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=se.id) ORDER BY at DESC").bind(now()-90));
     return json({ ok: true, rows: rows.map(r => ({ ...r, group: r.gname })) });
   }
 

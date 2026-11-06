@@ -88,3 +88,4 @@
 .hw-how{margin:8px 0;color:#334155}.hw-up{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}.hw-file{max-width:100%}
 .hw-prev{max-width:160px;max-height:120px;border-radius:10px;border:1px solid var(--line);object-fit:cover}
 .hw-score{font-size:1.1rem;color:#166534;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:8px 14px;margin-top:6px}
+.py-revision{border:2px solid #c7d2fe;background:#fafbff}.py-revision-item.fixed{border-color:#a7d9b9;background:#f4fbf6}.py-revision-list>.py-item{margin-top:14px}.py-revision .py-ans-in{max-width:280px}.py-revision-item>button{margin:4px}

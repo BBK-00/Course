@@ -11,9 +11,10 @@ export function memoryD1() {
       run: async () => { const r=sqlite.prepare(sql).run(...args); return {success:true,meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}}; }
     };
   }
+  let tail=Promise.resolve();
   return {
     prepare: statement,
-    batch: async statements => { sqlite.exec('BEGIN'); try {const out=[];for(const s of statements)out.push(await s.run());sqlite.exec('COMMIT');return out;}catch(e){sqlite.exec('ROLLBACK');throw e;} },
+    batch: statements => {const run=async()=>{sqlite.exec('BEGIN');try{const out=[];for(const s of statements)out.push(await s.run());sqlite.exec('COMMIT');return out;}catch(e){sqlite.exec('ROLLBACK');throw e;}};const p=tail.then(run);tail=p.catch(()=>{});return p;},
     sqlite
   };
 }
