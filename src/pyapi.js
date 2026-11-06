@@ -154,7 +154,9 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     const by = await attemptsOf(DB, p.ses, p.st), state = {};
     lesson.forEach(t => t.items.forEach(it => { state[it.id] = itemState(it, by[it.id], revisionOpen(wins,t0)); }));
     const pub = publicLesson(att.variant, seedOf(p), ses.topic, pv).map(t => t.pair && !pair ? { ...t, items: [], locked: true } : t).map(t => wins && p4Phase(wins, t.n, t0) === 'wait' ? { ...t, items: [], locked: true } : t);
-    return json({ ok: true, ready: true, phase, now: t0, wins: wins || undefined, hw: wins ? await hwInfo(DB, p, wins, t0) : undefined, work_until: ses.work_until, revise_until: ses.work_until + reviseMin(ses.topic) * 60, tasks: pub, pair: task2 ? await pairView(DB, pair, p.st, task2, by) : undefined, state, ...(await totals(env, DB, p, ses, att)) });
+    const hw=wins?await hwInfo(DB,p,wins,t0):undefined;
+    if(hw&&['queued','checking'].includes(hw.status))ctx?.waitUntil(drainHomeworkQueue(env));
+    return json({ ok: true, ready: true, phase, now: t0, wins: wins || undefined, hw, work_until: ses.work_until, revise_until: ses.work_until + reviseMin(ses.topic) * 60, tasks: pub, pair: task2 ? await pairView(DB, pair, p.st, task2, by) : undefined, state, ...(await totals(env, DB, p, ses, att)) });
   }
 
   if (path === 'py/open' && method === 'POST') {
