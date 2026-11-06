@@ -3,6 +3,7 @@ import { sign, verify, safeEqual, bearer, liveCode } from './auth.js';
 import { dataFor, stampOf, buildFile, gradeFile } from './excel.js';
 import { TOPICS, MAX, MAXT, autoScore, aiGrade, compute, variantOf, sysText, outOk } from './grading.js';
 import { drainHomeworkQueue } from './homework-queue.js';
+import { normalizeHomeworkReview } from './homework-review.js';
 import { SCHEMA } from './schema.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
@@ -538,9 +539,12 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Teacher-only summary; images are fetched only when a student's work is opened. */
   if (path === 'homework' && method === 'GET') {
-    const rows = await all(DB.prepare("SELECT k.session_id,k.student_id,h.score,COALESCE(h.attempts,0) AS attempts,COALESCE(u.updated_at,h.at) AS at,s.full_name AS name,g.name AS gname,se.topic,x.teacher_score,CASE WHEN u.status='queued' THEN 'queued' WHEN u.status='checking' AND u.updated_at>? THEN 'checking' WHEN u.status IN ('checking','error') THEN 'error' ELSE 'graded' END AS status,u.error_kind FROM (SELECT session_id,student_id FROM py_hw UNION SELECT session_id,student_id FROM py_hw_uploads) k JOIN students s ON s.id=k.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=k.session_id LEFT JOIN py_hw h ON h.session_id=k.session_id AND h.student_id=k.student_id LEFT JOIN py_hw_uploads u ON u.session_id=k.session_id AND u.student_id=k.student_id LEFT JOIN submissions x ON x.session_id=k.session_id AND x.student_id=k.student_id AND x.task=5 WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=se.id) ORDER BY at DESC").bind(now()-90));
+    const rows = await all(DB.prepare("SELECT k.session_id,k.student_id,h.score,COALESCE(h.attempts,0) AS attempts,COALESCE(u.updated_at,h.at) AS at,s.full_name AS name,g.name AS gname,se.topic,x.teacher_score,x.payload AS review_payload,CASE WHEN u.status='queued' THEN 'queued' WHEN u.status='checking' AND u.updated_at>? THEN 'checking' WHEN u.status IN ('checking','error') THEN 'error' ELSE 'graded' END AS status,u.error_kind FROM (SELECT session_id,student_id FROM py_hw UNION SELECT session_id,student_id FROM py_hw_uploads) k JOIN students s ON s.id=k.student_id JOIN groups g ON g.id=s.group_id JOIN sessions se ON se.id=k.session_id LEFT JOIN py_hw h ON h.session_id=k.session_id AND h.student_id=k.student_id LEFT JOIN py_hw_uploads u ON u.session_id=k.session_id AND u.student_id=k.student_id LEFT JOIN submissions x ON x.session_id=k.session_id AND x.student_id=k.student_id AND x.task=5 WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=se.id) ORDER BY at DESC").bind(now()-90));
     if(rows.some(r=>r.status==='queued'||r.status==='checking'))ctx?.waitUntil(drainHomeworkQueue(env));
-    return json({ ok: true, rows: rows.map(r => ({ ...r, group: r.gname })) });
+    return json({ ok: true, rows: rows.map(({review_payload,...r}) => {
+      let review=null;try{review=normalizeHomeworkReview(JSON.parse(review_payload||'{}').review);}catch{}
+      return {...r,group:r.gname,review_count:review?.findings.length||0};
+    }) });
   }
 
   /* Тікелей көрініс: кім бар / кім жоқ және прогресс */

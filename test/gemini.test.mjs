@@ -26,7 +26,7 @@ try {
   globalThis.fetch = async (_url,o) => {const k=o.headers['x-goog-api-key'];calls.push(k);return k===keys[0]?response(403,{error:{status:'PERMISSION_DENIED'}}):good({ok:true});};
   await run();assert.deepEqual(calls,keys.slice(0,2));
   next=0;calls.length=0;
-  globalThis.fetch = async (_url,o) => {calls.push(o.headers['x-goog-api-key']);return calls.length===1?good({score:'25',comment:'bad type'}):good({score:24,comment:'Жақсы жұмыс'});};
+  globalThis.fetch = async (_url,o) => {calls.push(o.headers['x-goog-api-key']);return calls.length===1?good({score:'25',comment:'bad type'}):good({score:24,comment:'Жақсы жұмыс',review:{findings:[]}});};
   assert.equal((await gradeHomeworkPhoto(env,'A'.repeat(3000),'image/jpeg')).score,24,'Malformed grade never becomes an automatic zero');
   next=0;
   globalThis.fetch = async () => {throw new DOMException('timed out','TimeoutError');};

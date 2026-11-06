@@ -26,12 +26,21 @@ assert((await T('homework')).rows.every(r=>r.status==='queued'&&!('photo'in r)))
 const duplicate=await call('py/hw',{retry:true},tokens[0]);assert(duplicate.ok);assert.equal(DB.sqlite.prepare('SELECT COUNT(*) n FROM homework_queue').get().n,20);
 DB.sqlite.prepare('DELETE FROM homework_queue_lock').run();
 let active=0,maxActive=0,graded=0;
-const grade=async()=>{active++;maxActive=Math.max(maxActive,active);await new Promise(r=>setTimeout(r,2));active--;graded++;return {score:25,comment:'Дұрыс'};};
+const finding={kind:'outside_lesson',excerpt:'make_card = lambda data: data',reason:'lambda құрылымын студенттен нақтылау керек.',question:'lambda осы жолда қандай әрекет атқарады?'};
+const grade=async()=>{active++;maxActive=Math.max(maxActive,active);await new Promise(r=>setTimeout(r,2));active--;graded++;return {score:25,comment:'Дұрыс',review:{findings:[finding]}};};
 await Promise.all(Array.from({length:8},()=>drainHomeworkQueue(env,{grade,budgetMs:10000})));
 assert.equal(maxActive,1,'Provider sees only one request at a time across competing drainers');
 assert.equal(graded,20);assert.equal(DB.sqlite.prepare('SELECT COUNT(*) n FROM py_hw WHERE score=25 AND attempts=1').get().n,20);
 assert.equal(DB.sqlite.prepare('SELECT COUNT(*) n FROM submissions WHERE task=5').get().n,20);
 assert.equal((await call('py/data',null,tokens[0])).hw.status,'graded');
+const checked=await T('work?session='+sid+'&student='+students[0].id);
+assert.equal(checked.subs.find(s=>s.task===5).payload.review.findings[0].excerpt,finding.excerpt);
+assert.equal(checked.calc.tasks[5].pts,25,'Teacher verification findings do not reduce a rubric score');
+const summaries=(await T('homework')).rows;
+assert.equal(summaries.find(r=>r.student_id===students[0].id).review_count,1);
+assert(summaries.every(r=>!('review_payload'in r)&&!('photo'in r)),'List excludes full grading payloads and photos');
+assert(!JSON.stringify(await call('py/data',null,tokens[0])).includes(finding.excerpt),'Teacher-only review is not exposed in student data');
+assert(!JSON.stringify(await call('py/summary',null,tokens[0])).includes(finding.excerpt),'Teacher-only review is not exposed in the student summary');
 const submission=DB.sqlite.prepare('SELECT id FROM submissions WHERE student_id=? AND task=5').get(students[0].id);
 await T('task_grade',{id:submission.id,task:5,score:23,comment:'Оқытушы пікірі'});
 // Retry a temporary outage automatically, without consuming a student attempt.

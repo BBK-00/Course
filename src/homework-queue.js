@@ -1,4 +1,5 @@
 import {gradeHomeworkPhoto, subStatement} from './pyapi.js';
+import {normalizeHomeworkReview} from './homework-review.js';
 const now=()=>Math.floor(Date.now()/1000);
 // A database lease serializes all Worker instances, not just one browser/tab.
 export async function drainHomeworkQueue(env, options={}){
@@ -34,7 +35,7 @@ export async function drainHomeworkQueue(env, options={}){
       const attempts=(prev?.attempts||0)+1,score=Math.max(0,Math.min(25,Math.round(grade.score*10)/10)),comment=String(grade.comment).slice(0,700);
       await DB.batch([
         DB.prepare('INSERT INTO py_hw(session_id,student_id,photo,mime,score,comment,attempts,at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(session_id,student_id) DO UPDATE SET photo=excluded.photo,mime=excluded.mime,score=excluded.score,comment=excluded.comment,attempts=excluded.attempts,at=excluded.at').bind(q.session_id,q.student_id,q.photo,q.mime,score,comment,attempts,now()),
-        subStatement(DB,q.session_id,q.student_id,5,{items:[{id:61,label:'Үй жұмысы — ЖИ бағасы, '+attempts+' әрекет',got:score,max:25,done:true}],done:true},score,'ЖИ бағалады: '+score+'/25'),
+        subStatement(DB,q.session_id,q.student_id,5,{items:[{id:61,label:'Үй жұмысы — ЖИ бағасы, '+attempts+' әрекет',got:score,max:25,done:true}],done:true,review:normalizeHomeworkReview(grade.review)},score,'ЖИ бағалады: '+score+'/25'),
         DB.prepare("UPDATE py_hw_uploads SET status='graded',error_kind=NULL,updated_at=? WHERE job_id=?").bind(now(),q.job_id),
         DB.prepare("UPDATE homework_queue SET status='graded' WHERE job_id=?").bind(q.job_id)
       ]);
