@@ -380,20 +380,22 @@ export async function pyStats(DB, sesId) {
   const starts = {}; (await all(DB.prepare('SELECT student_id, task, started_at FROM task_starts WHERE session_id=? AND task>=10').bind(sesId))).forEach(r => { starts[r.student_id + ':' + r.task] = r.started_at; });
   const hints = await all(DB.prepare('SELECT student_id, COUNT(*) AS n FROM py_hints WHERE session_id=? GROUP BY student_id').bind(sesId));
   const att = await all(DB.prepare('SELECT student_id, variant FROM attendance WHERE session_id=?').bind(sesId));
-  const lesson = lessonOf(ses.topic, 1), meta = {}; lesson.forEach(t => t.items.forEach(it => { meta[it.id] = { id: it.id, task: t.n, title: it.label ? 'Кеңес: ' + it.label : it.title, max: it.max, kind: it.kind, op: it.op || '' }; }));
+  const lesson = lessonOf(ses.topic, 1), meta = {}; lesson.forEach(t => t.items.forEach((it,index) => { meta[it.id] = { id: it.id, task: t.n, index:index+1, label:t.n+'.'+(index+1), title: it.label ? 'Кеңес: ' + it.label : ses.topic==='P4'&&it.kind==='quiz' ? (OPS4[it.op]?.name||it.q||'Тест сұрағы') : it.title, max: it.max, kind: it.kind, op: it.op || '' }; }));
   const per = {};   /* студент → item → { list } */
   rows.forEach(r => { const s = (per[r.student_id] = per[r.student_id] || { name: r.full_name, items: {} }); (s.items[r.item] = s.items[r.item] || []).push({ n: r.n, at: r.at, frac: r.frac, detail: jparse(r.detail, {}), signals: jparse(r.signals, {}) }); });
   const items = Object.values(meta).map(m => {
-    const times = [], f1s = [], tries = [], gains = [], skills = {}; let n = 0;
+    const times = [], f1s = [], tries = [], gains = [], skills = {},struggling=[]; let n = 0,firstCorrect=0,corrected=0;
     Object.entries(per).forEach(([sid, s]) => {
       const list = s.items[m.id]; if (!list) return; n++;
       f1s.push(list[0].frac); tries.push(list.length);
       const best = Math.max(...list.map(a => a.frac)); gains.push(best - list[0].frac);
+      if(list[0].frac>=1)firstCorrect++;else if(best>=1)corrected++;
+      if(best<1)struggling.push({id:Number(sid),name:s.name});
       const st = starts[sid + ':' + m.id]; if (st) times.push(Math.max(0, list[0].at - st));
-      const last = list[list.length - 1]; if (best < 1) (last.detail.diag || []).forEach(d => { skills[d.skill] = (skills[d.skill] || 0) + 1; });
+      const last = list[list.length - 1]; if (best < 1) [...new Set((last.detail.diag || []).map(d=>d.skill).filter(Boolean))].forEach(skill => { skills[skill] = (skills[skill] || 0) + 1; });
     });
     const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100) / 100 : null;
-    return { ...m, sent: n, firstPass: f1s.length ? Math.round(f1s.filter(f => f >= 1).length / f1s.length * 100) : null, avgFrac: avg(f1s), avgTries: avg(tries), avgGain: avg(gains), medianSecs: median(times), skills: Object.entries(skills).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => ({ skill: k, name: (SKILLS[k] || {}).name || k, n: v })) };
+    return { ...m, sent: n, firstCorrect,corrected,unresolved:struggling.length,struggling, firstPass: f1s.length ? Math.round(f1s.filter(f => f >= 1).length / f1s.length * 100) : null, avgFrac: avg(f1s), avgTries: avg(tries), avgGain: avg(gains), medianSecs: median(times), skills: Object.entries(skills).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => ({ skill: k, name: (SKILLS[k] || {}).name || k, tip:(SKILLS[k]||{}).tip||'', n: v })) };
   });
   const med = Object.fromEntries(items.map(i => [i.id, i.medianSecs]));
   const hn = Object.fromEntries(hints.map(h => [h.student_id, h.n]));
@@ -409,7 +411,7 @@ export async function pyStats(DB, sesId) {
     });
     return { id: Number(sid), name: s.name, secs: cnt ? secs : null, hints: hn[sid] || 0, tries: Object.values(s.items).reduce((a, l) => a + l.length, 0), fixed: Object.values(s.items).filter(l => l.length > 1 && Math.max(...l.map(a => a.frac)) > l[0].frac).length, flags: [...new Set(flags)].slice(0, 4) };
   }).sort((a, b) => b.flags.length - a.flags.length || a.name.localeCompare(b.name, 'kk'));
-  return json({ ok: true, items: ses.topic === 'P4' ? items.filter(i => i.task === 2 || i.task === 3) : items, students, present: att.length, ...(ses.topic === 'P4' ? { ops: opStats(meta, per), tasks: taskStats(lesson, per) } : {}) });
+  return json({ ok: true, allItems:items, items: ses.topic === 'P4' ? items.filter(i => i.task === 2 || i.task === 3) : items, students, present: att.length, ...(ses.topic === 'P4' ? { ops: opStats(meta, per), tasks: taskStats(lesson, per) } : {}) });
 }
 
 /* ---------- Оқытушы: жұптарды құру және бақылау (8-сабақ) ---------- */
