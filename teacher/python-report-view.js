@@ -27,7 +27,7 @@ export function drawPythonReport(host, h, students, history, {date, source, priv
     section('Журнал бағаларының гистограммасы',[note('Әр студенттің сабаққа дейінгі жеке орташа балы. Баған ұзындығы — студент саны.'),...(b.assessed?r.histogram.map(x=>bar(x.label,x.count,p.length,String(x.count),'blue')):[noData])]),
     section('Сабақ бойынша төрт тапсырма',[note('Орташа пайыз тек жіберілген және тексерілген жұмыстардан. Қамту саны әр жолда көрсетілген.'),...r.tasks.map(t=>bar(t.n+'. '+t.title,t.pct,100,t.answered?num(t.pct)+'% · '+t.answered+'/'+p.length:'Жауап жоқ',t.pct!==null&&t.pct<70?'amber':''))]),
     section('Журналдағы динамика',[note('Бір күнде бірнеше баға болса, сол күнге орташа алынады. Жауап бергендер саны өзгеретіндіктен, күндерді бірдей топ деп салыстырмаңыз.'),...b.daily.slice(-10).map(d=>bar(isoShort(d.date),d.score,100,num(d.score)+' · '+d.count+' адам','blue'))]),
-    section('Сайт бағаларының гистограммасы',[note('Тек қорытынды бағалар. Аралық баллдар жеке карточкаларда көрсетіледі.'),...(r.finals?r.siteHistogram.map(x=>bar(x.label,x.count,r.finals,String(x.count)):[note('Қорытынды баға жоқ.')])]) ]));
+    section('Сайт бағаларының гистограммасы',[note('Тек қорытынды бағалар. Аралық баллдар жеке карточкаларда көрсетіледі.'),...(r.finals?r.siteHistogram.map(x=>bar(x.label,x.count,r.finals,String(x.count))):[note('Қорытынды баға жоқ.')])]) ]));
   const rows = p.map((s,i)=>{
     const markers=s.history.history.filter(e=>e.score===null);
     const today=s.history.history.filter(e=>e.date===date&&e.score!==null).map(e=>num(e.score));

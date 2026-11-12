@@ -1,4 +1,4 @@
-import { drawPythonReport } from './python-report-view.js';
+import { drawPythonReport } from './python-report-view.js?v=2';
 
 let current;
 const messages={journal_format:'Файлдың пішімі жарамсыз. Excel немесе Google Sheets-тен TSV ретінде жүктеңіз.',journal_header:'«Аты-жөні» бағаны табылмады.',journal_dates:'Журнал күндері таңдалған оқу жылына сәйкес келмеді.',no_group:'Алдымен осы топтың сабағын таңдаңыз.',no_scores:'Талдауға бағаланған дерек жеткіліксіз.',ai_config:'ЖИ қызметі бапталмаған. Диаграммалар мен есептелген ұсыныстар қолжетімді.',ai_unavailable:'ЖИ қазір жауап бермеді. Есептелген ұсыныстар төменде сақталды.'};

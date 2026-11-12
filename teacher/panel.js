@@ -484,7 +484,7 @@ function paintAnalysis(){
  const peopleFor=op=>{analysisSelected='students';analysisFocusOp=op;analysisFocusItem=0;paintAnalysis();};
  if(analysisSelected==='python-report'){
    const session=LIVE.session, students=allStudents();
-   import('./python-report-panel.js?v=1').then(({mountPythonReport})=>{if(content.isConnected&&LIVE?.session?.id===session.id)mountPythonReport(content,{session,students,api,h});}).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
+   import('./python-report-panel.js?v=2').then(({mountPythonReport})=>{if(content.isConnected&&LIVE?.session?.id===session.id)mountPythonReport(content,{session,students,api,h});}).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
  }else if(analysisSelected==='overview'){
    window.TeacherAnalysis.render(content,d,{h,btn,people:id=>{analysisFocusItem=id;analysisFocusOp='';analysisSelected='students';paintAnalysis();},showItems:()=>{analysisSelected='items';paintAnalysis();}});
  }else if(analysisSelected==='ops'){
