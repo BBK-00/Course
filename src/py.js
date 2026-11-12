@@ -391,6 +391,34 @@ function explainRuntime(e) {
   return { skill: 'logic', text: ln + t + ': ' + m.slice(0, 100) };
 }
 
+/* Дәл жол-жолға тексерілетін есептер (strictLines): толық дұрыс емес жауап нөл болмайды.
+   Жол бойынша салыстырылады: дәл сәйкес жол 1, тек тыныс белгісі/регистр/бос орын айырмашылығы бар жол 0,75. Толық емес жауап 85%-дан аспайды. */
+const CLEAN = v => String(v).trim().replace(/[ \t]+/g, ' ');
+const SQUASH = v => CLEAN(v).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+const outLines = res => String(res.out || '').split(/\r?\n/).map(CLEAN).filter(Boolean).slice(0, 200);
+export function partialCase(c, res) {
+  if (!c.strictLines || !res || res.err) return 0;
+  const got = outLines(res), exp = (c.exp || []).map(CLEAN), len = Math.max(got.length, exp.length);
+  if (!got.length || !exp.length) return 0;
+  const w = (a, b) => (a === b ? 1 : SQUASH(a) && SQUASH(a) === SQUASH(b) ? 0.75 : 0);
+  const dp = Array.from({ length: got.length + 1 }, () => new Array(exp.length + 1).fill(0));
+  for (let i = 1; i <= got.length; i++) for (let j = 1; j <= exp.length; j++) dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1] + w(got[i - 1], exp[j - 1]));
+  return Math.min(0.85, Math.round(dp[got.length][exp.length] / len * 100) / 100);
+}
+/* Қай жерде қате екенін түсіндіретін хабарлар (толық талдау) */
+export function lineDiag(c, res, skill) {
+  if (!c.strictLines || !res || res.err) return [];
+  const got = outLines(res), exp = (c.exp || []).map(CLEAN), out = [];
+  if (!got.length) return [{ skill, text: 'Экранға ештеңе шықпады. print() қолданып нәтижені шығар.' }];
+  if (got.length !== exp.length) out.push({ skill, text: 'Экранға ' + exp.length + ' жол шығуы керек, сенде ' + got.length + ' жол шықты. ' + (got.length < exp.length ? 'Цикл ертерек тоқтап тұр немесе шекара кіші.' : 'Цикл ұзақ жүріп тұр немесе артық print бар.') });
+  const k = got.findIndex((g, i) => i < exp.length && g !== exp[i]);
+  if (k >= 0) {
+    const near = SQUASH(got[k]) && SQUASH(got[k]) === SQUASH(exp[k]);
+    out.push({ skill, text: (k + 1) + '-жол: күтілгені «' + exp[k].slice(0, 40) + '», сенде «' + got[k].slice(0, 40) + '».' + (near ? ' Мәні дұрыс, тек тыныс белгісі, әріп регистрі немесе бос орын сәйкес келмейді.' : '') });
+  }
+  return out;
+}
+
 /* Тексеру нәтижесінен диагностика тізімі (ең көбі 3 түрлі кеңес) */
 export function diagnose(item, code, exec, results) {
   const out = [], add = d => { if (d && !out.some(x => x.text === d.text)) out.push(d); };
@@ -402,7 +430,7 @@ export function diagnose(item, code, exec, results) {
   const con = constraintOk(item, code); if (!con.ok) add({ skill: con.skill, text: con.text });
   const H = item.hints || {};
   bad.filter(b => !b.r.err).forEach(b => {
-    if (b.c.strictLines) { if (H.under) add({ skill: item.skills[0], text: H.under }); return; }
+    if (b.c.strictLines) { lineDiag(b.c, b.r, item.skills[0]).forEach(add); if (H.under) add({ skill: item.skills[0], text: H.under }); return; }
     if (item.arith) { const sk = item.skills[0]; if (b.c.tag === 'edge' && H.edge) add({ skill: sk, text: H.edge }); else if (H.under) add({ skill: sk, text: H.under }); return; }
     const c = b.c, shouldPrint = (c.exp || []).length > 0, printed = String(b.r.out || '').trim().length > 0;
     if (c.tag === 'edge' && H.edge) add({ skill: 'boundary', text: H.edge });
@@ -418,14 +446,15 @@ export function diagnose(item, code, exec, results) {
 export function gradeFromExec(item, code, ex) {
   const per = item.cases.map((c, i) => {
     const raw = ex.results && ex.results[i];
-    return { ok: !!raw && checkCase(c, raw), raw: raw || null, tag: c.tag, in: c.in, exp: c.exp || [], not: c.not || [] };
+    const ok = !!raw && checkCase(c, raw);
+    return { ok, part: ok ? 1 : partialCase(c, raw), raw: raw || null, tag: c.tag, in: c.in, exp: c.exp || [], not: c.not || [] };
   });
   const passed = per.filter(p => p.ok).length, con = constraintOk(item, code);
   /* талап бұзылса, балл 80%-дан аспайды */
-  let frac = passed / item.cases.length;
+  let frac = per.reduce((a, p) => a + p.part, 0) / item.cases.length;
   if (!con.ok) frac = item.constraint === 'expr' ? 0 : Math.min(frac, 0.8);
   const diag = diagnose(item, code, ex, per);
-  return { frac, passed, total: item.cases.length, cases: per.map(p => ({ ok: p.ok, in: p.in, exp: p.exp, got: p.raw ? String(p.raw.out || '').trim().slice(0, 160) : '', err: p.raw && p.raw.err ? p.raw.err.type + (p.raw.err.line ? ' (' + p.raw.err.line + '-жол)' : '') : '', tag: p.tag })), diag, syntax: !!ex.syntax, constraint: con.ok };
+  return { frac, passed, total: item.cases.length, cases: per.map(p => ({ ok: p.ok, part: p.ok ? 100 : Math.round(p.part * 100), in: p.in, exp: p.exp, got: p.raw ? String(p.raw.out || '').trim().slice(0, 160) : '', err: p.raw && p.raw.err ? p.raw.err.type + (p.raw.err.line ? ' (' + p.raw.err.line + '-жол)' : '') : '', tag: p.tag })), diag, syntax: !!ex.syntax, constraint: con.ok };
 }
 export async function gradeCodeItem(run, item, code) {
   const ex = await execCases(run, code, item.cases);

@@ -51,7 +51,7 @@ function resultBox(it, s, extra){
       const ul = el('ul', { class:'py-cases' });
       bad.slice(0, 4).forEach(c => {
         const exp = c.exp && c.exp.length ? c.exp.map(fmt).join(' және ') : 'ештеңе шықпауы керек', got = c.err ? 'қате: ' + c.err : (c.got ? '«' + c.got + '»' : 'ештеңе шықпады');
-        ul.append(el('li', {}, ['Енгізу: ', el('code', {text:c.in.length ? c.in.join(' · ') : '—'}), ' → күтілген: ', el('b', {text:exp}), '. Сенің бағдарламаң: ', el('b', {text:got})]));
+        ul.append(el('li', {}, ['Енгізу: ', el('code', {text:c.in.length ? c.in.join(' · ') : '—'}), ' → күтілген: ', el('b', {text:exp}), '. Сенің бағдарламаң: ', el('b', {text:got}), c.part > 0 ? el('span', { class:'muted', text:' · ішінара дұрыс: ' + c.part + '%' }) : '']));
       });
       box.append(el('div', { class:'py-sub' }, [el('b', { text:'Қай жерде қате:' }), ul]));
     }

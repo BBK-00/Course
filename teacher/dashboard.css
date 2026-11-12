@@ -89,3 +89,13 @@ button,input,select,textarea{font:inherit}button,a,input,select,textarea{touch-a
 .cfg-row{display:grid;grid-template-columns:1fr 84px auto;gap:8px;align-items:center}
 .cfg-hw{display:flex;gap:8px;align-items:center;font-weight:600}
 .cfg-total{font-size:14px}
+
+.va-tasks{margin-top:18px}.va-tasks h2{font-size:16px!important;margin:0}.va-tasks>.sub{margin:6px 0 14px}
+.va-task-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.va-task{min-width:0}.va-task-head{display:flex;align-items:center;gap:10px}.va-task-head b{font-size:14px;overflow-wrap:anywhere}.va-task-head .sp{flex:1}
+.va-task-n{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#eaf1fa;color:#3d63a8;font-weight:800;font-size:13px;flex:none}
+.va-task-pct{font-size:20px;color:#6b7a8c}.va-task-pct.good{color:#247a69}.va-task-pct.mid{color:#3d63a8}.va-task-pct.low{color:#b0701c}
+.va-task-bar{height:10px;border-radius:5px;background:#edf1f6;overflow:hidden;margin:10px 0 6px}.va-task-bar i{display:block;height:100%;border-radius:5px;background:#6b7a8c;transition:width .25s}
+.va-task-bar i.good{background:#319581}.va-task-bar i.mid{background:#5c83e8}.va-task-bar i.low{background:#edab57}
+.va-task-sub{color:#6b7a8c;font-size:12px}.va-task .va-item{margin:12px 0 0}
+@media(max-width:800px){.va-task-grid{grid-template-columns:1fr}}

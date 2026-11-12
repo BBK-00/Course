@@ -130,7 +130,7 @@ async function syncPair(DB, ses, p, pair, task2, by, myName) {
 }
 const lastOf = list => (list && list.length ? list[list.length - 1] : null);
 /* Студентке көрсетілетін нәтиже: өткен жағдайларда күтілетін жауап көрсетілмейді */
-const publicCases = cases => (cases || []).map(c => c.ok ? { ok: true, in: c.in } : { ok: false, in: c.in, exp: c.exp, got: c.got, err: c.err, tag: c.tag });
+const publicCases = cases => (cases || []).map(c => c.ok ? { ok: true, in: c.in } : { ok: false, in: c.in, exp: c.exp, got: c.got, err: c.err, tag: c.tag, part: c.part || 0 });
 
 async function totals(env, DB, p, ses, att) {
   const [subs, res, bn] = await Promise.all([

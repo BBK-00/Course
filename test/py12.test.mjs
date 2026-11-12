@@ -97,8 +97,8 @@ try {
   const age = () => DB.sqlite.prepare('UPDATE py_attempts SET at=at-60 WHERE session_id=?').run(session.id);
   for (const task of [1, 2]) await teach('pywin', { task, action: 'start' });
   const it11 = tasks[0].items[0], it21 = tasks[1].items[0];
-  assert.equal((await w2('submit', { item: it11.id, code: 'print(1)' })).ok, true);
-  assert.equal((await w2('submit', { item: it21.id, code: 'print(1)' })).ok, true);
+  assert.equal((await w2('submit', { item: it11.id, code: 'print(0)' })).ok, true);
+  assert.equal((await w2('submit', { item: it21.id, code: 'print(0)' })).ok, true);
   age();
   assert.equal((await w2('submit', { item: it11.id, code: it11.ref })).ok, false, 'no revision before the teacher opens it');
   for (const task of [1, 2]) DB.sqlite.prepare('UPDATE py_wins SET until_at=0 WHERE session_id=? AND task=?').run(session.id, task);
@@ -122,3 +122,22 @@ assert.equal(analytics.allItems.length, 20);
 assert.equal(analytics.ops.length, 5);
 assert.equal(analytics.allItems.find(item => item.id === 50).label, '4.10');
 console.log('Lesson 12: timers, stage gating, 12 Python submissions, mixed quiz, 100-point total and analytics passed.');
+
+// Partial credit for exact-line tasks: a small slip is not zero, and the analysis says where it is.
+{
+  const { partialCase, lineDiag } = await import('../src/py.js');
+  const hello = tasks[0].items[4].cases[0];
+  const lines = n => ({ out: Array(n).fill('Сәлем!').join('\n') });
+  assert.equal(partialCase(hello, lines(5)), 0.83);
+  assert.equal(partialCase(hello, { out: Array(6).fill('Сәлем').join('\n') }), 0.75);
+  assert.equal(partialCase(hello, { err: { type: 'SyntaxError' } }), 0);
+  assert.equal(partialCase(hello, { out: '' }), 0);
+  assert.equal(partialCase(hello, { out: Array(6).fill('x').join('\n') }), 0);
+  assert(lineDiag(hello, lines(5), 'loop_range')[0].text.includes('6 жол'));
+  assert(lineDiag(hello, { out: Array(6).fill('Сәлем').join('\n') }, 'loop_range')[0].text.includes('тыныс белгісі'));
+  const [slip] = await gradeCodeItems(code => ({ stdout: python(code) }), [{ item: tasks[0].items[4], code: 'for i in range(5):\n    print("Сәлем!")' }]);
+  assert.equal(slip.frac, 0.83);
+  assert.equal(slip.passed, 0);
+  assert(slip.diag.length >= 1);
+}
+console.log('Lesson 12: partial credit and line analysis passed.');

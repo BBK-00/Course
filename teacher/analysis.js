@@ -46,6 +46,22 @@
       data.ops.forEach(o=>{const col=h('div',{title:o.name+' · '+(o.answers?o.correct+'/'+o.answers+' дұрыс':'әлі жауап жоқ')},[h('small',{text:o.answers?o.pct+'%':'—'}),h('div',{class:'va-op-track'},h('i',{style:'height:'+(o.pct||0)+'%;background:'+(o.pct>=75?'#319581':o.pct>=50?'#5c83e8':'#edab57')})),h('b',{text:o.sym})]);ops.append(col);});summary.append(ops);
     }
     grid.append(chart,summary);root.append(grid);
+    if(data.tasks?.length){
+      const per=h('section',{class:'va-tasks','aria-label':'Тапсырмалар бойынша талдау'},[h('h2',{text:'Тапсырмалар бойынша'}),h('p',{class:'sub',text:'Әр тапсырманың орташа баллы және есептері: бірден дұрыс, кейін түзетілген, қате қалған.'})]);
+      const cards=h('div',{class:'va-task-grid'});
+      data.tasks.forEach(t=>{
+        const list=report.items.filter(i=>i.task===t.n),tone=t.pct===null?'':t.pct>=75?'good':t.pct>=50?'mid':'low';
+        const card=h('article',{class:'card va-task'},[h('div',{class:'va-task-head'},[h('span',{class:'va-task-n',text:t.n}),h('b',{text:t.title}),h('span',{class:'sp'}),h('strong',{class:'va-task-pct '+tone,text:t.pct===null?'—':t.pct+'%'})]),
+          h('div',{class:'va-task-bar',role:'img','aria-label':'Орташа балл '+(t.avg??'—')+' / '+t.max},h('i',{class:tone,style:'width:'+(t.pct||0)+'%'})),
+          h('small',{class:'va-task-sub',text:t.sent?'Орташа '+t.avg+' / '+t.max+' балл · жіберген '+t.sent+' студент'+(t.fixed?' · қатесін түзеткен '+t.fixed:''):'Әзірге жауап жоқ'})]);
+        list.forEach(i=>{const row=h('div',{class:'va-item'}),stack=h('div',{class:'va-stack',role:'img','aria-label':i.firstCorrect+' бірден дұрыс, '+i.corrected+' түзетті, '+i.unresolved+' қате қалды'});
+          for(const [n,cls]of [[i.firstCorrect,'first'],[i.corrected,'fixed'],[i.unresolved,'wrong']])if(n)stack.append(h('span',{class:cls,style:'width:'+(n/i.sent*100)+'%'}));
+          row.append(h('div',{class:'va-item-head'},[h('b',{text:title(i)}),h('span',{text:i.firstCorrect+i.corrected+'/'+i.sent+' дұрыс'})]),stack);card.append(row);});
+        cards.append(card);
+      });
+      per.append(cards,legend.cloneNode?legend.cloneNode(true):legend);root.append(per);
+    }
+
     const extra=report.alerts.slice(1,3);
     if(extra.length)root.append(h('details',{class:'va-more'},[h('summary',{text:'Тағы '+extra.length+' есепке назар аударыңыз'}),...extra.map(i=>h('div',{class:'va-extra'},[h('span',{text:title(i)+' · '+i.unresolved+'/'+i.sent+' студент қиналды'}),btn('Кімдер?',()=>people(i.id),'sm')]))]));
     host.append(root);
