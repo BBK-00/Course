@@ -2,6 +2,7 @@
   "name": "bbk-courses",
   "main": "src/index.js",
   "compatibility_date": "2025-06-01",
+  "build": { "command": "npm run build:ustazai", "watch_dir": "src/ustazai/src" },
   "triggers": {"crons":["* * * * *"]},
   "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/python/*", "/scratch/*", "/sandyq-adister/*", "/akt/*"] },
   "d1_databases": [

@@ -2,6 +2,9 @@
   "name": "bbk-courses",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "wrangler dev" },
+  "scripts": {
+    "dev": "wrangler dev",
+    "build:ustazai": "npm ci --prefix src/ustazai --no-audit --no-fund && npm run build --prefix src/ustazai"
+  },
   "devDependencies": { "wrangler": "^4.0.0" }
 }

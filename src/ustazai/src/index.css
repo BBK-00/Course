@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", sans-serif;
+
+  --color-brand-primary: #10B981;
+  --color-brand-primary-hover: #059669;
+  --color-brand-bg: #F0FDF4;
+  --color-brand-text: #064E3B;
+  --color-brand-muted: #6B7280;
+}
+
+@layer base {
+  html, body, *, ::before, ::after {
+    font-family: "Montserrat", sans-serif !important;
+  }
+
+  body {
+    @apply bg-white text-[#1A1A1A] antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-brand-text;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-8 py-4 bg-brand-primary text-white rounded-2xl font-bold transition-all hover:bg-brand-primary-hover hover:shadow-lg active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply px-8 py-4 bg-white border-2 border-brand-primary text-brand-primary rounded-2xl font-bold transition-all hover:bg-brand-bg active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .card-modern {
+    @apply bg-white border border-zinc-100 rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-300;
+  }
+
+  .badge-modern {
+    @apply px-3 py-1 bg-brand-bg text-brand-primary border border-brand-primary/20 rounded-full text-[10px] font-black uppercase tracking-widest;
+  }
+}

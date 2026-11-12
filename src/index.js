@@ -84,7 +84,7 @@ export default {
     try {
       await ensureSchema(env.DB);
       if (url.pathname === '/api/account' || url.pathname.startsWith('/api/account/')) {
-        try { return await accountApi(request, env.DB, url); }
+        try { return await accountApi(request, env.DB, url, env); }
         catch { return err('server', 500); }
       }
       await ensureData(env.DB);

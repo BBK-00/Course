@@ -1,4 +1,5 @@
 import { safeEqual } from './auth.js';
+import { ustazaiTask, runUstazaiTask } from './ustazai-ai.js';
 
 const cookieName = 'bbk_learner';
 const sessionSeconds = 60 * 60 * 24 * 30;
@@ -78,7 +79,7 @@ async function credentials(request, DB, url, path, body, now) {
   return json(await viewer(DB, account), path === 'register' ? 201 : 200, cookie(url, token, sessionSeconds));
 }
 
-export async function accountApi(request, DB, url) {
+export async function accountApi(request, DB, url, env) {
   const path = url.pathname.slice('/api/account'.length).replace(/^\//, '');
   const now = Math.floor(Date.now() / 1000);
   if (request.method !== 'GET') {
@@ -88,7 +89,7 @@ export async function accountApi(request, DB, url) {
     let body;
     try {
       const raw = await request.text();
-      if (raw.length > 4096) return failure('fields', 413);
+      if (raw.length > (path === 'ustazai' ? 24000 : 4096)) return failure('fields', 413);
       body = JSON.parse(raw);
       if (!body || typeof body !== 'object' || Array.isArray(body)) return failure('fields');
     } catch { return failure('fields'); }
@@ -97,6 +98,20 @@ export async function accountApi(request, DB, url) {
     if (path === 'logout') {
       if (hash) await DB.prepare('DELETE FROM learner_sessions WHERE token_hash=?').bind(hash).run();
       return json({ ok: true, account: null, courses: [] }, 200, cookie(url, '', 0));
+    }
+    if (path === 'ustazai') {
+      const account = await findAccount(DB, hash, now);
+      if (!account) return failure('auth', 401);
+      const task = ustazaiTask(body);
+      if (!task) return failure('fields');
+      const ip = request.headers.get('CF-Connecting-IP') || 'local';
+      if (!await limit(DB, await sha256('ustazai:account:' + account.id), now, 8) ||
+          !await limit(DB, await sha256('ustazai:ip:' + ip), now, 60)) return failure('wait', 429);
+      try {
+        return json({ ok: true, data: await runUstazaiTask(env, task) });
+      } catch (error) {
+        return failure(error.kind === 'config' ? 'ai_config' : 'ai_unavailable', 503);
+      }
     }
     if (path !== 'course') return failure('not_found', 404);
     if (!courseIds.has(body.course) || typeof body.saved !== 'boolean') return failure('fields');
