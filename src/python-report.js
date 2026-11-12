@@ -2,10 +2,54 @@ import { geminiJson } from './gemini.js';
 import { courseDate } from './progress.js';
 import { parseJournal, readJournalPaste } from './progress-journal.js';
 import { pyStats } from './pyapi.js';
+import { P12_MAX } from './py12.js';
 
-const schema={type:'OBJECT',properties:{summary:{type:'STRING'},action:{type:'STRING'}},required:['summary','action']};
+const reportFields={summary:1400,forecast:1200,strengths:1000,risks:1400,action:1800,practice:1800,check:1000};
+const reportKeys=Object.keys(reportFields);
+const schema={type:'OBJECT',properties:Object.fromEntries(reportKeys.map(k=>[k,{type:'STRING'}])),required:reportKeys};
 const bounded=(v,max=100)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max?v:null;
+const signed=v=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<=100?v:null;
 const all=async statement=>(await statement.all()).results||[];
+
+function journalFacts(raw, individual) {
+  const journal=raw||{};
+  const recent=Array.isArray(journal.recent)?journal.recent.slice(-3).map(v=>bounded(v)).filter(v=>v!==null):[];
+  return {
+    average:bounded(journal.average),
+    forecast:bounded(journal.forecast),
+    gradedDays:bounded(journal.days,400),
+    recentDailyScores:individual?recent:[],
+    recentChange:signed(journal.change),
+    forecastCount:individual?null:bounded(journal.coverage,1000),
+    belowThreshold:individual?null:bounded(journal.risk,1000),
+    rosterSize:individual?null:bounded(journal.total,1000)
+  };
+}
+
+function reportPrompt(facts, individual) {
+  return [
+    'Python 12-сабақ бойынша оқытушыға қазақ тілінде '+(individual?'бір студенттің':'топтың')+' толық талдауын дайында.',
+    'summary: негізгі нәтиже мен дерек қамтуын 2–3 сөйлеммен түсіндір.',
+    'forecast: берілген болжамды, соңғы бағалар динамикасын және дерек қамтуын түсіндір. Болжам жоқ болса, қажетті деректі көрсет. Жаңа балл, ықтималдық немесе қате аралығын ойлап таппа.',
+    'strengths: жақсы меңгерілген 1–2 дағдыны көрсеткішпен негізде. Дерек аз болса, соны айт.',
+    'risks: назар аударатын тапсырмалар мен ұғымдарды нақтыла. Жіберілмеген жұмыс, тексерілмеген жұмыс және төмен нәтиже арасын ажырат. Себепті жорамал ретінде көрсет.',
+    'action: келесі сабаққа 3 қадам ұсын. '+(individual?'Қолдау, жеке орындау және қысқа кері байланыс бер.':'Топтық қайталау, қолдау қажет шағын топ және алда келе жатқандарға күрделі жұмыс ұсын.'),
+    'practice: тақырыпқа сай жаңа есептің шартын, күтілетін нәтиже түрін және екі тексеру мәнін бер. Дайын шешім кодын берме.',
+    'check: келесі сабақтан кейін бақыланатын 2 өлшем мен тексеру жолын ұсын. Ұсынылатын мақсатты тарихи нәтижеден ажырат.',
+    'Қолдау межесі 70/100. Қорытындылар тек деректерге негізделсін. Тапсырма 1: for/range, 2: қосынды мен көбейтінді, 3: for/if, 4: тест.',
+    'Деректер: '+JSON.stringify(facts)
+  ].join('\n');
+}
+
+const demo={
+  summary:'ЖИ демосы. Журнал мен тапсырма нәтижелерінің қамтуын бірге қараңыз.',
+  forecast:'Соңғы үш бағаланған күннің ортасы келесі жұмысқа бағдар береді.',
+  strengths:'Толық орындалған тапсырманың қандай дағдыны көрсететінін тексеріңіз.',
+  risks:'Қате қалған есептерді және жіберілмеген жұмыстарды жеке қарап шығыңыз.',
+  action:'Бір мысалды бірге талдаңыз. Содан кейін ұқсас есепті студентке өз бетінше беріңіз.',
+  practice:'1–n аралығында 3-ке еселі сандардың санын шығарыңыз. n=2 және n=9 мәндерімен тексеріңіз.',
+  check:'Шекаралық екі тесттен өткенін және студенттің шартты түсіндіре алғанын тексеріңіз.'
+};
 
 export async function pythonReport(path, method, body, env, url, json, err) {
   const {DB}=env;
@@ -32,16 +76,36 @@ export async function pythonReport(path, method, body, env, url, json, err) {
     }catch(e){return err(['journal_format','journal_header','journal_dates'].includes(e.message)?e.message:'journal_format');}
   }
   if(path==='python-report/ai'&&method==='POST'){
-    const stats=await (await pyStats(DB,id)).json();
-    const journal=body.journal||{}, selected=Number(body.student), individual=!!selected;
+    const selected=Number(body.student), individual=!!selected;
     if(individual&&(!session.group_id||!await DB.prepare('SELECT id FROM students WHERE id=? AND group_id=? AND active=1').bind(selected,session.group_id).first()))return err('not_found',404);
+    const stats=await (await pyStats(DB,id)).json();
     const found=individual?stats.students.find(s=>s.id===selected):null;
-    const facts={journalAverage:bounded(journal.average),forecast:bounded(journal.forecast),gradedDays:bounded(journal.days,400),riskCount:individual?null:bounded(journal.risk,1000),forecastCount:individual?null:bounded(journal.coverage,1000),
-      ...(individual?{attempts:found?.tries||0,fixed:found?.fixed||0,items:stats.allItems.filter(i=>i.struggling.some(s=>s.id===selected)).map(i=>({task:i.task,concept:i.op}))}:{present:stats.present,responded:stats.students.length,tasks:stats.tasks?.map(t=>({number:t.n,answered:t.sent,averagePercent:t.pct})),items:stats.allItems.filter(i=>i.unresolved>0).sort((a,b)=>b.unresolved-a.unresolved).slice(0,5).map(i=>({task:i.task,concept:i.op,unresolved:i.unresolved,answered:i.sent}))})};
-    if(facts.journalAverage===null&&!(individual?facts.attempts:facts.responded))return err('no_scores',409);
+    const journal=journalFacts(body.journal,individual);
+    const facts={journal};
+    if(individual){
+      const submissions=await all(DB.prepare(`SELECT task,auto_score,teacher_score,json_extract(payload,'$.done') AS done FROM submissions WHERE session_id=? AND student_id=?`).bind(id,selected));
+      const byTask=new Map(submissions.map(s=>[s.task,s]));
+      facts.attempts=found?.tries||0;
+      facts.fixed=found?.fixed||0;
+      facts.tasks=Object.entries(P12_MAX).map(([number,max])=>{
+        const s=byTask.get(Number(number));
+        return {number:Number(number),max,submitted:!!s,complete:!!s?.done,score:s?.teacher_score??s?.auto_score??null};
+      });
+      facts.items=stats.allItems.filter(i=>i.struggling.some(s=>s.id===selected)).map(i=>({task:i.task,concept:i.op}));
+    }else{
+      facts.present=stats.present;
+      facts.responded=stats.students.length;
+      facts.tasks=stats.tasks?.map(t=>({number:t.n,answered:t.sent,averagePercent:t.pct}));
+      facts.items=stats.allItems.filter(i=>i.unresolved>0).sort((a,b)=>b.unresolved-a.unresolved).slice(0,5).map(i=>({task:i.task,concept:i.op,unresolved:i.unresolved,answered:i.sent}));
+    }
+    const hasLessonData=individual?facts.attempts||facts.tasks.some(t=>t.score!==null):facts.responded;
+    if(journal.average===null&&!hasLessonData)return err('no_scores',409);
     try{
-      const result=env.GEMINI_STUB?{summary:'Берілген баға мен тапсырма деректеріне сүйенген ЖИ демосы.',action:'Бір қысқа жаттығудан кейін нәтижені жаңа мәндермен қайта тексеріңіз.'}:await geminiJson(env,[{text:'Python бойынша оқытушыға қазақ тілінде '+(individual?'бір студентке':'бүкіл топқа')+' қысқа қорытынды мен бір нақты жаңа жаттығу жаз. Тек деректерге сүйен. Болжамды кепіл деп айтпа. Жіберілмегенді төмен бағамен шатастырма. Бірнеше жауап болмаса себепті жорамалдама. Жеке қасиетке баға берме. Тапсырма 1: for/range; 2: қосынды/көбейтінді; 3: for/if; 4: тест. Егер дерек аз болса, қысқа диагностика ұсын. Деректер: '+JSON.stringify(facts)}],schema,{budgetMs:13000,maxOutputTokens:500,validate:o=>typeof o.summary==='string'&&typeof o.action==='string'});
-      return json({ok:true,summary:result.summary.slice(0,1200),action:result.action.slice(0,900)});
+      const result=env.GEMINI_STUB?demo:await geminiJson(env,[{text:reportPrompt(facts,individual)}],schema,{
+        budgetMs:18000,timeoutMs:14000,maxOutputTokens:2000,
+        validate:o=>reportKeys.every(k=>typeof o[k]==='string'&&o[k].trim())
+      });
+      return json({ok:true,...Object.fromEntries(reportKeys.map(k=>[k,result[k].trim().slice(0,reportFields[k])]))});
     }catch(e){return err(e.kind==='config'?'ai_config':'ai_unavailable',503);}
   }
   return err('not_found',404);

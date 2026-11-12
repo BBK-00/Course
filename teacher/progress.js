@@ -172,8 +172,6 @@
             ? 'Қолдау белгісі анықталмады.' : 'Бағалар әлі енгізілмеді.' }));
         } else if (mode === 'forecast') {
           title = 'Келесі ұқсас сабаққа болжам';
-          const target = profile || report;
-          const validation = target.backtest;
           nodes.push(metrics(profile ? [
             ['Болжамды балл', format(profile.forecast), '/ 100'],
             ['Бағаланған күн', profile.daily.length, 'кемінде 3 күн қажет'],
@@ -188,17 +186,6 @@
             nodes.push(h('p', { class: 'progress-evidence', text: 'Есепке алынған бағалар · ' + profile.daily.slice(-3)
               .map(day => shortDate(day.date) + ' — ' + format(day.score)).join('  /  ') }));
           }
-          nodes.push(h('section', { class: 'progress-validation' }, [
-            h('h3', { text: 'Өткен бағалармен тексеру' }),
-            ...(validation.count ? [
-              metrics([
-                ['Орташа абсолюттік қате', format(validation.mae), 'балл · үш күндік орташа'],
-                ['Салыстыру әдісі', format(validation.lastMae), 'балл · соңғы бағаны қайталау'],
-                ['Тексерілген болжам', validation.count, profile ? 'күн' : 'студент пен бағаланған күн жұбы']
-              ]),
-              h('p', { class: 'sub', text: 'Әр болжам сол күнге дейінгі бағалардан есептелді. Қате аз болған сайын тарихи сәйкестік жақсы.' })
-            ] : [h('p', { class: 'sub', text: 'Тексеру үшін бір студентте кемінде төрт бағаланған күн керек.' })])
-          ]));
           const forecastRows = [...activeRows].sort((a, b) => (a.forecast ?? Infinity) - (b.forecast ?? Infinity));
           nodes.push(makeTable(['Студент', 'Бағаланған күн', 'Болжам', 'Мәртебе'], forecastRows.map(p => [
             studentButton(p), p.daily.length, score(p.forecast), p.forecast === null ? 'Дерек аз' :

@@ -15,6 +15,9 @@ test('report keeps missing, interim and final results separate and excludes toda
   assert.equal(r.sameDay,1); assert.equal(r.siteAverage,80); assert.equal(r.finals,1); assert.equal(r.interims,1);
   assert.equal(r.profiles[1].current,0); assert.equal(r.profiles[2].current,null);
   assert.deepEqual(r.tasks[0],{n:'1',title:'Қарапайым есептер',answered:2,pct:50});
+  assert.deepEqual(r.forecastGroups.map(g=>g.count),[1,0,0,2]);
+  assert.deepEqual(r.profiles[0].outlook.spread,[50,70]);
+  assert.equal(r.profiles[1].outlook.needed,3);
 });
 
 test('teacher-only report joins exact journal names and gives AI suggestions without changing grades',async()=>{
@@ -38,6 +41,7 @@ test('teacher-only report joins exact journal names and gives AI suggestions wit
   assert.equal(result.matched,1);assert.equal(result.issues[0].kind,'unmatched');assert.equal(result.entries[0].score,0);
   const ai=await teacher('python-report/ai',{session:id,student:student.id,journal:{average:0,days:1}});
   assert.equal(ai.ok,true);assert.match(ai.summary,/ЖИ/);
+  for(const key of ['forecast','strengths','risks','action','practice','check'])assert.ok(ai[key]?.length,key);
   assert.equal((await teacher('python-report/ai',{session:id,student:9999,journal:{average:80}})).status,404);
   assert.equal(DB.sqlite.prepare('SELECT COUNT(*) AS n FROM submissions').get().n,0);
 });
