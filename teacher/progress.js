@@ -21,29 +21,52 @@
   const score = value => value === null ? '—' : format(value) + ' / 100';
   const dateText = iso => iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4);
   const shortDate = iso => dateText(iso).slice(0, 5);
-  let selected = null;
+  const requests = new WeakMap();
+  const preferences = new Map();
+  const schoolDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qyzylorda', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const todayYear = () => {
+    const date = schoolDate.format(new Date());
+    return Number(date.slice(0, 4)) - (date.slice(5, 7) < '09' ? 1 : 0);
+  };
 
-  window.TeacherProgress = async function ({ root, h, api, startLesson, demo = false }) {
-    root.replaceChildren(h('p', { class: 'sub', text: 'Курстар жүктеліп жатыр…' }));
+  window.TeacherProgress = async function (options) {
+    const { root, h, api, startLesson, demo = false, selection, onSelect, onUpdate, openArchive, openJournal } = options;
+    const ticket = (requests.get(root) || 0) + 1;
+    requests.set(root, ticket);
+    const current = () => requests.get(root) === ticket;
+    root.replaceChildren(h('p', { class: 'workspace-empty', role: 'status', text: 'Курстар жүктелуде…' }));
     const data = await api('progress');
-    if (!data.ok) { root.replaceChildren(h('p', { role: 'alert', text: errorText(data.error) })); return; }
+    if (!current()) return;
     const option = (value, text) => h('option', { value: String(value), text });
     const field = (label, control) => h('label', { class: 'progress-field' }, [h('span', { text: label }), control]);
     const button = (text, click, primary = false) => h('button', { type: 'button', class: 'btn' + (primary ? ' primary' : ''), text, on: { click } });
     const card = (title, content) => h('div', { class: 'card progress-card' }, [h('h2', { text: title }), ...content]);
+    if (!data.ok) {
+      root.replaceChildren(h('div', { class: 'workspace-empty', role: 'alert' }, [
+        h('p', { text: errorText(data.error) }), button('Қайта жүктеу', () => window.TeacherProgress(options))
+      ]));
+      return;
+    }
+    const matches = data.courses.filter(c => (!selection?.group || c.group_id === +selection.group)
+      && (!selection?.subject || c.course === selection.subject) && (!selection?.year || c.year === +selection.year));
+    const scoped = Boolean(selection?.group || selection?.subject || selection?.year);
     const label = course => course.group_name + ' · ' + course.subject + ' · ' + course.year + '–' + (course.year + 1);
     const chosen = h('select', { class: 'field', 'aria-label': 'Курс байланысы' }, [
-      option('', 'Курс байланысын таңдаңыз'), ...data.courses.map(c => option(c.id, label(c)))
+      option('', 'Курсты таңдаңыз'), ...matches.map(c => option(c.id, label(c))),
+      ...data.courses.filter(c => !matches.includes(c)).map(c => option(c.id, label(c)))
     ]);
     const body = h('div', { class: 'progress-content' });
-    const controls = h('div', { class: 'progress-toolbar' }, [chosen]);
+    const controls = h('div', { class: 'workspace-card progress-course-picker' }, [field('Топ пен курс', chosen)]);
+    const courseMeta = h('div', { class: 'progress-course-meta', hidden: true });
+    let courseView = 0;
 
     function courseForm(course) {
+      const view = ++courseView;
+      courseMeta.hidden = true;
       const group = h('select', { class: 'field', required: true }, [option('', 'Топты таңдаңыз'), ...data.groups.map(g => option(g.id, g.name))]);
       const catalog = h('select', { class: 'field', required: true }, Object.entries(data.catalog).map(([id, title]) => option(id, title)));
       const subject = h('input', { class: 'field', required: true, maxlength: 120, placeholder: 'Мысалы, КМ 3.5' });
-      const now = new Date();
-      const year = h('input', { class: 'field', type: 'number', min: 2000, max: 2100, required: true, value: now.getFullYear() - (now.getMonth() < 8 ? 1 : 0) });
+      const year = h('input', { class: 'field', type: 'number', min: 2000, max: 2100, required: true, value: selection?.year || todayYear() });
       const threshold = h('input', { class: 'field', type: 'number', min: 1, max: 100, required: true, value: 60 });
       const sheet = h('input', { class: 'field', type: 'url', placeholder: 'Google Sheets парағының сілтемесі' });
       const status = h('p', { role: 'status', class: 'sub' });
@@ -51,11 +74,14 @@
       const form = h('form', { class: 'progress-form' }, [
         h('div', { class: 'progress-fields' }, [field('Топ', group), field('Сайттағы курс', catalog), field('Пән немесе модуль', subject), field('Оқу жылының басы', year), field('Назар аудару межесі / 100', threshold)]),
         field('Google Sheets парағы', sheet),
-        h('div', { class: 'progress-toolbar' }, [save, button('Жабу', openCourse)]), status
+        h('div', { class: 'progress-toolbar' }, [save, button('Жабу', () => openCourse(false, false))]), status
       ]);
       if (course) {
         for (const [control, value] of [[group, course.group_id], [catalog, course.course], [subject, course.subject], [year, course.year], [threshold, course.threshold], [sheet, course.sheet]]) control.value = value;
         for (const control of [group, catalog, subject, year]) control.disabled = true;
+      } else {
+        if (data.groups.some(g => g.id === +selection?.group)) group.value = String(selection.group);
+        if (selection?.subject && Object.hasOwn(data.catalog, selection.subject)) catalog.value = selection.subject;
       }
       form.onsubmit = async event => {
         event.preventDefault();
@@ -63,34 +89,58 @@
         const result = await api('progress/course', { group: +group.value, course: catalog.value, subject: subject.value, year: +year.value, threshold: +threshold.value, sheet: sheet.value });
         save.disabled = false;
         if (!result.ok) { status.textContent = errorText(result.error); return; }
-        selected = result.id;
-        await window.TeacherProgress({ root, h, api, startLesson });
+        onUpdate?.();
+        if (!current() || view !== courseView) return;
+        const next = { course: result.id, group: +group.value, subject: catalog.value, year: +year.value };
+        onSelect?.(next);
+        await window.TeacherProgress({ ...options, selection: next });
       };
       body.replaceChildren(card(course ? 'Байланыс баптауы' : 'Топ пен пәнді байланыстыру', [form]));
     }
 
-    function openCourse() {
+    function openCourse(fromSelect = false, allowForm = true) {
+      const view = ++courseView;
       const course = data.courses.find(c => String(c.id) === chosen.value);
-      if (!course) { courseForm(); return; }
-      selected = course.id;
+      if (!course) {
+        courseMeta.hidden = true;
+        if (allowForm && (!data.courses.length || !matches.length && scoped)) { courseForm(); return; }
+        const message = !data.courses.length ? 'Алдымен топ пен курсты байланыстырыңыз.'
+          : selection?.course && !requested ? 'Бұл курс байланысы табылмады. Тізімнен курсты таңдаңыз.'
+          : 'Үлгерімді ашу үшін тізімнен курс пен оқу жылын таңдаңыз.';
+        body.replaceChildren(h('p', { class: 'workspace-empty', text: message }));
+        return;
+      }
+      const prefKey = (demo ? 'demo:' : '') + course.id;
+      const preference = preferences.get(prefKey) || { source: course.imported_at ? 'journal' : 'site', mode: 'year', person: '' };
+      if (!fromSelect && selection?.source) preference.source = selection.source;
+      if (demo) preference.source = 'site';
+      preferences.set(prefKey, preference);
+      const filters = { course: course.id, group: course.group_id, subject: course.course, year: course.year };
+      const syncRoute = () => onSelect?.({ ...filters, source: preference.source });
+      syncRoute();
       const importBox = h('details', { class: 'card progress-card' });
       const textarea = h('textarea', { class: 'field', rows: 4, placeholder: 'Google Sheets-тен көшірілген ұяшықтар', 'aria-label': 'Журнал ұяшықтары' });
       const preview = h('div', { class: 'progress-preview', role: 'status' });
-      let request = 0;
+      let request = 0, importing = false;
       async function inspect(direct) {
+        if (importing) return;
         const token = ++request;
         const payload = { id: course.id, text: textarea.value };
         preview.textContent = 'Журнал тексеріліп жатыр…';
         const result = await api(direct ? 'progress/google' : 'progress/preview', direct ? { id: course.id } : payload);
-        if (token !== request) return;
+        if (token !== request || view !== courseView || !current()) return;
         if (!result.ok) { preview.textContent = errorText(result.error); return; }
         const save = button('Журналға сақтау', async () => {
-          save.disabled = true;
+          if (importing) return;
+          importing = true; save.disabled = true; textarea.disabled = true;
           const stored = await api('progress/import', { ...(direct ? { id: course.id, cells: result.cells } : payload), revision: result.revision });
-          if (token !== request) return;
+          importing = false; textarea.disabled = false;
+          if (stored.ok) onUpdate?.();
+          if (token !== request || view !== courseView || !current()) return;
           if (!stored.ok) { save.disabled = false; status.textContent = errorText(stored.error); return; }
           textarea.value = '';
           preview.textContent = stored.unchanged ? 'Бұл бағалар журналда бар.' : 'Журнал сақталды.';
+          source.value = preference.source = 'journal'; syncRoute();
           await loadReport();
         }, true);
         save.disabled = !result.sample.length;
@@ -114,12 +164,13 @@
           ...(course.sheet ? [button('Google Sheets-тен оқу', () => inspect(true)),
             h('a', { class: 'btn', href: course.sheet, target: '_blank', rel: 'noopener', text: 'Журналды ашу' })] : [])
         ]), preview);
-      const source = h('select', { class: 'field', 'aria-label': 'Баға дереккөзі' }, [option('journal', 'Google Sheets журналы'), option('site', 'Сайттағы сабақтар')]);
-      let mode = demo ? 'year' : 'now';
+      const source = h('select', { class: 'field', 'aria-label': 'Баға дереккөзі' }, [option('journal', 'Импортталған журнал'), option('site', 'Сайттағы қорытынды бағалар')]);
+      source.value = preference.source;
+      let mode = preference.mode;
       const modes = h('div', { class: 'progress-modes', role: 'group', 'aria-label': 'Талдау түрі' });
       for (const [value, text] of [['year', 'Динамика'], ['now', 'Қолдау'], ['forecast', 'Болжам']]) {
         const tab = button(text, () => {
-          mode = value;
+          mode = preference.mode = value;
           for (const peer of modes.children) peer.setAttribute('aria-pressed', String(peer === tab));
           if (report) renderReport();
         });
@@ -128,7 +179,7 @@
       }
       const person = h('select', { class: 'field', 'aria-label': 'Студент' }, [option('', 'Топ бойынша')]);
       const reportRoot = h('div', { class: 'progress-content', 'aria-live': 'polite' });
-      const stamp = h('p', { class: 'sub progress-stamp' });
+      const stamp = h('div', { class: 'sub progress-stamp' });
       let report, reportRequest = 0;
 
       function renderReport() {
@@ -248,7 +299,7 @@
       }
       function studentButton(p) {
         return h('button', { type: 'button', class: 'progress-person', text: p.name, on: {
-          click: () => { person.value = p.id; renderReport(); person.focus(); }
+          click: () => { person.value = preference.person = String(p.id); renderReport(); person.focus({ preventScroll: true }); }
         } });
       }
       function makeTable(headers, rows) {
@@ -259,43 +310,56 @@
         ]));
       }
       async function loadReport() {
-        const token = ++reportRequest, keep = person.value;
+        const token = ++reportRequest, keep = preference.person;
         report = null;
         stamp.textContent = '';
         reportRoot.replaceChildren(h('p', { class: 'sub', text: 'Үлгерім жүктеліп жатыр…' }));
         const result = await api('progress/report?id=' + course.id + '&source=' + source.value);
-        if (token !== reportRequest) return;
-        if (!result.ok) { reportRoot.textContent = errorText(result.error); return; }
+        if (token !== reportRequest || view !== courseView || !current()) return;
+        if (!result.ok) {
+          reportRoot.replaceChildren(h('div', { class: 'workspace-empty', role: 'alert' }, [
+            h('p', { text: errorText(result.error) }), button('Қайта жүктеу', loadReport)
+          ]));
+          return;
+        }
         report = result.report;
         if (source.value === 'journal' && result.importedAt) {
-          stamp.textContent = 'Журнал жаңартылған күн · ' + new Date(result.importedAt).toLocaleDateString('kk-KZ');
+          stamp.textContent = 'Журнал жаңартылған күн · ' + new Date(result.importedAt).toLocaleDateString('kk-KZ', { timeZone: 'Asia/Qyzylorda' });
+        } else if (source.value === 'journal') {
+          stamp.append(h('span', { text: 'Бұл курсқа журнал әлі енгізілмеген.' }),
+            button('Журнал енгізу', () => { importBox.open = true; textarea.focus(); }));
+        } else if (!demo && result.site) {
+          const { linkedSessions, unassignedSessions } = result.site;
+          stamp.append(h('span', { text: linkedSessions + ' сабақ қаралды' + (unassignedSessions ? ' · ' + unassignedSessions + ' сабаққа курс таңдау қажет' : '') }));
+          if (unassignedSessions && openArchive) stamp.append(button('Сабақтарды байланыстыру', () => openArchive(filters)));
         }
         person.replaceChildren(option('', 'Топ бойынша'), ...report.profiles.map(p => option(p.id, p.name)));
         if (report.profiles.some(p => String(p.id) === keep)) person.value = keep;
         renderReport();
       }
-      source.onchange = loadReport;
-      person.onchange = () => { if (report) renderReport(); };
-      const linkActions = [button('Байланыс баптауы', () => courseForm(course))];
-      const today = new Date();
-      if (course.year === today.getFullYear() - (today.getMonth() < 8 ? 1 : 0)) {
-        linkActions.push(button('Осы курспен сабақ бастау', () => startLesson(course), true));
+      source.onchange = () => { preference.source = source.value; syncRoute(); loadReport(); };
+      person.onchange = () => { preference.person = person.value; if (report) renderReport(); };
+      const linkActions = [button('Курс баптауы', () => courseForm(course))];
+      if (openJournal) linkActions.push(button('Бағалар журналы', () => openJournal(filters)));
+      if (openArchive) linkActions.push(button('Сабақ архиві', () => openArchive(filters)));
+      if (course.year === todayYear()) {
+        linkActions.push(button('Сабақ бастау', () => startLesson(course), true));
       }
-      const courseCard = card(label(course), [
-        h('p', { class: 'sub', text: data.catalog[course.course] || course.course }),
+      courseMeta.replaceChildren(
+        h('p', { class: 'sub', text: (data.catalog[course.course] || course.course) + ' · Қолдау межесі ' + course.threshold + ' / 100' }),
         h('div', { class: 'progress-toolbar' }, linkActions)
-      ]);
-      if (demo) source.value = 'site';
-      body.replaceChildren(...(demo ? [] : [courseCard, importBox]), h('div', { class: 'progress-report-controls' }, [
-        modes, h('div', { class: 'progress-toolbar' }, [...(demo ? [] : [source]), person])
+      );
+      courseMeta.hidden = false;
+      body.replaceChildren(...(demo ? [] : [importBox]), h('div', { class: 'progress-report-controls workspace-card' }, [
+        modes, h('div', { class: 'progress-toolbar' }, [...(demo ? [] : [field('Баға дереккөзі', source)]), field('Студент', person)])
       ]), stamp, reportRoot);
       loadReport();
     }
 
-    chosen.onchange = openCourse;
-    chosen.value = String(selected || data.courses[0]?.id || '');
-    controls.append(button('Пәнді байланыстыру', () => courseForm(), true),
-      h('a', { class: 'btn', href: 'progress-demo.html', text: 'Үлгерім демосы' }));
+    chosen.onchange = () => openCourse(true);
+    const requested = data.courses.find(c => c.id === +selection?.course);
+    chosen.value = String(requested?.id || (selection?.course ? '' : scoped ? matches.length === 1 && matches[0].id : data.courses[0]?.id) || '');
+    controls.append(button('+ Курс байланыстыру', () => courseForm(), true), courseMeta);
     root.replaceChildren(...(demo ? [] : [controls]), body);
     openCourse();
   };

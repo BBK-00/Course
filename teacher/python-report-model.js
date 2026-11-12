@@ -70,7 +70,7 @@ export function buildReport(students, history, date, threshold = 70) {
   const forecastGroups = [
     {label:threshold+'-тен төмен',count:priority.length,tone:'amber'},
     {label:threshold+'–84',count:forecast.filter(p=>p.past.forecast>=threshold&&p.past.forecast<85).length,tone:'blue'},
-    {label:'85–100',count:forecast.filter(p=>p.past.forecast>=Math.max(threshold,85)).length,tone:''},
+    {label:Math.max(threshold,85)+'–100',count:forecast.filter(p=>p.past.forecast>=Math.max(threshold,85)).length,tone:''},
     {label:'Дерек аз',count:missingHistory.length,tone:'muted'}
   ];
   if (threshold >= 85) forecastGroups.splice(1,1);

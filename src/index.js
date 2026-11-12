@@ -7,6 +7,7 @@ import { normalizeHomeworkReview } from './homework-review.js';
 import { SCHEMA } from './schema.js';
 import { progressApi, courseOfTopic, courseDate, inCourseYear } from './progress.js';
 import { pythonReport } from './python-report.js';
+import { teacherJournal } from './grade-history.js';
 import { accountApi, cleanAccounts } from './accounts.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
@@ -578,7 +579,7 @@ async function teacher(path, method, b, env, ctx, url) {
   /* Кездейсоқ жабылған сабақты қайта ашу: ашық сабақ болса, ол жабылады; қатысым мен жұмыстар сақталады */
   if (path === 'sessions' && method === 'GET') {
     const trash = url.searchParams.get('trash') === '1';
-    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, t.removed_at, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM students st WHERE st.group_id=s.group_id AND st.active=1) AS total, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs, (SELECT COUNT(*) FROM submissions x WHERE x.session_id=s.id) AS work_count, ((SELECT COUNT(*) FROM py_hw h WHERE h.session_id=s.id)+(SELECT COUNT(*) FROM py_hw_uploads u WHERE u.session_id=s.id AND NOT EXISTS (SELECT 1 FROM py_hw h WHERE h.session_id=u.session_id AND h.student_id=u.student_id))) AS homework, (SELECT COUNT(*) FROM py_attempts p WHERE p.session_id=s.id) AS attempts, (SELECT COUNT(*) FROM results r WHERE r.session_id=s.id) AS results_count, (SELECT COUNT(*) FROM feedback f WHERE f.session_id=s.id) AS feedback_count FROM sessions s LEFT JOIN session_trash t ON t.session_id=s.id WHERE t.session_id IS " + (trash ? 'NOT NULL' : 'NULL') + ' ORDER BY ' + (trash ? 't.removed_at DESC, ' : '') + 's.id DESC'));
+    const rows = await all(DB.prepare("SELECT s.id, s.topic, s.status, s.created_at, s.work_until, s.group_id, s.course_group_id, t.removed_at, (SELECT name FROM groups g WHERE g.id=s.group_id) AS gname, (SELECT COUNT(*) FROM students st WHERE st.group_id=s.group_id AND st.active=1) AS total, (SELECT COUNT(*) FROM attendance a WHERE a.session_id=s.id) AS att, (SELECT COUNT(DISTINCT student_id) FROM submissions x WHERE x.session_id=s.id) AS subs, (SELECT COUNT(*) FROM submissions x WHERE x.session_id=s.id) AS work_count, ((SELECT COUNT(*) FROM py_hw h WHERE h.session_id=s.id)+(SELECT COUNT(*) FROM py_hw_uploads u WHERE u.session_id=s.id AND NOT EXISTS (SELECT 1 FROM py_hw h WHERE h.session_id=u.session_id AND h.student_id=u.student_id))) AS homework, (SELECT COUNT(*) FROM py_attempts p WHERE p.session_id=s.id) AS attempts, (SELECT COUNT(*) FROM results r WHERE r.session_id=s.id) AS results_count, (SELECT COUNT(*) FROM feedback f WHERE f.session_id=s.id) AS feedback_count FROM sessions s LEFT JOIN session_trash t ON t.session_id=s.id WHERE t.session_id IS " + (trash ? 'NOT NULL' : 'NULL') + ' ORDER BY ' + (trash ? 't.removed_at DESC, ' : '') + 's.id DESC'));
     const counts = await DB.prepare('SELECT COUNT(*) AS total, COUNT(t.session_id) AS trash FROM sessions s LEFT JOIN session_trash t ON t.session_id=s.id').first();
     return json({ ok: true, now: now(), rows, counts: { archive: counts.total - counts.trash, trash: counts.trash } });
   }
@@ -670,7 +671,7 @@ async function teacher(path, method, b, env, ctx, url) {
     }));
     const pr = ses.topic === 'P8' ? await pyPairsLive(DB, ses) : null;
     const pyw = isWin(ses.topic) ? await pyWins(DB, ses.id) : null;
-    return json({ ok: true, now: now(), ...(pyw ? { pywins: pyw } : {}), ...(NEW_LESSONS[ses.topic] ? { pycfg: { ...cfgOf(ses), defaults: { withHw: NEW_LESSONS[ses.topic].def.withHw, noHw: NEW_LESSONS[ses.topic].def.noHw, minutes: NEW_LESSONS[ses.topic].def.minutes, titles: NEW_LESSONS[ses.topic].def.titles } } } : {}), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null }, groups, allGroups, guests, ...(pr ? { pairs: pr.pairs, free: pr.free } : {}) });
+    return json({ ok: true, now: now(), ...(pyw ? { pywins: pyw } : {}), ...(NEW_LESSONS[ses.topic] ? { pycfg: { ...cfgOf(ses), defaults: { withHw: NEW_LESSONS[ses.topic].def.withHw, noHw: NEW_LESSONS[ses.topic].def.noHw, minutes: NEW_LESSONS[ses.topic].def.minutes, titles: NEW_LESSONS[ses.topic].def.titles } } } : {}), session: { id: ses.id, topic: ses.topic, code: ses.status === 'open' ? await liveCode(env, ses.id, 0) : '', code_ttl: 600 - (Math.floor(Date.now() / 1000) % 600), status: ses.status, work_until: ses.work_until, work_started_at: ses.work_started_at, created_at: ses.created_at, group_id: ses.group_id || null, course_group_id: ses.course_group_id || null }, groups, allGroups, guests, ...(pr ? { pairs: pr.pairs, free: pr.free } : {}) });
   }
 
   /* Бір студенттің толық жұмысы */
@@ -765,19 +766,10 @@ async function teacher(path, method, b, env, ctx, url) {
 
   /* Журнал: студент × тақырып (қатысым + қорытынды) */
   if (path === 'journal' && method === 'GET') {
-    const sess = await all(DB.prepare('SELECT * FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id) ORDER BY id'));
-    const groups = await roster(DB, true);
-    const [atts, subs, ress, bns] = await Promise.all([all(DB.prepare('SELECT * FROM attendance')), all(DB.prepare('SELECT * FROM submissions')), all(DB.prepare('SELECT * FROM results')), all(DB.prepare('SELECT session_id, student_id, SUM(points) AS n FROM bonus GROUP BY session_id, student_id'))]);
-    const topics = [...new Set(sess.map(s => s.topic))].sort(), latest = {};
-    sess.forEach(s => { latest[s.topic] = s; });
-    const key = (a, b2) => a + ':' + b2;
-    const A = new Map(atts.map(a => [key(a.session_id, a.student_id), a])), R = new Map(ress.map(r => [key(r.session_id, r.student_id), r])), BN = new Map(bns.map(r => [key(r.session_id, r.student_id), r.n]));
-    const S = {}; subs.forEach(s => { (S[key(s.session_id, s.student_id)] = S[key(s.session_id, s.student_id)] || []).push(s); });
-    groups.forEach(g => g.students.forEach(s => {
-      s.scores = {};
-      topics.forEach(t => { let best = null; sess.filter(x => x.topic === t).forEach(se => { const k = key(se.id, s.id), c = compute(A.get(k), S[k] || [], R.get(k), BN.get(k) || 0, t, se); if (!best || c.final > best.c.final || (c.final === best.c.final && se.id > best.se.id)) best = { se, c }; }); const { se, c } = best; s.scores[t] = { attendance: c.attendance, total: c.final, complete: c.complete, session: se.id, present: !!A.get(key(se.id, s.id)), sent: Object.values(c.tasks).filter(t => t.sent).length, topic: t, edited: c.edited_total }; });   /* бір тақырып бірнеше рет өтсе, студенттің ең жақсы нәтижесі */
-    }));
-    return json({ ok: true, topics, titles: Object.fromEntries(topics.map(t => [t, (TOPICS[t] || {}).title || t])), groups });
+    const group = Number(url.searchParams.get('group'));
+    const groupId = Number.isSafeInteger(group) && group > 0 ? group : 0;
+    const groups = (await roster(DB, true)).filter(g => !groupId || g.id === groupId);
+    return json({ ok: true, ...await teacherJournal(DB, groups, groupId) });
   }
   return err('not_found', 404);
 }

@@ -99,14 +99,46 @@
       el('div', {}, el('b', {}, 'Күтілетін нәтиже'), pre(outputText(out))));
   }
 
-  function mount(root, lesson, n) {
-    const key = 'bbk-python-practice-v1-' + n;
-    const state = read(key);
+  function newDeck(pool, count, previous = []) {
+    const order = pool.map((_, index) => index);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const deck = order.slice(0, count);
+    const seen = new Set(previous);
+    if (deck.length && deck.every(index => seen.has(index))) {
+      const fresh = order.slice(count).find(index => !seen.has(index));
+      if (fresh !== undefined) deck[0] = fresh;
+    }
+    return deck;
+  }
+
+  function mount(root, lesson, n, persisted) {
+    const legacyKey = 'bbk-python-practice-v1-' + n;
+    const rotation = root.hasAttribute('data-practice-rotation') ? lesson.rotation : null;
+    const key = rotation ? 'bbk-python-practice-v2-' + n : legacyKey;
+    const state = persisted || read(key);
+    if (rotation) {
+      const deck = state.deck;
+      const valid = Array.isArray(deck) && deck.length === rotation.count && new Set(deck).size === deck.length
+        && deck.every(i => Number.isInteger(i) && i >= 0 && i < rotation.pool.length);
+      if (!valid) {
+        for (const id of Object.keys(state)) if (id.startsWith('pp-test-')) delete state[id];
+        if (!rotation.only) for (const [id, value] of Object.entries(read(legacyKey))) {
+          if (/^pp-(understand|code)-/.test(id) && state[id] === undefined) state[id] = value;
+        }
+        state.deck = newDeck(rotation.pool, rotation.count);
+        save(key, state);
+      }
+    }
+    const quiz = rotation ? state.deck.map(i => rotation.pool[i]) : lesson.quiz;
     const groups = [
       { id: 'pp-understand', title: 'Түсініп көр', items: lesson.warm, weight: 1 },
       { id: 'pp-code', title: lesson.review ? 'Бөлімді қайталау' : 'Код жаз', items: lesson.code, weight: 3 },
-      { id: 'pp-test', title: 'Бекіту тесті', items: lesson.quiz, weight: 1 }
-    ].filter(group => group.items.length);
+      { id: 'pp-test', title: 'Бекіту тесті', items: quiz, weight: 1 }
+    ].filter(group => group.items.length && (!rotation?.only || group.id === 'pp-test'));
+    root.classList.toggle('pp-quiz-only', Boolean(rotation?.only));
     const total = groups.reduce((sum, group) => sum + group.items.length * group.weight, 0);
     const count = groups.reduce((sum, group) => sum + group.items.length, 0);
     const meter = el('progress', { max: '100', value: '0', 'aria-label': 'Өзіндік жаттығу нәтижесі' });
@@ -237,14 +269,29 @@
     const links = el('nav', { class: 'pp-nav', 'aria-label': 'Жаттығу бөлімдері' });
     root.replaceChildren(el('header', { class: 'pp-hero' },
       el('span', { class: 'pp-tag' }, 'PYTHON · ' + n + '-САБАҚ'),
-      el('h2', {}, 'Өзіндік жаттығу'),
-      el('p', {}, 'Жауапты осы бетте тексер. Әр есептің шығару жолын ашып, қатеңді түзете аласың. Нәтиже осы браузерде сақталады.'),
-      el('div', { class: 'pp-score' }, score, meter), links));
+      el('h2', {}, rotation?.only ? rotation.count + ' сұрақтық тест' : 'Өзіндік жаттығу'),
+      el('p', {}, rotation?.only
+        ? 'Жауапты тексеріп, түсіндірмесін оқы. Жаңа нұсқа ашқанда сұрақтар жиынтығы өзгереді.'
+        : 'Жауапты осы бетте тексер. Әр есептің шығару жолын ашып, қатеңді түзете аласың. Нәтиже осы браузерде сақталады.'),
+      el('div', { class: 'pp-score' }, score, meter), ...(groups.length > 1 ? [links] : [])));
     groups.forEach((group, stage) => {
       const caption = el('span', { class: 'pp-stage-score' });
       statusByStage.set(group.id, caption);
       links.append(el('a', { href: '#' + group.id, class: 'btn' }, String(stage + 1) + '. ' + group.title));
       const title = el('header', { class: 'pp-stage-head' }, el('h3', {}, String(stage + 1) + '. ' + group.title), caption);
+      if (rotation && group.id === 'pp-test') {
+        const next = button('Жаңа нұсқа');
+        next.addEventListener('click', () => {
+          state.deck = newDeck(rotation.pool, rotation.count, state.deck);
+          for (const id of Object.keys(state)) if (id.startsWith('pp-test-')) delete state[id];
+          save(key, state);
+          mount(root, lesson, n, state);
+          const section = root.querySelector('#pp-test');
+          section?.querySelector('button')?.focus({ preventScroll: true });
+          section?.scrollIntoView({ block: 'start' });
+        });
+        title.append(next);
+      }
       const section = el('section', { class: 'pp-stage', id: group.id }, title);
       if (group.id === 'pp-code') section.append(el('p', { class: 'pp-stage-note' }, 'Енгізу мәндері тексеру кезінде автоматты түрде беріледі. Шартта сұралған нәтижені print() арқылы шығар.'));
       group.items.forEach((item, i) => section.append(group.id === 'pp-code'
@@ -281,7 +328,7 @@
   async function load() {
     root.textContent = 'Жаттығулар ашылып жатыр…';
     try {
-      const response = await fetch('/assets/python-practice-bank.json?v=1');
+      const response = await fetch('/assets/python-practice-bank.json?v=2');
       if (!response.ok) throw new Error();
       const bank = await response.json();
       mount(root, bank[n], n);

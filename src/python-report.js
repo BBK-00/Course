@@ -1,5 +1,5 @@
 import { geminiJson } from './gemini.js';
-import { courseDate } from './progress.js';
+import { courseDate, courseYear, resolveProgressCourse } from './progress.js';
 import { parseJournal, readJournalPaste } from './progress-journal.js';
 import { pyStats } from './pyapi.js';
 import { P12_MAX } from './py12.js';
@@ -36,7 +36,7 @@ function reportPrompt(facts, individual) {
     'action: келесі сабаққа 3 қадам ұсын. '+(individual?'Қолдау, жеке орындау және қысқа кері байланыс бер.':'Топтық қайталау, қолдау қажет шағын топ және алда келе жатқандарға күрделі жұмыс ұсын.'),
     'practice: тақырыпқа сай жаңа есептің шартын, күтілетін нәтиже түрін және екі тексеру мәнін бер. Дайын шешім кодын берме.',
     'check: келесі сабақтан кейін бақыланатын 2 өлшем мен тексеру жолын ұсын. Ұсынылатын мақсатты тарихи нәтижеден ажырат.',
-    'Қолдау межесі 70/100. Қорытындылар тек деректерге негізделсін. Тапсырма 1: for/range, 2: қосынды мен көбейтінді, 3: for/if, 4: тест.',
+    'Қорытындылар тек деректерге негізделсін. Тапсырма 1: for/range, 2: қосынды мен көбейтінді, 3: for/if, 4: тест.',
     'Деректер: '+JSON.stringify(facts)
   ].join('\n');
 }
@@ -57,12 +57,15 @@ export async function pythonReport(path, method, body, env, url, json, err) {
   if(!Number.isSafeInteger(id)||id<1) return err('bad_request');
   const session=await DB.prepare(`SELECT s.* FROM sessions s WHERE s.id=? AND s.topic='P12' AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)`).bind(id).first();
   if(!session)return err('not_found',404);
-  const date=courseDate(session.created_at*1000), year=Number(date.slice(0,4))-(date.slice(5,7)<'09'?1:0);
+  const date=courseDate(session.created_at*1000), year=courseYear(date);
   if(path==='python-report'&&method==='GET'){
     if(!session.group_id)return json({ok:true,date,entries:[],source:'Сабаққа нақты топ тіркелмеген.'});
-    const imports=await all(DB.prepare(`SELECT p.id, i.entries FROM progress_courses p JOIN progress_imports i ON i.id=(SELECT MAX(j.id) FROM progress_imports j WHERE j.course_id=p.id) WHERE p.group_id=? AND p.course='py' AND p.year=? AND (? IS NULL OR p.id=?) LIMIT 2`).bind(session.group_id,year,session.course_group_id??null,session.course_group_id??null));
-    if(imports.length!==1)return json({ok:true,date,entries:[],source:imports.length?'Осы топтың бірнеше журналы бар. Қажетті кестені файлдан таңдаңыз.':'Бұл топтың импортталған Python журналы табылмады.'});
-    return json({ok:true,date,entries:JSON.parse(imports[0].entries).filter(e=>e.date<=date),source:'Үлгерім бөліміне енгізілген Python журналы'});
+    const {course,courses}=await resolveProgressCourse(DB,session);
+    const context={date,threshold:course?.threshold??70,courseId:course?.id??null,needsCourse:courses.length>1&&!course};
+    if(!course)return json({ok:true,...context,entries:[],source:context.needsCourse?'Журналды таңдау үшін сабақты курспен байланыстырыңыз.':'Бұл топқа Python курсы байланыстырылмаған.'});
+    const journal=await DB.prepare('SELECT entries FROM progress_imports WHERE course_id=? ORDER BY id DESC LIMIT 1').bind(course.id).first();
+    return json({ok:true,...context,entries:JSON.parse(journal?.entries||'[]').filter(e=>e.date<=date),
+      source:journal?'Үлгерім бөліміне енгізілген Python журналы · '+course.subject:'Курс байланыстырылды. Үлгерім бөлімінде журналды енгізуге болады.'});
   }
   if(path==='python-report/journal'&&method==='POST'){
     if(!session.group_id)return err('no_group',409);
@@ -81,7 +84,8 @@ export async function pythonReport(path, method, body, env, url, json, err) {
     const stats=await (await pyStats(DB,id)).json();
     const found=individual?stats.students.find(s=>s.id===selected):null;
     const journal=journalFacts(body.journal,individual);
-    const facts={journal};
+    const {course}=await resolveProgressCourse(DB,session);
+    const facts={journal,threshold:course?.threshold??70};
     if(individual){
       const submissions=await all(DB.prepare(`SELECT task,auto_score,teacher_score,json_extract(payload,'$.done') AS done FROM submissions WHERE session_id=? AND student_id=?`).bind(id,selected));
       const byTask=new Map(submissions.map(s=>[s.task,s]));

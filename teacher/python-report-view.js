@@ -4,8 +4,8 @@ const num = v => v === null || v === undefined ? '—' : v.toLocaleString('kk-KZ
 const isoShort = d => d.slice(8,10)+'.'+d.slice(5,7);
 const signed = n => n === null ? '—' : (n > 0 ? '+' : '') + num(n);
 
-export function drawPythonReport(host, h, students, history, {date, source, privateNames=false, onAnalyze}={}) {
-  const r=buildReport(students,history,date);
+export function drawPythonReport(host, h, students, history, {date, source, privateNames=false, onAnalyze, threshold}={}) {
+  const r=buildReport(students,history,date,threshold);
   const {baseline:b,profiles:p}=r;
   const name = (s,i) => privateNames ? s.name : 'Студент '+String(i+1).padStart(2,'0');
   const metric=(label,value,note)=>h('div',{class:'pr-metric'},[h('span',{text:label}),h('strong',{text:value}),h('small',{text:note})]);
@@ -37,7 +37,7 @@ export function drawPythonReport(host, h, students, history, {date, source, priv
       h('h2',{text:'Болжам бойынша топтың бөлінуі'}),chart,
       r.priority.length?h('div',{class:'pr-forecast-follow'},[h('h3',{text:r.threshold+' балдық межеден төмен'}),rosterLinks(r.priority)]):null,
       r.missingHistory.length?h('div',{class:'pr-forecast-follow'},[h('h3',{text:'Қосымша бағалау қажет'}),rosterLinks(r.missingHistory)]):null])]);
-  const nodes=[h('div',{class:'pr-hero'},[h('span',{text:'PYTHON / 12-САБАҚ'}),h('h1',{text:'Топтың үлгерімі және келесі қадам'}),note(source||'Таңдалған сабақ және журнал тарихы'),note('Салыстыру күні: '+isoShort(date)+'. Қолдау межесі: 70 балл.')]),
+  const nodes=[h('div',{class:'pr-hero'},[h('span',{text:'PYTHON / 12-САБАҚ'}),h('h1',{text:'Топтың үлгерімі және келесі қадам'}),note(source||'Таңдалған сабақ және журнал тарихы'),note('Салыстыру күні '+isoShort(date)+'. Қолдау межесі '+r.threshold+' балл.')]),
     h('div',{class:'pr-metrics'},[
       metric('Журналдағы орташа',num(b.average),b.assessed+' / '+p.length+' студент'),
       metric('Сайттағы сабақ',num(r.siteAverage),r.finals+' қорытынды · '+r.interims+' аралық'),
@@ -48,7 +48,7 @@ export function drawPythonReport(host, h, students, history, {date, source, priv
   if(!r.finals&&!r.interims) nodes.push(note('Сайттағы осы сабақтың бағалары есепке қосылмаған. Журналдағы бағалар сайт нәтижесінің орнына қойылмайды.'));
   nodes.push(h('div',{class:'pr-grid'},[
     section('Журнал бағаларының гистограммасы',[note('Әр студенттің сабаққа дейінгі жеке орташа балы. Баған ұзындығы — студент саны.'),...(b.assessed?r.histogram.map(x=>bar(x.label,x.count,p.length,String(x.count),'blue')):[noData])]),
-    section('Сабақ бойынша төрт тапсырма',[note('Орташа пайыз тек жіберілген және тексерілген жұмыстардан. Қамту саны әр жолда көрсетілген.'),...r.tasks.map(t=>bar(t.n+'. '+t.title,t.pct,100,t.answered?num(t.pct)+'% · '+t.answered+'/'+p.length:'Жауап жоқ',t.pct!==null&&t.pct<70?'amber':''))]),
+    section('Сабақ бойынша төрт тапсырма',[note('Орташа пайыз тек жіберілген және тексерілген жұмыстардан. Қамту саны әр жолда көрсетілген.'),...r.tasks.map(t=>bar(t.n+'. '+t.title,t.pct,100,t.answered?num(t.pct)+'% · '+t.answered+'/'+p.length:'Жауап жоқ',t.pct!==null&&t.pct<r.threshold?'amber':''))]),
     section('Журналдағы динамика',[note('Бір күнде бірнеше баға болса, сол күнге орташа алынады. Жауап бергендер саны өзгеретіндіктен, күндерді бірдей топ деп салыстырмаңыз.'),...b.daily.slice(-10).map(d=>bar(isoShort(d.date),d.score,100,num(d.score)+' · '+d.count+' адам','blue'))]),
     section('Сайт бағаларының гистограммасы',[note('Тек қорытынды бағалар. Аралық баллдар жеке карточкаларда көрсетіледі.'),...(r.finals?r.siteHistogram.map(x=>bar(x.label,x.count,r.finals,String(x.count))):[note('Қорытынды баға жоқ.')])]) ]));
   const rows = p.map((s,i)=>{

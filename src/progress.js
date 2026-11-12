@@ -1,4 +1,5 @@
-import { compute, TOPICS } from './grading.js';
+import { TOPICS } from './grading.js';
+import { gradeRecords, lessonMarks } from './grade-history.js';
 import { DATA_META } from './data-registry.js';
 import { geminiJson } from './gemini.js';
 import { readGoogleJournal, sheetSource } from './progress-google.js';
@@ -22,6 +23,21 @@ export function courseOfTopic(topic) {
 const dayFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Qyzylorda', year: 'numeric', month: '2-digit', day: '2-digit' });
 export const courseDate = time => dayFormat.format(new Date(time));
 export const inCourseYear = (date, year) => date >= year + '-09-01' && date < (year + 1) + '-09-01';
+export const courseYear = date => Number(date.slice(0, 4)) - (date.slice(5, 7) < '09' ? 1 : 0);
+
+async function compatibleCourses(DB, session) {
+  if (!session.group_id || !TOPICS[session.topic]) return [];
+  const date = courseDate(session.created_at * 1000);
+  return rowsOf(DB.prepare('SELECT * FROM progress_courses WHERE group_id=? AND course=? AND year=? ORDER BY subject,id')
+    .bind(session.group_id, courseOfTopic(session.topic), courseYear(date)));
+}
+
+export async function resolveProgressCourse(DB, session) {
+  const courses = await compatibleCourses(DB, session);
+  const linked = courses.find(course => course.id === session.course_group_id);
+  const course = linked || (!session.course_group_id && courses.length === 1 ? courses[0] : null);
+  return { courses, course, inferred: !!course && !linked };
+}
 
 function latestImport(DB, id) {
   return DB.prepare('SELECT id, created_at, entries FROM progress_imports WHERE course_id=? ORDER BY id DESC LIMIT 1').bind(id).first();
@@ -32,36 +48,29 @@ async function rosterFor(DB, course) {
 }
 
 async function siteGrades(DB, course) {
-  const scoped = "SELECT s.* FROM sessions s WHERE s.course_group_id=? AND s.status='closed' AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)";
-  const query = table => rowsOf(DB.prepare('SELECT a.* FROM ' + table + ' a JOIN (' + scoped + ') s ON s.id=a.session_id').bind(course.id));
-  const [sessions, attendance, submissions, results, bonus] = await Promise.all([
-    rowsOf(DB.prepare(scoped).bind(course.id)), query('attendance'), query('submissions'), query('results'), query('bonus')
+  const [{ n: courseCount }, available] = await Promise.all([
+    DB.prepare('SELECT COUNT(*) AS n FROM progress_courses WHERE group_id=? AND course=? AND year=?')
+      .bind(course.group_id, course.course, course.year).first(),
+    rowsOf(DB.prepare(`SELECT s.* FROM sessions s WHERE s.group_id=? AND s.status='closed'
+      AND (s.course_group_id=? OR s.course_group_id IS NULL)
+      AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)`).bind(course.group_id, course.id))
   ]);
-  const bySession = new Map(sessions.map(s => [s.id, s]));
-  const key = row => row.session_id + ':' + row.student_id;
-  const marks = new Map(results.map(r => [key(r), r])), subs = new Map(), bonuses = new Map();
-  for (const sub of submissions) {
-    const id = key(sub);
-    if (!subs.has(id)) subs.set(id, []);
-    subs.get(id).push(sub);
-  }
-  for (const row of bonus) bonuses.set(key(row), (bonuses.get(key(row)) || 0) + row.points);
-  return attendance.flatMap(att => {
-    const session = bySession.get(att.session_id);
-    const result = marks.get(key(att));
-    if (!TOPICS[session.topic]) return [];
-    const c = compute(att, subs.get(key(att)) || [], result, bonuses.get(key(att)) || 0, session.topic, session);
-    if (!c.complete && result?.teacher_total == null) return [];
-    const date = courseDate(session.created_at * 1000);
-    if (!inCourseYear(date, course.year)) return [];
-    return [{ student: att.student_id, date, column: session.id, number: '', title: TOPICS[session.topic].title, score: c.final, mark: '' }];
-  });
+  const compatible = available.filter(s => TOPICS[s.topic] && courseOfTopic(s.topic) === course.course
+    && inCourseYear(courseDate(s.created_at * 1000), course.year));
+  const sessions = compatible.filter(s => s.course_group_id === course.id || courseCount === 1);
+  const marks = lessonMarks(sessions, await gradeRecords(DB, sessions.map(s => s.id)));
+  const entries = marks.filter(mark => mark.finalized).map(mark => ({
+    student: mark.student, date: courseDate(mark.date * 1000), column: mark.session,
+    number: '', title: TOPICS[mark.topic].title, score: mark.total, mark: ''
+  }));
+  return { entries, linkedSessions: sessions.length, unassignedSessions: compatible.length - sessions.length };
 }
 
 async function reportFor(DB, course, source) {
   const imported = await latestImport(DB, course.id);
   const students = await rosterFor(DB, course);
-  const grades = source === 'site' ? await siteGrades(DB, course) : JSON.parse(imported?.entries || '[]');
+  const site = source === 'site' ? await siteGrades(DB, course) : null;
+  const grades = site?.entries ?? JSON.parse(imported?.entries || '[]');
   const known = new Set(students.map(s => s.id));
   for (const grade of grades) if (!known.has(grade.student)) {
     known.add(grade.student);
@@ -69,7 +78,8 @@ async function reportFor(DB, course, source) {
   }
   const today = courseDate(Date.now());
   const report = summarizeProgress(students, grades.filter(grade => grade.date <= today), course.threshold);
-  return { report, importedAt: imported?.created_at || null };
+  return { report, importedAt: imported?.created_at || null,
+    ...(site ? { site: { linkedSessions: site.linkedSessions, unassignedSessions: site.unassignedSessions } } : {}) };
 }
 
 async function prepareImport(DB, course, input) {
@@ -104,11 +114,29 @@ const aiFocus = new Map([
 
 export async function progressApi(path, method, body, env, url, json, err) {
   const DB = env.DB;
+  if (path === 'progress/session' && (method === 'GET' || method === 'POST')) {
+    const id = Number(method === 'GET' ? url.searchParams.get('session') : body.session);
+    if (!Number.isSafeInteger(id) || id < 1) return err('not_found', 404);
+    const session = await DB.prepare(`SELECT s.* FROM sessions s WHERE id=?
+      AND NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)`).bind(id).first();
+    if (!session) return err('not_found', 404);
+    const context = await resolveProgressCourse(DB, session);
+    if (method === 'GET') return json({ ok:true, selected:context.course?.id || null, inferred:context.inferred,
+      courses:context.courses.map(c => ({ id:c.id, subject:c.subject, year:c.year })) });
+    const course = context.courses.find(c => c.id === Number(body.course));
+    if (!course) return err('course_mismatch', 409);
+    const saved = await DB.prepare(`UPDATE sessions SET course_group_id=? WHERE id=? AND group_id=?
+      AND NOT EXISTS (SELECT 1 FROM session_trash WHERE session_id=?)`).bind(course.id, id, course.group_id, id).run();
+    if (!saved.meta.changes) return err('not_found', 404);
+    return json({ ok:true, id:course.id });
+  }
   if (path === 'progress' && method === 'GET') {
     const [groups, subjects, courses] = await Promise.all([
       rowsOf(DB.prepare('SELECT id, name FROM groups ORDER BY name')),
       rowsOf(DB.prepare('SELECT id, title FROM subjects ORDER BY ord, title')),
-      rowsOf(DB.prepare('SELECT p.*, g.name AS group_name FROM progress_courses p JOIN groups g ON g.id=p.group_id ORDER BY p.year DESC, g.name, p.subject'))
+      rowsOf(DB.prepare(`SELECT p.*, g.name AS group_name,
+        (SELECT i.created_at FROM progress_imports i WHERE i.course_id=p.id ORDER BY i.id DESC LIMIT 1) AS imported_at
+        FROM progress_courses p JOIN groups g ON g.id=p.group_id ORDER BY p.year DESC, g.name, p.subject`))
     ]);
     const catalog = { ...staticCourses };
     for (const subject of subjects) catalog[courseAliases[subject.id] || subject.id] ??= subject.title;

@@ -36,7 +36,11 @@ r = await T('lesson/publish', { id }); page = await (await raw('/c/' + sub.j.id 
 ok(page.includes('Сурет пен видео') && page.includes('/media/' + m1.j.id) && page.includes('youtube-nocookie.com/embed/dQw4w9WgXcQ') && !page.includes('<script>x</script>') && page.includes('&lt;script&gt;'), 'жарияланған бетте сурет, видео бар, HTML escape');
 r = await T('render', { title: 'Жоба', blocks, subject: sub.j.id }); ok(r.j.ok && r.j.html.includes('Алдын ала қарау'), 'алдын ала қарау беті жасалады');
 r = await T('versions?id=' + id); ok(r.j.versions.length >= 2, 'нұсқалар сақталды: ' + r.j.versions.length);
-const old = r.j.versions[r.j.versions.length - 1].ver; r = await T('restore', { id, ver: old }); ok(r.j.ok, 'ескі нұсқа қалпына келтірілді');
+const old = r.j.versions[r.j.versions.length - 1].ver;
+const stale = await T('restore', { id, ver: old, base });
+ok(stale.s === 409 && stale.j.error === 'conflict', 'нұсқаны қалпына келтіру жаңарақ жобаны алмастырмайды');
+const latest = (await T('lesson?id=' + id)).j.lesson.updated_at;
+r = await T('restore', { id, ver: old, base: latest }); ok(r.j.ok, 'ескі нұсқа қалпына келтірілді');
 r = await T('lesson/save', { id, blocks: [], title: 'Бос' }); r = await T('lesson/publish', { id }); ok(r.j.error === 'empty', 'бос сабақты жариялауға болмайды');
 const list = await (await raw('/api/pub/lessons')).json(); ok(list.ok && list.lessons.some(l => l.slug === slug), 'ашық тізімде сабақ бар');
 r = await T('lesson/publish', { id, publish: false }); pub = await raw('/c/' + sub.j.id + '/' + slug); ok(r.j.status === 'hidden' && pub.status === 404, 'жасырылған сабақ ашылмайды');

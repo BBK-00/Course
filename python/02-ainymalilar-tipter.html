@@ -10,15 +10,20 @@
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=20261111-visual">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="violet">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">2 / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · 02-САБАҚ</span>
@@ -97,18 +102,20 @@
     <p id="checkFeedback" role="status"></p>
     <noscript><p>Тырнақша ішіндегі цифрлар мәтін болады.</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="2"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="2" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     <a class="btn " href="/python/01-ide-sintaksis">← Алдыңғы сабақ</a>
     <a class="btn" href="./">Барлық тақырып</a>
     <a class="btn primary" href="/python/03-engizu-shygaru">Келесі сабақ →</a>
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">{"steps":[[1,"age бүтін санды сақтайды.",[["age · int","16"]],""],[2,"Нүктесі бар 4.5 — бөлшек сан.",[["age · int","16"],["score · float","4.5"]],""],[3,"Тырнақша ішіндегі мән — мәтін.",[["name · str","Аян"],["score · float","4.5"]],""],[4,"True — логикалық мән.",[["name · str","Аян"],["is_student · bool","True"]],""],[5,"print() төрт мәнді бір жолға шығарады.",[["name","Аян"],["age","16"],["score","4.5"],["is_student","True"]],"Аян 16 4.5 True"]],"correct":2,"reason":"Тырнақша ішіндегі цифрлар мәтін болады.","cases":[["int","age = 16","16 — бүтін сан. Онымен арифметикалық амал жасауға болады.",[["Атау","age"],["Мән","16","on"],["Тип","int"]]],["float","score = 4.5","4.5 — бөлшек сан. Python-да ондық бөлгіш — нүкте.",[["Атау","score"],["Мән","4.5","on"],["Тип","float"]]],["str","age = \"16\"","Тырнақша мәнді мәтінге айналдырады. \"16\" + \"1\" нәтижесі — \"161\".",[["Атау","age"],["Мән","\"16\"","on"],["Тип","str"]]],["bool","ready = True","True және False шарттың ақиқат не жалған екенін білдіреді.",[["Атау","ready"],["Мән","True","on"],["Тип","bool"]]]]}</script>
 <script src="../assets/python-theory.js?v=20261111-visual"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>

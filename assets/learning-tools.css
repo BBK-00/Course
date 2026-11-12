@@ -1,0 +1,14 @@
+.tools-main {padding:clamp(16px,2.3vw,34px);width:100%}
+.tools-main h1 {margin:0 0 16px;font-size:clamp(1.75rem,3.5vw,2.65rem);letter-spacing:-.04em}
+.tools-grid {display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.tool-card {border:1px solid var(--lr-border);border-radius:13px;padding:clamp(15px,2vw,24px);background:#fff;min-width:0}
+.tool-card h2 {margin:6px 0 4px;letter-spacing:-.027em;font-size:clamp(1.15rem,2.3vw,1.6rem)}
+.tool-card p {margin:0 0 12px;color:var(--lr-muted);font-size:.91rem}
+.tool-badge {display:inline-block;background:#e9e9fb;color:#3535a0;font-weight:730;letter-spacing:.06em;font-size:.68rem;padding:3px 7px;border-radius:5px}
+.tool-feature {background:#292a70;color:#fff;border-color:#292a70}
+.tool-feature p {color:#e2e4ff}
+.tool-feature .tool-badge {color:#dff98e;background:#ffffff18}
+.tool-sandbox {scroll-margin-top:75px}
+.tool-sandbox h2 {margin-top:0}
+.tool-sandbox :is(.pp-editor,.pp-answer) {max-width:100%;min-width:0}
+@media(max-width:720px){.tools-grid{grid-template-columns:1fr}}

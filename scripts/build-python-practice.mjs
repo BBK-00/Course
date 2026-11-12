@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { theory } from './python-theory-data.mjs';
 import { exercises } from './python-practice-exercises.mjs';
 import { questions } from './python-practice-questions.mjs';
+import { rotationQuestions } from './python-practice-rotation.mjs';
 
 function question(row, index) {
   const [kind, subject, ...rest] = row;
@@ -26,7 +27,13 @@ const bank = Object.fromEntries(Array.from({ length: 24 }, (_, index) => {
     title, prompt, ref, cases, reason, level: index < 2 ? 'Оңай' : 'Орташа'
   }));
   if (quiz.length !== (short ? 0 : 10) || !warm.length || !code.length) throw new Error('Invalid practice for lesson ' + n);
-  return [n, { warm, code, quiz, review: [6, 11, 16, 24].includes(n) }];
+  const extra = rotationQuestions[n];
+  const rotation = extra && {
+    count: short ? 15 : 10,
+    only: short,
+    pool: [...(short ? warm : quiz), ...extra.map(question)]
+  };
+  return [n, { warm, code, quiz, review: [6, 11, 16, 24].includes(n), ...(rotation ? { rotation } : {}) }];
 }));
 const file = new URL('../assets/python-practice-bank.json', import.meta.url);
 const content = JSON.stringify(bank) + '\n';

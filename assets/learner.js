@@ -18,7 +18,8 @@ const make = (tag, attrs = {}, ...children) => {
 const nav = document.querySelector('[data-learner-nav]');
 const top = document.querySelector('[data-learner-top]');
 const overlay = make('button', { type:'button', class:'learner-shade', hidden:'', tabindex:'-1', 'aria-label':'Мәзірді жабу' });
-const isHome = !currentCourse;
+const isHome = document.body.dataset.learnerPage === 'home';
+const isTools = document.body.dataset.learnerPage === 'tools';
 const catalog = '/#subjects';
 const saved = '/#my-courses';
 const navLink = (name, href, mark, active = false, kind) => {
@@ -34,7 +35,7 @@ const allLink = navLink('Курстар', catalog, '▦', false, 'all');
 const savedLink = navLink('Менің курстарым', saved, '◇', false, 'saved');
 nav.append(
   make('a', { class:'learner-brand', href:'/' }, make('b', {class:'learner-brand-icon'}, 'ББ'), make('span', {}, 'Оқу кеңістігі')),
-  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink),
+  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink, navLink('Көмекші құралдар', '/tools/', '⚙', isTools)),
   make('nav', {class:'learner-nav-group learner-subject-nav','aria-label':'Пәндер'}, make('span', {class:'learner-nav-caption'}, 'Пәндер'),
     ...Object.entries(courses).map(([id,c]) => navLink(c.name, `/${id}/`, c.mark, id===courseId))),
   make('div', {class:'learner-nav-foot'}, navLink('Оқытушы панелі', '/teacher/', '↗'))
@@ -42,7 +43,8 @@ nav.append(
 nav.after(overlay);
 const menu = make('button', { type:'button', class:'lr-icon-button learner-menu', 'aria-controls':'learner-nav', 'aria-expanded':'false', 'aria-label':'Мәзірді ашу' }, '☰');
 const breadcrumb = make('div',{class:'learner-breadcrumb'},
-  ...(isHome ? [make('span', {}, 'Оқу дашборды')] : [make('a', {href:catalog}, 'Курстар'), make('span', {'aria-hidden':'true'}, '/'), make('strong', {}, currentCourse.name)]));
+  ...(currentCourse ? [make('a', {href:catalog}, 'Курстар'), make('span', {'aria-hidden':'true'}, '/'), make('strong', {}, currentCourse.name)]
+    : [make('span', {}, isTools ? 'Көмекші құралдар' : 'Оқу дашборды')]));
 const actions = make('div', {class:'learner-top-actions'});
 top.append(menu, breadcrumb, actions);
 

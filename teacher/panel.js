@@ -3,7 +3,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const h = (tag, a, kids) => { const e = document.createElement(tag); for (const k in (a || {})) { if (k === 'text') e.textContent = a[k]; else if (k === 'class') e.className = a[k]; else if (k === 'on') { for (const ev in a[k]) e.addEventListener(ev, a[k][ev]); } else if (a[k] !== false && a[k] !== undefined) e.setAttribute(k, a[k]); } [].concat(kids === undefined ? [] : kids).forEach(c => { if (c !== null && c !== undefined && c !== false) e.append(c); }); return e; };
-let QROPEN = false, TOK = '', LIVE = null, ROSTER = [], JOUR = null, TAB = 'live', DETAIL = null, busy = false, VIEW = 0, gFilter = '', jf = '', skew = 0, WMIN = 30, wDirty = false;
+let QROPEN = false, TOK = '', LIVE = null, ROSTER = [], TAB = 'live', DETAIL = null, busy = false, VIEW = 0, gFilter = '', skew = 0, WMIN = 30, wDirty = false;
 try { TOK = sessionStorage.getItem('ttok') || ''; } catch (e) {}
 const band = v => v === '' || v === null || v === undefined ? '#e2e8f0' : v >= 90 ? '#b7e1c1' : v >= 75 ? '#dcefc8' : v >= 60 ? '#fff1b8' : '#ffd6cc';
 const has = v => v !== '' && v !== null && v !== undefined;
@@ -21,9 +21,11 @@ async function api(path, body, method){
 async function login(pw){
   let j; try { j = await (await fetch('/api/teacher/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) })).json(); } catch (e) { j = { error: 'network' }; }
   if (!j.ok) { $('#eLogin').textContent = j.error === 'bad_password' ? 'Құпиясөз дұрыс емес.' : j.error === 'no_password' ? 'Құпиясөз бапталмаған: Cloudflare-де TEACHER_PASSWORD қосыңыз.' : j.error === 'wait' ? 'Қате көп болды. 10 минуттан кейін қайта көріңіз.' : 'Серверге қосыла алмады.'; return false; }
-  TOK = j.token; try { sessionStorage.setItem('ttok', TOK); } catch (e) {} start(); return true;
+  TOK = j.token; try { sessionStorage.setItem('ttok', TOK); } catch (e) {}
+  if(!returnToStudio())start();
+  return true;
 }
-function out(){ TOK = ''; try { sessionStorage.removeItem('ttok'); } catch (e) {} $('#app').hidden = true; $('#topnav').hidden = true; $('#login').hidden = false; $('#pw').value = ''; closeDetail(); }
+function out(){ TOK = ''; try { sessionStorage.removeItem('ttok'); } catch (e) {} $('#app').hidden = true; $('#topnav').hidden = true; $('#login').hidden = false; $('#pw').value = ''; detailDirty = false; closeDetail(); }
 $('#fLogin').addEventListener('submit', async e => { e.preventDefault(); $('#eLogin').textContent = ''; const b = $('#bLogin'); b.disabled = true; b.textContent = 'Тексеріп жатыр…'; await login($('#pw').value); b.disabled = false; b.textContent = 'Кіру'; });
 $('#bLesson').addEventListener('click', e => { e.preventDefault(); window.open(lessonPath() + '#t=' + encodeURIComponent(TOK), '_blank'); });
 $('#bOut').addEventListener('click', e => { e.preventDefault(); out(); });
@@ -43,7 +45,21 @@ async function loadDataLessons(){
     window.TeacherLessons.tasks[L.topic] = meta; if (!WINT.includes(L.topic)) WINT.push(L.topic);
   });
 }
-async function start(){ $('#login').hidden = true; $('#app').hidden = false; $('#topnav').hidden = false; await loadDataLessons(); loadLive(true); loadRoster(); }
+function returnToStudio(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('next')!=='studio')return false;
+  const target=new URL('/teacher/studio',location.origin),id=positiveId(q.get('id')),page=q.get('page');
+  if(id)target.searchParams.set('id',id);
+  else if(page&&/^\/(python|akt|scratch|sandyq-adister)\/[a-z0-9_-]+(?:\.html)?$/.test(page))target.searchParams.set('page',page);
+  location.replace(target.href);return true;
+}
+async function start(){
+  $('#login').hidden=true;$('#app').hidden=false;
+  await loadDataLessons();
+  if(!TOK)return;
+  await restoreWorkspace();
+  loadHomeworkBadge();
+}
 /* ---------- Пәндер мен тақырыптар: барлық ереже бір жерде ---------- */
 /* att — кіргенге түсетін балл, tasks — тапсырма саны, min — әдепкі жұмыс уақыты, ai — ЖИ бағасы бар ма, py — қатемен жұмыс кезеңі бар ма */
 const SUBJ = window.TeacherLessons.subjects;
@@ -51,8 +67,8 @@ const TP = {}; SUBJ.forEach(s => s.topics.forEach(t => { TP[t.id] = { ...t, subj
 const TL = ti => { const base = ti.tl || Array.from({ length: ti.tasks }, (_, i) => i + 1); return LIVE && LIVE.pycfg && LIVE.pycfg.hw === false && LIVE.session && LIVE.session.topic === ti.id ? base.filter(k => k !== 5) : base; };   /* тапсырма нөмірлері (кейбір сабақта 2 және 4 кейін қосылады) */
 const tinfo = id => TP[id] || { id, n: id, title: String(id), subj: { id: '', name: '' }, path: '/', min: 30, tasks: 3, att: 40 };
 const tname = id => { const t = tinfo(id); return (t.subj.name ? t.subj.name + ' · ' : '') + t.n + '-тақырып: ' + t.title; };
-const tshort = id => { const t = tinfo(id); return (t.subj.name ? t.subj.name + ' ' : '') + t.n; };
-const fdate = t => { const d = new Date(t * 1000), p = n => String(n).padStart(2, '0'); return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+const dateFormatter=new Intl.DateTimeFormat('kk-KZ',{timeZone:'Asia/Qyzylorda',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const fdate=t=>dateFormatter.format(new Date(t*1000));
 const download = (name, text) => { const a = h('a', { href: URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' })), download: name }); document.body.append(a); a.click(); a.remove(); };
 const csv = rows => rows.map(r => r.map(v => '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
 let STF = '', SESS = { t: 0, rows: null, busy: false, g: '', s: '' }, LS = {}, lessonStarting = false, lessonPending = false, rosterRevision = 0;
@@ -207,13 +223,35 @@ function summaryCard(ses, all, ti){
 }
 
 /* ---------- Студенттің толық жұмысы ---------- */
-async function openDetail(sid, stu){ DETAIL = { sid, stu }; const j = await api('work?session=' + sid + '&student=' + stu); if (!j.ok) return; paintDetail(j); $('#ov').hidden = false; document.body.style.overflow = 'hidden'; }
+async function openDetail(sid, stu){
+  const detail={sid,stu,tab:TAB};
+  DETAIL=detail;
+  const j=await api('work?session='+sid+'&student='+stu);
+  if(DETAIL!==detail||TAB!==detail.tab)return false;
+  if(!j.ok){DETAIL=null;toast('Студенттің жұмысын жүктеу мүмкін болмады.',true);return false;}
+  paintDetail(j);$('#ov').hidden=false;document.body.style.overflow='hidden';return true;
+}
 function closeDetail(){ if (detailDirty && !confirm('Сақталмаған өзгерістер бар. Терезені жабасыз ба?')) return; detailDirty = false; DETAIL = null; $('#ov').hidden = true; document.body.style.overflow = ''; }
 $('#ov').addEventListener('click', e => { if (e.target.id === 'ov') closeDetail(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && DETAIL) closeDetail(); });
-async function reDetail(note){ const j = await api('work?session=' + DETAIL.sid + '&student=' + DETAIL.stu); if (j.ok) { paintDetail(j); if (note) { const m = $('#panel .msg'); if (m) { m.className = 'msg ok'; m.textContent = note; } } } loadLive(true); }
+let journalNeedsRefresh=false;
+async function reDetail(detail,note){
+  journalNeedsRefresh=TAB==='journal';
+  if(DETAIL===detail){
+    detailDirty=false;
+    const j=await api('work?session='+detail.sid+'&student='+detail.stu);
+    if(j.ok&&DETAIL===detail){
+      paintDetail(j);
+      const m=$('#panel .msg');
+      if(m&&note){m.className='msg ok';m.textContent=note;}
+    }
+  }
+  if(TAB==='journal'&&$('#ov').hidden){journalNeedsRefresh=false;loadJournal();}
+  loadLive();
+}
 const pre = (t, v) => h('div', { class: 'box' }, [h('h3', { text: t }), h('pre', { text: v === '' || v === undefined || v === null ? '—' : String(v) })]);
 function paintDetail(j){ detailDirty = false;
+  const detail=DETAIL;
   const P = $('#panel'); P.innerHTML = ''; const c = j.calc;
   P.append(h('div', { class: 'p-head' }, [h('h2', { text: j.student.name }), h('span', { class: 'sub', text: j.student.group + ' · ' + tname(j.session.topic) + (j.attendance && j.session.topic !== '10' ? ' · нұсқа №' + j.attendance.variant : '') }), h('span', { class: 'sp' }), h('button', { class: 'btn', text: '✕ Жабу', on: { click: closeDetail } })]));
   const x10 = ['10', 'S7', 'A13', 'A2', 'P7', 'P8'].includes(j.session.topic) || WINT.includes(j.session.topic), x7 = j.session.topic === '7';
@@ -248,9 +286,9 @@ function paintDetail(j){ detailDirty = false;
     if (!x10 && !x7 && n < 3) { parts.push(h('p', { class: 'sub', text: 'ЖИ: ' + (has(s.ai_score) ? s.ai_score + ' / ' + (n === 1 ? 15 : 12) + ' · ЖИ үлесі ' + s.ai_pct + '%' : 'әлі бағаланған жоқ') })); if (s.flags) parts.push(h('p', { class: 'aibox', text: s.flags })); if (s.ai_comment) parts.push(h('p', { class: 'aibox', text: s.ai_comment })); }
     const sc = h('input', { class: 'field', type: 'number', min: '0', max: String(t.max), style: 'width:90px', placeholder: String(t.pts), value: has(s.teacher_score) ? String(s.teacher_score) : '' });
     const cm = h('input', { class: 'field', type: 'text', placeholder: 'Пікір (міндетті емес)', value: s.teacher_comment || '', style: 'flex:1;min-width:160px' });
-    parts.push(h('div', { class: 'row', style: 'margin-top:8px' }, [h('span', { text: 'Балл:' }), sc, cm, h('button', { class: 'btn sm primary', text: 'Сақтау', on: { click: async () => { const saved = await api('task_grade', { id: s.id, task: n, score: sc.value.trim(), comment: cm.value }); if (!saved.ok) return; detailDirty = false; reDetail('Сақталды ✓'); } } }),
-      (x7 || (n < 3 && !x10)) ? h('button', { class: 'btn sm', text: 'ЖИ-мен қайта', on: { click: async e => { e.target.disabled = true; e.target.textContent = 'Тексеріп жатыр…'; const saved = await api('regrade', { id: s.id }); if (!saved.ok) { e.target.disabled = false; e.target.textContent = 'ЖИ-мен қайта'; return; } detailDirty = false; reDetail('ЖИ қайта бағалады ✓'); } } }) : '',
-      h('button', { class: 'btn sm danger', text: 'Қайта орындату', title: 'Жауаптарды тазалап, тапсырманы қайта орындату', on: { click: async () => { if (confirm('Осы тапсырманың жауаптары мен автоматты бағасы тазаланады. Студент оны қайта орындай алады. Жалғастырасыз ба?')) { const saved = await api('reopen', { id: s.id }); if (!saved.ok) return; detailDirty = false; reDetail('Қайта ашылды ✓'); } } } })]));
+    parts.push(h('div', { class: 'row', style: 'margin-top:8px' }, [h('span', { text: 'Балл:' }), sc, cm, h('button', { class: 'btn sm primary', text: 'Сақтау', on: { click: async () => { const saved = await api('task_grade', { id: s.id, task: n, score: sc.value.trim(), comment: cm.value }); if (saved.ok) reDetail(detail,'Сақталды ✓'); } } }),
+      (x7 || (n < 3 && !x10)) ? h('button', { class: 'btn sm', text: 'ЖИ-мен қайта', on: { click: async e => { e.target.disabled = true; e.target.textContent = 'Тексеріп жатыр…'; const saved = await api('regrade', { id: s.id }); if (!saved.ok) { e.target.disabled = false; e.target.textContent = 'ЖИ-мен қайта'; return; } reDetail(detail,'ЖИ қайта бағалады ✓'); } } }) : '',
+      h('button', { class: 'btn sm danger', text: 'Қайта орындату', title: 'Жауаптарды тазалап, тапсырманы қайта орындату', on: { click: async () => { if (confirm('Осы тапсырманың жауаптары мен автоматты бағасы тазаланады. Студент оны қайта орындай алады. Жалғастырасыз ба?')) { const saved = await api('reopen', { id: s.id }); if (saved.ok) reDetail(detail,'Қайта ашылды ✓'); } } } })]));
     left.append(h('div', { class: 'box' }, parts));
   });
   const tot = h('input', { class: 'field big', type: 'number', min: '0', max: '100', placeholder: String(c.auto), value: j.result && has(j.result.teacher_total) ? String(j.result.teacher_total) : '' });
@@ -258,8 +296,8 @@ function paintDetail(j){ detailDirty = false;
   right.append(h('div', { class: 'box edit' }, [h('h3', { text: 'Қорытынды балл: ' + c.final + ' / 100' + (c.edited_total ? ' (сіз қойдыңыз)' : '') }),
     h('dl', { class: 'kv' }, (j.session.topic === 'P4' || j.session.topic === 'P7' || j.session.topic === 'P8' || j.session.topic === 'P9' || j.session.topic === 'P10' || WINT.includes(j.session.topic) ? [['Тапсырмалар' + (j.session.topic === 'P4' ? '' : ' (қатемен жұмыс есепке алынған)'), c.quality + ' / ' + (j.session.topic === 'P4' ? 100 : j.session.topic === 'P8' ? 75 : 100)], ['Автоматты балл', String(c.auto)]] : x10 ? [['Қатысым', c.attendance + (j.session.topic === 'A13' || j.session.topic === 'A2' ? ' / 30' : ' / 40')], [j.session.topic === 'S7' || j.session.topic === 'A13' || j.session.topic === 'A2' ? 'Үш бөлім (сапа)' : 'Үш лист (сапа)', c.quality + (j.session.topic === 'A13' || j.session.topic === 'A2' ? ' / 70' : ' / 60')], ['Автоматты балл', String(c.auto)]] : [['Қатысым', c.attendance + ' / 40'], ['Тапсырмалар (сапа)', c.quality + ' / 60'], ['ЖИ үлесі (3 тапсырманың орташасы)', c.ai_pct + '%'], ['ЖИ коэффициенті', String(c.k)], ['Автоматты балл', String(c.auto)]]).flatMap(([a, b]) => [h('dt', { text: a }), h('dd', { text: b })])),
     h('label', { text: 'Қорытынды балл (0–100). Бос қалса, автоматты балл алынады.' }), tot, h('label', { text: 'Пікір' }), tc,
-    h('div', { class: 'row', style: 'margin-top:12px' }, [h('button', { class: 'btn primary', text: 'Сақтау', on: { click: async () => { const v = tot.value.trim(); if (v !== '' && (isNaN(+v) || +v < 0 || +v > 100)) return; const saved = await api('total', { session_id: DETAIL.sid, student_id: DETAIL.stu, total: v, comment: tc.value }); if (!saved.ok) return; detailDirty = false; reDetail('Сақталды ✓ Журналға түсті.'); } } }),
-      h('button', { class: 'btn', text: 'Автоматты баллға қайту', on: { click: async () => { const saved = await api('total', { session_id: DETAIL.sid, student_id: DETAIL.stu, total: null, comment: tc.value }); if (!saved.ok) return; detailDirty = false; reDetail('Автоматты баллға қайтты ✓'); } } })]), h('div', { class: 'msg', role: 'status' })]));
+    h('div', { class: 'row', style: 'margin-top:12px' }, [h('button', { class: 'btn primary', text: 'Сақтау', on: { click: async () => { const v = tot.value.trim(); if (v !== '' && (isNaN(+v) || +v < 0 || +v > 100)) return; const saved = await api('total', { session_id: detail.sid, student_id: detail.stu, total: v, comment: tc.value }); if (saved.ok) reDetail(detail,'Сақталды ✓ Журналға түсті.'); } } }),
+      h('button', { class: 'btn', text: 'Автоматты баллға қайту', on: { click: async () => { const saved = await api('total', { session_id: detail.sid, student_id: detail.stu, total: null, comment: tc.value }); if (saved.ok) reDetail(detail,'Автоматты баллға қайтты ✓'); } } })]), h('div', { class: 'msg', role: 'status' })]));
   P.append(h('div', { class: 'p-body' }, [left, right]));
 }
 
@@ -337,12 +375,25 @@ function setRoster(j){
   if(!j.ok)return;
   rosterRevision++;applyRoster(j.groups);renderRoster();loadLive(true);
 }
-/* ---------- Журнал ---------- */
-let js = '', jq = '', jsort = 'name';
-async function loadJournal(){ const j = await api('journal'); if (j.ok) { JOUR = j; renderJournal(); } }
+/* ---------- Журнал және үлгерім ---------- */
+let journalPanel, pythonReportRevision = 0;
+
+function loadJournal(){
+  if(!journalPanel)journalPanel=window.createTeacherJournal({
+    h,btn,api,subjects:SUBJ,topicInfo:tinfo,open:openDetail,download,csv,notify:toast,
+    onFilter:filters=>updateWorkspace('journal',filters),
+    progress:filters=>goTab('progress',{filters:{...filters,source:'site'}}),
+    archive:filters=>goTab('archive',{filters})
+  });
+  return journalPanel.render($('#s-journal'),workspaceFilters.journal);
+}
 function loadProgress(){
   return window.TeacherProgress({
-    root:$('#s-progress'),h,api,
+    root:$('#s-progress'),h,api,selection:workspaceFilters.progress,
+    onSelect:filters=>updateWorkspace('progress',filters),
+    onUpdate:()=>{pythonReportRevision++;},
+    openArchive:filters=>goTab('archive',{filters}),
+    openJournal:filters=>goTab('journal',{filters}),
     async startLesson(course){
       if(!SUBJ.some(s=>s.id===course.course))await loadDataLessons();
       if(!SUBJ.some(s=>s.id===course.course&&s.topics.some(t=>!t.hidden))){
@@ -353,47 +404,56 @@ function loadProgress(){
     }
   });
 }
-/* бағандар: алдымен пән бойынша, сосын тақырып нөмірі бойынша */
-function jTopics(){
-  const ord = id => { const t = TP[id]; return t ? SUBJ.indexOf(t.subj) * 1000 + (+t.n || 0) : 9999; };
-  return JOUR.topics.slice().sort((a, b) => ord(a) - ord(b)).filter(t => !js || (TP[t] && TP[t].subj.id === js));
+const schoolDay=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Qyzylorda',year:'numeric',month:'2-digit',day:'2-digit'});
+function openCourseProgress(session,course,source='site'){
+  const date=schoolDay.format(new Date(session.created_at*1000));
+  const year=Number(date.slice(0,4))-(date.slice(5,7)<'09'?1:0);
+  goTab('progress',{filters:{course,group:session.group_id,subject:tinfo(session.topic).subj.id,year,source}});
 }
-const jTaken = sc => !!(sc && (sc.present || sc.sent));
-function jRows(){
-  const T = jTopics(), q = jq.trim().toLowerCase();
-  const rows = JOUR.groups.filter(g => !jf || String(g.id) === jf).flatMap(g => g.students.map(s => {
-    const got = T.map(t => s.scores[t]).filter(jTaken), avg = got.length ? Math.round(got.reduce((a, x) => a + x.total, 0) / got.length) : null;
-    return { g: g.name, s, avg, n: got.length };
-  })).filter(r => !q || r.s.name.toLowerCase().includes(q));
-  if (jsort === 'avg') rows.sort((a, b) => (b.avg === null ? -1 : b.avg) - (a.avg === null ? -1 : a.avg) || a.s.name.localeCompare(b.s.name, 'kk'));
-  else rows.sort((a, b) => a.g.localeCompare(b.g, 'kk') || a.s.name.localeCompare(b.s.name, 'kk'));
-  return rows;
-}
-function jTable(){ const T = jTopics(); return [['Аты-жөні', 'Тобы'].concat(T.map(tname)).concat(['Орташа'])].concat(jRows().map(r => [r.s.name, r.g].concat(T.map(t => jTaken(r.s.scores[t]) ? r.s.scores[t].total : '')).concat([r.avg === null ? '' : r.avg]))); }
-function renderJournal(){
-  const root = $('#s-journal'); root.innerHTML = '';
-  root.append(h('div',{class:'journal-explainer'},[h('p',{class:'sub',text:'Бір тақырып бірнеше рет өтсе, студенттің ең жоғары бағасы алынады. Өшірілген сабақтар есепке кірмейді.'}),btn('Сабақтарды басқару',()=>goTab('archive'),'sm')]));
-  if (!JOUR.topics.length) { root.append(h('div', { class: 'card' }, h('p', { text: 'Әлі сабақ өткен жоқ.' }))); return; }
-  const T = jTopics(), rows = jRows();
-  const opt = (v, t, cur) => h('option', { value: v, text: t, selected: cur === v ? 'selected' : false });
-  const subjSel = h('select', { class: 'field', style: 'max-width:200px', 'aria-label': 'Пән', on: { change: e => { js = e.target.value; renderJournal(); } } }, [opt('', 'Барлық пән', js)].concat(SUBJ.filter(s => JOUR.topics.some(t => TP[t] && TP[t].subj.id === s.id)).map(s => opt(s.id, s.ico + ' ' + s.name, js))));
-  const grpSel = h('select', { class: 'field', style: 'max-width:200px', 'aria-label': 'Топ', on: { change: e => { jf = e.target.value; renderJournal(); } } }, [opt('', 'Барлық топ', jf)].concat(JOUR.groups.map(g => opt(String(g.id), g.name, jf))));
-  const srt = h('select', { class: 'field', style: 'max-width:200px', 'aria-label': 'Реттеу', on: { change: e => { jsort = e.target.value; renderJournal(); } } }, [opt('name', 'Аты бойынша', jsort), opt('avg', 'Орташа балл бойынша', jsort)]);
-  const q = h('input', { class: 'field', type: 'search', placeholder: 'Студентті іздеу…', value: jq, style: 'max-width:220px', 'aria-label': 'Іздеу', on: { input: e => { jq = e.target.value; const pos = e.target.selectionStart; renderJournal(); const n = $('#s-journal input[type=search]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } } } });
-  root.append(h('div', { class: 'row', style: 'margin-bottom:12px' }, [subjSel, grpSel, srt, q, h('span', { class: 'sp' }),
-    h('button', { class: 'btn', text: '📋 Көшіру', on: { click: async e => { try { await navigator.clipboard.writeText(jTable().map(r => r.join('\t')).join('\n')); e.target.textContent = '✓ Көшірілді'; } catch (x) { e.target.textContent = 'Көшіру мүмкін болмады'; } } } }),
-    h('button', { class: 'btn', text: '⬇ CSV', on: { click: () => download('журнал.csv', csv(jTable())) } })]));
-  root.append(h('div', { class: 'legend' }, [['90+', '#b7e1c1'], ['75–89', '#dcefc8'], ['60–74', '#fff1b8'], ['60-тан төмен', '#ffd6cc'], ['сабаққа келмеген', '#f3f4f6']].map(([t, c]) => h('span', { class: 'lg' }, [h('i', { style: 'background:' + c }), t])).concat([h('span', { class: 'sub', style: 'display:inline;margin-left:8px', text: 'Ұяшықты басып, студенттің жұмысын ашуға болады. ✎ — оқытушы баллы.' })])));
-  if (!T.length || !rows.length) { root.append(h('div', { class: 'card' }, h('p', { text: !T.length ? 'Бұл пән бойынша сабақ өткен жоқ.' : 'Іздеу бойынша студент табылмады.' }))); return; }
-  const cell = (sc, stu) => {
-    if (!jTaken(sc)) return h('td', { style: 'background:#f3f4f6' }, h('span', { class: 'sub', text: 'жоқ' }));
-    const ti = tinfo(sc.topic), bits = []; if (ti.att) bits.push('қатысым ' + sc.attendance); if (!sc.complete) bits.push(sc.sent + '/' + TL(ti).length + ' тапсырма');
-    return h('td', { class: 'jc', title: 'Жұмысын ашу', style: 'background:' + band(sc.total), on: { click: () => openDetail(sc.session, stu.id) } }, [h('b', { text: String(sc.total) }), sc.edited ? h('span', { class: 'sub mark', text: '✎' }) : '', bits.length ? h('span', { class: 'sub', text: bits.join(' · ') }) : '']);
-  };
-  const head = [h('th', { text: '№' }), h('th', { class: 'l', text: 'Студент' }), h('th', { text: 'Топ' })].concat(T.map(t => h('th', { title: tname(t) }, [h('span', { text: tshort(t) }), h('span', { class: 'sub thsub', text: tinfo(t).title })]))).concat([h('th', { text: 'Орташа' })]);
-  const body = rows.map((r, i) => h('tr', {}, [h('td', { text: String(i + 1) }), h('td', { class: 'l', text: r.s.name }), h('td', { text: r.g })].concat(T.map(t => cell(r.s.scores[t], r.s))).concat([h('td', { style: 'font-weight:700;background:' + band(r.avg === null ? '' : r.avg), text: r.avg === null ? '—' : String(r.avg) })])));
-  const foot = h('tr', { class: 'foot' }, [h('td', { text: '' }), h('td', { class: 'l', text: 'Топ орташасы (келгендер)' }), h('td', { text: '' })].concat(T.map(t => { const v = rows.map(r => r.s.scores[t]).filter(jTaken).map(x => x.total); return h('td', { text: v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) + ' (' + v.length + ')' : '—' }); })).concat([h('td', { text: '' })]));
-  root.append(h('div', { class: 'tw jt' }, h('table', { class: 't' }, [h('thead', {}, h('tr', {}, head)), h('tbody', {}, body), h('tfoot', {}, foot)])));
+async function linkSessionCourse(session){
+  if(document.querySelector('.workspace-dialog[open]'))return;
+  const dialog=h('dialog',{class:'workspace-dialog','aria-labelledby':'linkCourseTitle'});
+  const heading=h('h2',{id:'linkCourseTitle',text:'Сабақты курсқа байланыстыру'});
+  const description=h('p',{class:'sub',text:tinfo(session.topic).title+' · '+fdate(session.created_at)});
+  const status=h('p',{role:'status',class:'sub',text:'Сәйкес курстар жүктелуде…'});
+  const form=h('div',{class:'workspace-link-form'});
+  const actions=h('div',{class:'workspace-actions'},btn('Жабу',()=>dialog.close(),'sm'));
+  let saving=false;
+  dialog.append(heading,description,form,status,actions);
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault();});
+  document.body.append(dialog);dialog.showModal();
+  const result=await api('progress/session?session='+session.id);
+  if(!dialog.open)return;
+  if(!result.ok){status.textContent='Курстар тізімі жүктелмеді. Қайта ашып көріңіз.';return;}
+  if(!result.courses.length){
+    status.textContent='Бұл сабақтың тобы, пәні және оқу жылы бойынша курс байланысы табылмады.';
+    actions.append(btn('Үлгерімге өту',()=>{dialog.close();openCourseProgress(session);},'primary sm'));return;
+  }
+  const chosen=h('select',{class:'field','aria-label':'Байланыстырылатын курс'},[
+    h('option',{value:'',text:'Курсты таңдаңыз'}),
+    ...result.courses.map(course=>h('option',{value:course.id,text:course.subject+' · '+course.year+'–'+(course.year+1)}))
+  ]);
+  chosen.value=String(result.selected||'');
+  form.append(h('label',{class:'workspace-filter'},[h('span',{text:'Курс'}),chosen]));
+  status.textContent=result.inferred?'Топ, пән және оқу жылы бойынша сәйкес курс табылды.':'';
+  const save=btn('Байланыстыру',async()=>{
+    if(saving||!chosen.value)return;
+    saving=true;
+    for(const button of actions.querySelectorAll('button'))button.disabled=true;
+    chosen.disabled=true;status.textContent='Байланыс сақталуда…';
+    const response=await api('progress/session',{session:session.id,course:Number(chosen.value)});
+    saving=false;chosen.disabled=false;
+    for(const button of actions.querySelectorAll('button'))button.disabled=false;
+    if(!response.ok){status.textContent=ERR_UI[response.error]||'Байланысты сақтау мүмкін болмады.';return;}
+    pythonReportRevision++;
+    dialog.close();toast('Сабақ курсқа байланыстырылды.');
+    if(TAB==='archive')renderArchive();
+    else if(LIVE?.session?.id===session.id){await loadLive(true);if(TAB==='analysis')renderAnalysis(true);}
+  },'primary sm');
+  save.disabled=!chosen.value;
+  chosen.onchange=()=>{save.disabled=!chosen.value;};
+  actions.append(save);
 }
 
 /* Dashboard v2 — shared lesson workspace. Does not migrate or rewrite stored grades. */
@@ -421,22 +481,192 @@ function meta(n){const ti=tinfo(LIVE?.session?.topic);return taskMeta[ti.id]?.[n
 function taskState(n){const w=LIVE?.pywins?.[n],t=Math.floor(Date.now()/1000+skew);return !w?'wait':t<=w.until?'work':'done';}
 function currentTask(){if(!LIVE?.session)return null;const ti=tinfo(LIVE.session.topic);if(WINT.includes(ti.id))return TL(ti).filter(n=>n!==5).find(n=>taskState(n)==='work')||null;return null;}
 function studentState(s){if(!s.present)return ['Кірмеді','muted'];const n=currentTask(),ts=s.tasks||{};if(Object.values(ts).some(t=>t.pending))return ['Тексерілуде','muted'];if(n&&ts[n]?.sent&&ts[n].pts<ts[n].max*.5)return ['Қате бар','warn'];if(n&&ts[n]?.sent)return ['Жіберді','ok'];const ns=TL(tinfo(LIVE.session.topic)).filter(k=>!WINT.includes(LIVE.session.topic)||k!==5);if(ns.every(k=>ts[k]?.done||ts[k]?.sent&&ts[k].pts>=ts[k].max))return ['Аяқтады','ok'];return ['Орындауда',''];}
-function rememberUI(){try{sessionStorage.setItem('teacher-dashboard-ui',JSON.stringify({route,tab:TAB,view:VIEW}));}catch{}}
+const lessonTabs=['live','analysis','wrap','plan'];
+const workspaceTabs=[...lessonTabs,'homework','journal','roster','archive','progress'];
+const workspaceFilters={};
+const positiveId=value=>Number.isSafeInteger(Number(value))&&Number(value)>0?Number(value):0;
+function rememberUI(mode='replace'){
+  if(!TOK||mode==='none')return;
+  const url=new URL(location.href);
+  for(const key of ['view','session','analysis','group','subject','course','year','source'])url.searchParams.delete(key);
+  if(TAB!=='live')url.searchParams.set('view',TAB);
+  const id=VIEW||(TAB==='analysis'?LIVE?.session?.id:0);
+  if(route==='live'&&id)url.searchParams.set('session',id);
+  if(TAB==='analysis'&&analysisSelected!=='overview')url.searchParams.set('analysis',analysisSelected);
+  const filterKeys=TAB==='progress'?['group','subject','course','year','source']:['group','subject'];
+  for(const key of filterKeys){
+    const value=workspaceFilters[TAB]?.[key];
+    if(value!=null&&value!=='')url.searchParams.set(key,value);
+  }
+  if(url.href!==location.href)history[mode==='push'?'pushState':'replaceState'](null,'',url);
+}
+function updateWorkspace(tab,filters){
+  workspaceFilters[tab]={group:filters.group||'',subject:filters.subject||''};
+  if(tab==='progress')Object.assign(workspaceFilters[tab],{course:filters.course,year:filters.year,source:filters.source});
+  if(TAB===tab)rememberUI();
+}
+function readWorkspace(){
+  const q=new URLSearchParams(location.search), view=q.get('view'), group=q.get('group');
+  return {
+    tab:workspaceTabs.includes(view)?view:'live',
+    id:positiveId(q.get('session')),
+    analysis:['python-report','ops','items','students'].includes(q.get('analysis'))?q.get('analysis'):'overview',
+    filters:{
+      group:group==='0'?'0':positiveId(group)||'',subject:q.get('subject')||'',course:positiveId(q.get('course'))||'',
+      year:/^20\d\d$/.test(q.get('year'))?Number(q.get('year')):'',
+      source:['site','journal'].includes(q.get('source'))?q.get('source'):''
+    }
+  };
+}
+async function restoreWorkspace(){
+  if(DETAIL&&detailDirty&&!confirm('Баға терезесінде сақталмаған өзгерістер бар. Басқа бөлімге өтесіз бе?')){rememberUI();return;}
+  if(DETAIL){detailDirty=false;closeDetail();}
+  const dest=readWorkspace();
+  if(lessonTabs.includes(dest.tab)&&(dest.id||VIEW)){
+    const selected=await selectSession(dest.id,{tab:dest.tab,analysis:dest.analysis,write:'none'});
+    if(selected!==false||!TOK)return;
+    goTab('archive',{write:'none',filters:{}});return;
+  }
+  if(!LIVE)await loadLive();
+  if(TOK)goTab(dest.tab,{filters:dest.filters,write:'none'});
+}
 function mobileClose(){document.body.classList.remove('menu-open');$('#mobileMenu').setAttribute('aria-expanded','false');$('#sidebarShade').hidden=true;}
 $('#collapseSidebar').onclick=()=>{const x=document.body.classList.toggle('sidebar-collapsed');$('#collapseSidebar').textContent=x?'»':'«';$('#collapseSidebar').setAttribute('aria-expanded',String(!x));try{localStorage.setItem('teacher-sidebar',x?'1':'0');}catch{}};
 try{if(localStorage.getItem('teacher-sidebar')==='1')$('#collapseSidebar').click();}catch{}
 $('#mobileMenu').onclick=()=>{const x=document.body.classList.toggle('menu-open');$('#sidebarShade').hidden=!x;$('#mobileMenu').setAttribute('aria-expanded',String(x));};$('#sidebarShade').onclick=mobileClose;
 $('#projectorButton').onclick=()=>{if(!LIVE?.session||LIVE.session.status!=='open')return toast('Проектор үшін алдымен сабақты бастаңыз.');openPj();$('#pjX').focus();};
-function goTab(next){route=['live','analysis','wrap','plan'].includes(next)?'live':next;TAB=next;mobileClose();document.querySelectorAll('#mainNav .dash-nav').forEach(b=>{b.classList.toggle('on',b.dataset.route===route);b.setAttribute('aria-current',b.dataset.route===route?'page':'false');});document.querySelectorAll('#tabs .tab').forEach(b=>{b.classList.toggle('on',b.dataset.t===TAB);b.setAttribute('aria-selected',String(b.dataset.t===TAB));});document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+TAB));$('#tabs').hidden=route!=='live';rememberUI();renderHeading();if(TAB==='live')renderLive();if(TAB==='analysis')renderAnalysis(true);if(TAB==='wrap'){setQuestions();loadWrap();}if(TAB==='plan')loadPlan();if(TAB==='journal')loadJournal();if(TAB==='roster')loadRoster();if(TAB==='archive')renderArchive();if(TAB==='homework')loadHomework();if(TAB==='progress')loadProgress();}
-document.querySelectorAll('#mainNav [data-route]').forEach(b=>b.onclick=()=>goTab(b.dataset.route));document.querySelectorAll('#tabs [data-t]').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
+function goTab(next,{filters,write='push'}={}){
+  if(selectingSession){selectingSession=false;sessionSelection++;}
+  route=lessonTabs.includes(next)?'live':next;
+  TAB=next;
+  if(filters)workspaceFilters[next]=filters;
+  mobileClose();
+  document.querySelectorAll('#mainNav .dash-nav').forEach(button=>{
+    button.classList.toggle('on',button.dataset.route===route);
+    button.setAttribute('aria-current',button.dataset.route===route?'page':'false');
+  });
+  document.querySelectorAll('#tabs .tab').forEach(button=>{
+    button.classList.toggle('on',button.dataset.t===TAB);
+    button.setAttribute('aria-selected',String(button.dataset.t===TAB));
+  });
+  document.querySelectorAll('.sec').forEach(section=>section.classList.toggle('on',section.id==='s-'+TAB));
+  $('#tabs').hidden=route!=='live';
+  rememberUI(write);renderHeading();
+  if(TAB==='live')renderLive();
+  if(TAB==='analysis')renderAnalysis(true);
+  if(TAB==='wrap'){setQuestions();loadWrap();}
+  if(TAB==='plan')loadPlan();
+  if(TAB==='journal')loadJournal();
+  if(TAB==='roster')loadRoster();
+  if(TAB==='archive')renderArchive(!!filters);
+  if(TAB==='homework')loadHomework();
+  if(TAB==='progress')loadProgress();
+}
+document.querySelectorAll('#mainNav [data-route]').forEach(b=>{
+  b.onclick=()=>b.dataset.route==='live'&&VIEW?selectSession(0):goTab(b.dataset.route);
+});
+document.querySelectorAll('#tabs [data-t]').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
 function newLesson(choice={}){if(lessonStarting||lessonPending){toast('Сабақ деректері жүктелуде. Сәл күтіңіз.');return;}$('#newLessonBody').replaceChildren(startCard(choice));$('#newLessonDialog').hidden=false;$('#newLessonBody select')?.focus();}
 function closeNewLesson(){$('#newLessonDialog').hidden=true;}
 $('#closeNewLesson').onclick=closeNewLesson;$('#newLessonDialog').onclick=e=>{if(e.target.id==='newLessonDialog')closeNewLesson();};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){mobileClose();closeNewLesson();}});
-function renderHeading(){if(!LIVE)return;const se=LIVE.session,ti=tinfo(se?.topic),titles={progress:'Үлгерім',homework:'Үй жұмысы',journal:'Бағалар журналы',roster:'Топтар мен студенттер',archive:'Сабақтар архиві'};const title=route==='live'?(lessonPending?'Сабақ басталды':se&&(se.status==='open'||VIEW)?ti.title:'Сабақты бастау'):titles[route];const subtitle=route==='live'?(VIEW?'Архивтегі сабақ · '+fdate(se.created_at):se?.status==='open'?(LIVE.groups.map(g=>g.name).join(', ')+' · '+allStudents().length+' студент'):'Пәнді, тақырыпты және топты таңдаңыз.'):({progress:'Топтар, бағалар тарихы және болжам',homework:'Студент жұмыстары, ЖИ пікірі және оқытушы бағасы',journal:'Сақталған бағалар · ұяшықты басып жұмысын ашыңыз',roster:'Топты таңдап, студенттерін басқарыңыз',archive:'Сақталған сабақтар, сынақ сабақтарын өшіру және қалпына келтіру'})[route];const acts=h('div',{class:'heading-actions'});if(route==='live'){if(VIEW)acts.append(btn('Тікелей сабақ',()=>selectSession(0)));if(se?.status==='open'&&!VIEW)acts.append(btn('Сабақты аяқтау',async()=>{if(!confirm('Сабақ аяқталсын ба? Барлық жұмыстар мен бағалар сақталады. Қазір сабақ жабылған соң студенттің жаңа жауап жіберуі де тоқтайды.'))return;const j=await api('session/close',{});if(j.ok){SESS.t=0;await loadLive(true);toast('Сабақ сақталды. Нәтижені архивтен көре аласыз.');}},'danger'));acts.append(btn('Жаңа сабақ',()=>newLesson()));}$('#pageHeading').replaceChildren(h('div',{},[h('h1',{text:title}),h('p',{text:subtitle})]),acts);const status=$('#lessonStatus');status.textContent=lessonPending?'Жүктелуде':VIEW?'Архив':se?.status==='open'?'Сабақ жүріп жатыр':'Сабақ аяқталған';status.classList.toggle('archived',!!VIEW||se?.status!=='open');$('#topnav').hidden=route!=='live';renderContext();}
-function renderContext(){const se=LIVE?.session,ti=tinfo(se?.topic),groups=LIVE?.allGroups||[];const key=JSON.stringify([se?.id,VIEW,route,groups.map(g=>[g.id,g.name])]);if(contextShape===key)return;contextShape=key;if(route!=='live'){$('#contextBar').replaceChildren(h('span',{class:'sub',text:'Оқытушы панелі / '+({progress:'Үлгерім',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Архив'})[route]}));return;}const opt=(value,text,sel)=>h('option',{value,text,selected:sel});const subj=h('select',{class:'field','aria-label':'Пәнді таңдау'},SUBJ.map(s=>opt(s.id,s.name,s.id===ti.subj.id)));const top=h('select',{class:'field','aria-label':'Тақырыпты таңдау'}),grp=h('select',{class:'field','aria-label':'Топты таңдау'},groups.map(g=>opt(String(g.id),g.name,g.id===se?.group_id)));const fill=()=>{top.replaceChildren(...(SUBJ.find(s=>s.id===subj.value)?.topics||[]).map(t=>opt(t.id,t.n+'-сабақ',t.id===se?.topic)));};fill();const choose=async()=>{const j=await api('sessions');if(!j.ok)return;SESS.rows=j.rows;const hit=j.rows.filter(s=>s.topic===top.value&&(!grp.value||s.group_id===+grp.value)).sort((a,b)=>b.id-a.id)[0];if(hit)await selectSession(hit.id);else{LS={s:subj.value,t:top.value,g:grp.value};newLesson();contextShape='';renderContext();}};subj.onchange=()=>{fill();choose();};top.onchange=choose;grp.onchange=choose;$('#contextBar').replaceChildren(subj,top,grp);}
-async function selectSession(id){if(detailDirty&&!confirm('Баға терезесінде сақталмаған өзгерістер бар. Сабақты ауыстырасыз ба?'))return;VIEW=id;liveShape='';contextShape='';analysisAt=0;analysisFor=0;closeNewLesson();await loadLive(true);goTab('live');}
-async function loadLive(force=false){if(!TOK)return;const ticket=++liveRequest;const j=await api('live'+(VIEW?'?session='+VIEW:''));if(ticket!==liveRequest)return;if(VIEW&&j.ok&&!j.session){VIEW=0;toast('Бұл сабақ табылмады. Ағымдағы сабақ ашылады.');return loadLive(true);}if(!j.ok){syncStatus(false);return;}LIVE=j;lessonPending=false;rosterRevision++;ROSTER=j.allGroups||j.groups;syncStartGroups();skew=LIVE.now-Date.now()/1000;syncStatus(true);if(TAB==='live')renderLive();else{renderHeading();if(TAB==='analysis')renderAnalysis();}if(force&&TAB==='archive')renderArchive();return j;}
+let headingShape='';
+function renderHeading(){
+  const se=LIVE?.session,ti=tinfo(se?.topic);
+  const titles={progress:'Үлгерім',homework:'Үй жұмысы',journal:'Бағалар журналы',roster:'Топтар мен студенттер',archive:'Сабақтар архиві'};
+  const subtitles={progress:'Топтың динамикасы, жеке қолдау және келесі сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Сабақ бағаларын шолып, студенттің жұмысын ашыңыз.',roster:'Топтар мен студенттер тізімі',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
+  const title=route==='live'?(lessonPending?'Сабақ басталды':se&&(se.status==='open'||VIEW)?ti.title:'Сабақты бастау'):titles[route];
+  const subtitle=route==='live'?(VIEW&&se?'Архивтегі сабақ · '+fdate(se.created_at):se?.status==='open'?(LIVE.groups.map(g=>g.name).join(', ')+' · '+allStudents().length+' студент'):'Пәнді, тақырыпты және топты таңдаңыз.'):subtitles[route];
+  const shape=JSON.stringify([TAB,title,subtitle,VIEW,se?.id,se?.status,se?.course_group_id]);
+  if(headingShape!==shape){
+    headingShape=shape;
+    const acts=h('div',{class:'heading-actions'});
+    if(route==='live'){
+      if(VIEW&&se){
+        acts.append(btn('Архивке оралу',()=>goTab('archive')));
+        if(TAB==='analysis')acts.append(btn('Топтың үлгерімі',()=>openCourseProgress(se,se.course_group_id),'primary'));
+      }else{
+        if(se?.status==='open')acts.append(btn('Сабақты аяқтау',async()=>{
+          if(!confirm('Сабақ аяқталсын ба? Барлық жұмыстар мен бағалар сақталады. Студенттер жаңа жауап жібере алмайды.'))return;
+          const j=await api('session/close',{});
+          if(j.ok){SESS.t=0;await loadLive(true);toast('Сабақ сақталды. Нәтижені архивтен көре аласыз.');}
+        },'danger'));
+        acts.append(btn('Жаңа сабақ',()=>newLesson(),'primary'));
+      }
+    }
+    $('#pageHeading').replaceChildren(h('div',{},[h('h1',{text:title}),h('p',{text:subtitle})]),acts);
+  }
+  const status=$('#lessonStatus');
+  status.textContent=lessonPending?'Жүктелуде':VIEW?'Архив':se?.status==='open'?'Сабақ жүріп жатыр':'Ашық сабақ жоқ';
+  status.classList.toggle('archived',!!VIEW||se?.status!=='open');
+  $('#topnav').hidden=route!=='live';renderContext();
+}
+function renderContext(){
+  const se=LIVE?.session,ti=tinfo(se?.topic),groups=LIVE?.allGroups||[];
+  const key=JSON.stringify([se?.id,VIEW,route,groups.map(group=>[group.id,group.name])]);
+  if(contextShape===key)return;
+  contextShape=key;
+  const bar=$('#contextBar');
+  if(route!=='live'){
+    bar.replaceChildren(h('span',{class:'workspace-breadcrumb',text:'Оқытушы панелі / '+({progress:'Үлгерім',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Архив'})[route]}));return;
+  }
+  const option=(value,text,selected)=>h('option',{value,text,selected});
+  const subj=h('select',{class:'field','aria-label':'Пәнді таңдау'},SUBJ.map(subject=>option(subject.id,subject.name,subject.id===ti.subj.id)));
+  const top=h('select',{class:'field','aria-label':'Тақырыпты таңдау'});
+  const grp=h('select',{class:'field','aria-label':'Топты таңдау'},[option('','Барлық топ',!se?.group_id),...groups.map(group=>option(String(group.id),group.name,group.id===se?.group_id))]);
+  const fill=()=>top.replaceChildren(...(SUBJ.find(subject=>subject.id===subj.value)?.topics||[]).map(topic=>option(topic.id,topic.n+'-сабақ',topic.id===se?.topic)));
+  fill();
+  let requested=0;
+  const choose=async()=>{
+    if(!top.value)return;
+    if(selectingSession){selectingSession=false;sessionSelection++;}
+    const token=++requested,choice={s:subj.value,t:top.value,g:grp.value};
+    const j=await api('sessions');
+    if(token!==requested||route!=='live'||!top.isConnected)return;
+    if(!j.ok){toast('Сабақтар тізімі жүктелмеді.',true);return;}
+    SESS.rows=j.rows;
+    const hit=j.rows.find(session=>session.topic===choice.t&&(!choice.g||session.group_id===+choice.g));
+    if(hit)await selectSession(hit.id);
+    else newLesson(choice);
+  };
+  subj.onchange=()=>{fill();choose();};top.onchange=choose;grp.onchange=choose;
+  bar.replaceChildren(subj,top,grp);
+}
+let sessionSelection=0,selectingSession=false;
+async function selectSession(id,{tab='live',analysis='overview',write='push'}={}){
+  if(detailDirty&&!confirm('Баға терезесінде сақталмаған өзгерістер бар. Сабақты ауыстырасыз ба?'))return null;
+  const ticket=++sessionSelection;
+  selectingSession=true;liveRequest++;
+  const j=await api('live'+(id?'?session='+id:''));
+  if(ticket!==sessionSelection)return null;
+  selectingSession=false;
+  if(!j.ok||(id&&!j.session)){
+    toast(j.ok?'Бұл сабақ архивте табылмады.':'Сабақ деректері жүктелмеді. Қайта көріңіз.',true);return false;
+  }
+  detailDirty=false;closeDetail();closeNewLesson();
+  VIEW=id&&j.session.status!=='open'?id:0;
+  liveShape='';contextShape='';analysisAt=0;analysisFor=0;analysisSelected=analysis;
+  acceptLive(j);
+  goTab(tab,{write});
+  return true;
+}
+function acceptLive(data){
+  LIVE=data;lessonPending=false;rosterRevision++;ROSTER=data.allGroups||data.groups;
+  syncStartGroups();skew=data.now-Date.now()/1000;syncStatus(true);
+}
+async function loadLive(force=false){
+  if(!TOK||selectingSession)return;
+  const ticket=++liveRequest;
+  const j=await api('live'+(VIEW?'?session='+VIEW:''));
+  if(ticket!==liveRequest)return;
+  if(!j.ok){syncStatus(false);return;}
+  if(VIEW&&!j.session){VIEW=0;rememberUI();return loadLive(true);}
+  acceptLive(j);
+  if(TAB==='live')renderLive();
+  else{renderHeading();if(TAB==='analysis')renderAnalysis();}
+  if(force&&TAB==='archive')renderArchive();
+  return j;
+}
 setInterval(()=>{if(TOK&&!document.hidden&&route==='live')loadLive();},4000);
 setInterval(()=>{if(TOK&&!document.hidden&&LIVE){tickTimer();tickDashboard();}},1000);
 function renderLive(){if(!LIVE)return;const root=$('#s-live'),se=LIVE.session,display=se&&(se.status==='open'||VIEW);renderHeading();if(lessonPending){root.replaceChildren(h('div',{class:'card'},[h('h2',{text:'Сабақ басталды'}),h('p',{class:'sub',text:'Сабақ деректері жүктелуде. Байланыс қалпына келгенде панель өзі жаңарады.'}),btn('Қайта жүктеу',()=>loadLive(true))]));return;}if(!display){const k='empty';if(liveShape!==k){liveShape=k;root.replaceChildren(h('div',{class:'empty-welcome'},[h('div',{class:'task-symbol'},icon('monitor')),h('div',{},[h('h2',{text:'Бүгінгі сабаққа дайынсыз ба?'}),h('p',{text:'Тапсырмалар мен бағалар сабақ басталғаннан кейін осы жерде көрінеді.'})])]),startCard(),se?h('div',{class:'card'},[h('h2',{text:'Соңғы сабақ'}),h('p',{class:'sub',text:tname(se.topic)+' · '+fdate(se.created_at)}),btn('Нәтижесін қарау',()=>selectSession(se.id))]):h('p',{class:'sub',text:'Сабақтарыңыз бен студенттеріңіздің нәтижелері осы жерде сақталады.'}));}return;}const ti=tinfo(se.topic),shape=[se.id,VIEW,se.status,ti.tasks].join('|');if(liveShape!==shape){liveShape=shape;controlShape='';root.replaceChildren(h('div',{class:'live-metrics',id:'liveMetrics'}),h('div',{class:'live-control-grid'},[h('div',{class:'control-panel',id:'taskControls'}),h('div',{class:'entry-panel',id:'entryPanel'})]),makeRoster());if(se.topic==='P8'){const det=h('details',{class:'card',id:'pairDetails'},[h('summary',{text:'Жұптық жұмыс · Сандық'}),h('div',{id:'pairHost'})]);root.append(det);}}updateMetrics();updateControls();updateEntry();updateRoster();if(se.topic==='P8'){const host=$('#pairHost'),det=$('#pairDetails');if(det.open){const signature=JSON.stringify([LIVE.pairs,LIVE.free]);if(host.dataset.sig!==signature&&!host.contains(document.activeElement)){host.dataset.sig=signature;host.replaceChildren(pairCard(se));}}}tickDashboard();}
@@ -462,29 +692,45 @@ function tickDashboard(){if(!LIVE)return;const t=Math.floor(Date.now()/1000+skew
 function makeRoster(){const search=h('input',{class:'field',type:'search',placeholder:'Студентті іздеу',value:liveQuery,'aria-label':'Студентті іздеу',on:{input:e=>{liveQuery=e.target.value;updateRoster();}}});const filter=h('select',{class:'field','aria-label':'Студент күйі',on:{change:e=>{STF=e.target.value;updateRoster();}}},[['','Барлығы'],['abs','Кірмегендер'],['sent','Жібергендер'],['prog','Орындауда'],['bad','Қате бар'],['pending','Тексерілуде']].map(([value,text])=>h('option',{value,text,selected:value===STF})));return h('div',{class:'roster-card'},[h('div',{class:'roster-toolbar'},[h('div',{class:'toolbar-title'},[h('h2',{text:'Студенттер'}),h('small',{class:'sub',id:'rosterCount'})]),h('div',{class:'roster-search'},[icon('search'),search]),filter,btn('Экспорт',exportLive,'sm')]),h('div',{class:'roster-scroll',id:'rosterScroll'},[h('table',{class:'t roster-table'},[h('thead',{id:'liveThead'}),h('tbody',{id:'liveTbody'})]),h('div',{class:'roster-empty',id:'rosterEmpty',hidden:true,text:'Іздеу бойынша студент табылмады.'})]),h('div',{class:'roster-footer',text:'Студенттің атын немесе балын басып, жұмысын ашыңыз.'})]);}
 function updateRoster(){const body=$('#liveTbody');if(!body)return;const ti=tinfo(LIVE.session.topic),ns=TL(ti),all=allStudents(),n=currentTask(),query=liveQuery.trim().toLocaleLowerCase('kk');const rows=all.filter(s=>(!query||s.name.toLocaleLowerCase('kk').includes(query))&&(STF==='abs'?!s.present:STF==='sent'?s.present&&(n?s.tasks?.[n]?.sent:Object.values(s.tasks||{}).some(t=>t.sent)):STF==='prog'?s.present&&studentState(s)[0]==='Орындауда':STF==='bad'?studentState(s)[1]==='warn':STF==='pending'?Object.values(s.tasks||{}).some(t=>t.pending):true));const headKey=JSON.stringify([ti.id,ns,all[0]?.tasks]);if($('#liveThead').dataset.sig!==headKey){$('#liveThead').dataset.sig=headKey;$('#liveThead').replaceChildren(h('tr',{},[h('th',{class:'student-cell l',text:'Студент'}),h('th',{class:'l',text:'Күйі'}),...ns.map(k=>h('th',{title:meta(k).title,text:(WINT.includes(ti.id)&&k===5?'Үй':k)+' · '+(all[0]?.tasks?.[k]?.max||meta(k).max||'')})),...(ti.ai?[h('th',{text:'ЖИ'})]:[]),h('th',{text:'Барлығы'}),h('th',{text:'',title:'Қосымша әрекеттер'})]));}const keep=new Set();rows.forEach((s,i)=>{const key=String(s.id),sig=JSON.stringify([s,n,LIVE.session.status]);keep.add(key);let tr=body.querySelector('[data-student="'+key+'"]');if(!tr||tr.dataset.sig!==sig){const state=studentState(s),open=()=>openDetail(LIVE.session.id,s.id);const extra=h('details',{},[h('summary',{title:'Қосымша әрекеттер','aria-label':s.name+' · қосымша әрекеттер',text:'···'}),h('div',{class:'row'},[s.present?btn('Құрылғыны босату',async()=>{if(!confirm(s.name+' басқа құрылғыдан қайта кіре алсын ба?'))return;const j=await api('release',{session_id:LIVE.session.id,student_id:s.id});if(j.ok){toast('Құрылғы босатылды.');loadLive(true);}},'sm'):btn('Келді деп белгілеу',async()=>{const j=await api('attendance',{session_id:LIVE.session.id,student_id:s.id,present:true});if(j.ok)loadLive(true);},'sm')])]);const replacement=h('tr',{'data-student':key,'data-sig':sig,class:!s.present?'absent':''},[h('td',{class:'student-cell l'},h('div',{class:'student-name'},[h('span',{class:'student-avatar',text:s.name.split(/\s+/).slice(0,2).map(v=>v[0]).join('')}),h('button',{type:'button',text:s.name,on:{click:open}})])),h('td',{class:'l'},h('span',{class:'state-badge '+state[1],text:state[0]})),...ns.map(k=>{const t=s.tasks?.[k];return h('td',{},t?.sent?h('button',{class:'score-cell',type:'button',title:meta(k).title+' · '+t.pts+' / '+t.max,text:t.pts+(t.pending?'…':''),on:{click:()=>openDetail(LIVE.session.id,s.id,k)}}):'—');}),...(ti.ai?[h('td',{text:s.present&&s.ai_pct?s.ai_pct+'%':'—'})]:[]),h('td',{},s.present?h('span',{class:'score-total',text:String(s.total)}):'—'),h('td',{},extra)]);if(tr){if(!tr.contains(document.activeElement)&&!tr.querySelector('details[open]')){tr.replaceWith(replacement);tr=replacement;}}else{tr=replacement;body.append(tr);}}const at=body.children[i];if(at!==tr)body.insertBefore(tr,at||null);});[...body.children].forEach(tr=>{if(!keep.has(tr.dataset.student))tr.remove();});$('#rosterCount').textContent=all.length+' студент · '+all.filter(s=>s.present).length+' кірді'+(rows.length!==all.length?' · табылғаны '+rows.length:' · бір тізім');$('#rosterEmpty').hidden=!!rows.length;}
 function exportLive(){const ti=tinfo(LIVE.session.topic),ns=TL(ti);download('сабақ-'+LIVE.session.id+'.csv',csv([['Топ','Студент','Қатысым',...ns.map(k=>meta(k).title),'Қорытынды'],...allStudents().map(s=>[s.group,s.name,s.present?'иә':'жоқ',...ns.map(k=>s.tasks?.[k]?.sent?s.tasks[k].pts:''),s.present?s.total:''])]));}
-let analysisSelected='overview',analysisData=null,analysisFor=0,analysisSig='',analysisBusy=false,analysisFocusOp='',analysisFocusItem=0;
+let analysisSelected='overview',analysisData=null,analysisFor=0,analysisSig='',analysisLoading=0,analysisFocusOp='',analysisFocusItem=0;
 async function renderAnalysis(force=false){
  const root=$('#s-analysis'),se=LIVE?.session;if(!se){root.replaceChildren(h('div',{class:'analysis-empty',text:'Талдау үшін сабақты бастаңыз немесе архивтен таңдаңыз.'}));return;}
  if(!tinfo(se.topic).py){root.replaceChildren(summaryCard(se,allStudents(),tinfo(se.topic)));return;}
  if(analysisFor!==se.id){analysisData=null;analysisSig='';analysisFocusOp='';analysisFocusItem=0;analysisAt=0;root.replaceChildren(h('p',{class:'sub',text:'Нәтижелер жүктелуде…'}));}
- if(analysisBusy||!force&&Date.now()-analysisAt<12000)return;analysisBusy=true;analysisAt=Date.now();
- const j=await api('py_stats?session='+se.id);analysisBusy=false;
+ if(analysisLoading===se.id||!force&&Date.now()-analysisAt<12000)return;
+ analysisLoading=se.id;analysisAt=Date.now();
+ const j=await api('py_stats?session='+se.id);
+ if(analysisLoading===se.id)analysisLoading=0;
+ if(LIVE?.session?.id!==se.id||TAB!=='analysis')return;
  if(!j.ok){if(!analysisData)root.replaceChildren(h('p',{class:'bad',text:'Талдауды жүктеу мүмкін болмады. Барысы бөліміндегі деректер сақталған.'}));return;}
- if(LIVE?.session?.id!==se.id){analysisAt=0;return;}analysisFor=se.id;analysisData=j;const sig=JSON.stringify(j);if(force||sig!==analysisSig||analysisSelected==='python-report'){analysisSig=sig;paintAnalysis();}
+ analysisFor=se.id;analysisData=j;
+ const sig=JSON.stringify([j,analysisSelected==='python-report'?[
+   se.course_group_id,pythonReportRevision,allStudents().map(s=>[s.id,s.name,s.total,s.edited,s.complete,s.present,s.tasks])
+ ]:null]);
+ if(force||sig!==analysisSig){analysisSig=sig;paintAnalysis();}
 }
 function paintAnalysis(){
  const root=$('#s-analysis'),d=analysisData;if(!d)return;const scroll=root.querySelector('.analysis-scroll')?.scrollTop||0;
  const tabs=[['overview','Шолу'],...(LIVE.session.topic==='P12'?[['python-report','Журнал және ЖИ']]:[]),...(d.ops?[['ops','Амалдар']]:[]),['items','Есептер'],['students','Студенттер']];
  if(!tabs.some(([v])=>v===analysisSelected))analysisSelected='overview';
- const toolbar=h('div',{class:'analysis-toolbar'},tabs.map(([v,t])=>btn(t,()=>{analysisSelected=v;analysisFocusOp='';analysisFocusItem=0;paintAnalysis();},'sm '+(analysisSelected===v?'primary':''))));
- toolbar.append(h('span',{class:'sp'}),h('span',{class:'sub',text:'Таңдалған сабақ · автоматты жаңарады'}));const content=h('div');root.replaceChildren(toolbar,content);
+ const toolbar=h('div',{class:'analysis-toolbar'},tabs.map(([v,t])=>{
+   const tab=btn(t,()=>{analysisSelected=v;analysisFocusOp='';analysisFocusItem=0;rememberUI();paintAnalysis();},'sm '+(analysisSelected===v?'primary':''));
+   tab.setAttribute('aria-pressed',String(analysisSelected===v));return tab;
+ }));
+ const content=h('div');root.replaceChildren(toolbar,content);
  const table=(heads,rows)=>h('div',{class:'tw analysis-scroll'},h('table',{class:'t'},[h('thead',{},h('tr',{},heads.map((text,i)=>h('th',{class:i===0?'l':'',text})))),h('tbody',{},rows)]));
  const td=(text,cls='')=>h('td',{class:cls,text:String(text??'—')});
  const ops=(d.ops||[]).filter(o=>o.answers).slice().sort((a,b)=>a.pct-b.pct);
  const peopleFor=op=>{analysisSelected='students';analysisFocusOp=op;analysisFocusItem=0;paintAnalysis();};
  if(analysisSelected==='python-report'){
    const session=LIVE.session, students=allStudents();
-   import('./python-report-panel.js?v=3').then(({mountPythonReport})=>{if(content.isConnected&&LIVE?.session?.id===session.id)mountPythonReport(content,{session,students,api,h});}).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
+   import('./python-report-panel.js?v=4').then(({mountPythonReport})=>{
+     if(content.isConnected&&LIVE?.session?.id===session.id)mountPythonReport(content,{
+       session,students,api,h,revision:pythonReportRevision,
+       openProgress:id=>openCourseProgress(session,id,'journal'),
+       linkCourse:()=>linkSessionCourse(session)
+     });
+   }).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
  }else if(analysisSelected==='overview'){
    window.TeacherAnalysis.render(content,d,{h,btn,people:id=>{analysisFocusItem=id;analysisFocusOp='';analysisSelected='students';paintAnalysis();},showItems:()=>{analysisSelected='items';paintAnalysis();}});
  }else if(analysisSelected==='ops'){
@@ -502,10 +748,14 @@ const topicQuestions = window.TeacherLessons.questions;
 function setQuestions(){QUESTIONS=topicQuestions[LIVE?.session?.topic]|| (LIVE?.session?.topic==='6'?['Гаусс–Зейдель әдісінің басты ерекшелігі қандай?','Әдіс қандай шартта жинақталады?','Итерацияны қашан тоқтатамыз?']:['Бүгінгі тақырыптың негізгі ұғымын түсіндіріңіз.','Тапсырманы орындауда қандай қате болды және оны қалай түзеттіңіз?','Осы білімді қандай жағдайда қолдануға болады?']);}
 async function loadPlan(){const root=$('#s-plan'),topic=LIVE?.session?.topic;if(!topic){root.replaceChildren(h('div',{class:'analysis-empty',text:'Алдымен сабақты таңдаңыз.'}));return;}root.replaceChildren(h('p',{class:'sub',text:'Жоспар жүктелуде…'}));let j;try{j=await(await fetch('/api/plan?all=1',{headers:{Authorization:'Bearer '+TOK}})).json();}catch{j={ok:false};}if(!j.ok){root.replaceChildren(h('p',{class:'bad',text:'Жоспарды жүктеу мүмкін болмады.'}));return;}const plan=j.topics?.find(p=>p.topic===topic);if(!plan){root.replaceChildren(h('div',{class:'card'},[h('h2',{text:tinfo(topic).title}),h('p',{class:'sub',text:'Бұл сабақтың жеке жоспары әлі енгізілмеген. Сабақ материалы мен тапсырмаларын төмендегі сілтемеден қарай аласыз.'}),h('a',{class:'btn',href:tinfo(topic).path,target:'_blank',rel:'noopener',text:'Сабақ материалын ашу'})]));return;}const doc=h('div',{class:'plan-doc'});doc.innerHTML=plan.html;root.replaceChildren(h('div',{class:'card'},[h('h2',{text:plan.title}),doc]));}
 let archivePanel;
-async function renderArchive(){
+async function renderArchive(fromAnotherView=false){
   if(!archivePanel) archivePanel=window.createTeacherArchive({
     h,btn,api,subjects:SUBJ,topicInfo:tinfo,topicName:tname,dateText:fdate,
     open:selectSession,
+    analyze:id=>selectSession(id,{tab:'analysis'}),
+    progress:session=>openCourseProgress(session,session.course_group_id),
+    linkCourse:linkSessionCourse,
+    onFilter:filters=>updateWorkspace('archive',filters),
     reopen:async id=>{
       if(!confirm('Бұл сабақты қайта ашасыз ба? Қазіргі ашық сабақ жабылады. Бұрынғы жұмыстар мен бағалар сақталады.'))return false;
       const j=await api('session/reopen',{id,minutes:15});
@@ -514,12 +764,12 @@ async function renderArchive(){
     },
     changed:async ids=>{
       if(ids.includes(VIEW))VIEW=0;
-      SESS.rows=null;SESS.t=0;JOUR=null;HW=null;contextShape='';liveShape='';analysisAt=0;analysisFor=0;
+      SESS.rows=null;SESS.t=0;HW=null;contextShape='';liveShape='';analysisAt=0;analysisFor=0;pythonReportRevision++;
       await loadLive();loadHomeworkBadge();rememberUI();
     },
     notify:toast
   });
-  return archivePanel.render($('#s-archive'));
+  return archivePanel.render($('#s-archive'),workspaceFilters.archive,fromAnotherView);
 }
 function renderRoster(){const root=$('#s-roster');if(!ROSTER.some(g=>String(g.id)===rosterGroup))rosterGroup=String(ROSTER.find(g=>g.id===LIVE?.session?.group_id)?.id||ROSTER[0]?.id||'');const search=h('input',{class:'field',type:'search',placeholder:'Топты іздеу',value:groupQuery,'aria-label':'Топты іздеу'}),directory=h('div',{class:'group-directory-list'}),content=h('div');const paintDirectory=()=>{directory.replaceChildren(...ROSTER.filter(g=>g.name.toLocaleLowerCase('kk').includes(groupQuery.toLocaleLowerCase('kk'))).map(g=>h('button',{type:'button',class:'group-button'+(String(g.id)===rosterGroup?' on':''),on:{click:()=>{rosterGroup=String(g.id);paintDirectory();paintGroup();}}},[h('span',{text:g.name}),h('small',{text:String(g.students.filter(s=>s.active!==false).length)})])));};const paintGroup=()=>{const g=ROSTER.find(g=>String(g.id)===rosterGroup);content.replaceChildren();if(!g){content.append(h('p',{class:'analysis-empty',text:'Алдымен топ қосыңыз.'}));return;}const opts=h('details',{},[h('summary',{text:'Топ әрекеттері'}),h('div',{class:'row'},[btn('Атын өзгерту',async()=>{const name=prompt('Топ атауы',g.name);if(name){const j=await api('groups/'+g.id,{name},'PATCH');if(j.ok)setRoster(j);}},'sm'),btn('Топты жою',async()=>{if(confirm(g.name+' тобын және оның барлық студенттері мен жұмыстарын біржола жоясыз ба?')){const j=await api('groups/'+g.id,null,'DELETE');if(j.ok)setRoster(j);}},'sm danger')])]);const names=h('textarea',{class:'field',rows:'5',placeholder:'Әр жолға бір студенттің аты-жөнін жазыңыз','aria-label':'Қосылатын студенттер'});const tbody=h('tbody',{},g.students.map((s,i)=>h('tr',{class:s.active?'':'absent'},[h('td',{text:String(i+1)}),h('td',{class:'l',text:s.name+(s.active?'':' · жасырылған')}),h('td',{},h('details',{},[h('summary',{text:'Өзгерту'}),h('div',{class:'row'},[btn('Аты',async()=>{const name=prompt('Аты-жөні',s.name);if(name){const j=await api('students/'+s.id,{name},'PATCH');if(j.ok)setRoster(j);}},'sm'),btn(s.active?'Жасыру':'Қайтару',async()=>{const j=await api('students/'+s.id,{active:!s.active},'PATCH');if(j.ok)setRoster(j);},'sm'),btn('Өшіру',async()=>{if(confirm(s.name+' біржола өшірілсін бе? Оның жұмыстары да өшеді.')){const j=await api('students/'+s.id,null,'DELETE');if(j.ok)setRoster(j);}},'sm danger')])]))])));content.append(h('div',{class:'card'},[h('div',{class:'row'},[h('h2',{text:g.name}),h('span',{class:'sp'}),btn('Сабақ бастау',()=>newLesson({g:String(g.id)}),'primary sm'),opts]),h('p',{class:'sub',text:g.students.filter(s=>s.active).length+' белсенді студент'}),h('div',{class:'tw',style:'max-height:55vh'},h('table',{class:'t'},[h('thead',{},h('tr',{},['№','Студент','Әрекет'].map(text=>h('th',{text})))),tbody])),h('details',{class:'roster-add'},[h('summary',{text:'+ Студенттерді қосу'}),names,btn('Тізімді сақтау',async()=>{if(!names.value.trim())return;const j=await api('students',{group_id:g.id,names:names.value});if(j.ok){names.value='';setRoster(j);toast('Студенттер қосылды.');}},'primary')])]));};search.oninput=e=>{groupQuery=e.target.value;paintDirectory();};root.replaceChildren(h('div',{class:'group-layout'},[h('div',{class:'group-directory'},[search,directory,btn('+ Топ қосу',async()=>{const name=prompt('Жаңа топтың атауы')?.trim().slice(0,40);if(name){const j=await api('groups',{name:name.trim()});if(j.ok){const g=j.groups.find(g=>g.name===name.trim());if(g){rosterGroup=String(g.id);rememberStart({...LS,g:String(g.id)});}groupQuery='';setRoster(j);toast('Топ қосылды. Студенттерді қосып немесе сабақ бастай аласыз.');}}},'sm')]),content]));paintDirectory();paintGroup();}
 async function loadHomework(){const j=await api('homework');if(!j.ok){if(!HW)$('#s-homework').replaceChildren(h('p',{class:'bad',text:'Үй жұмысын жүктеу мүмкін болмады.'}));return;}HW=j.rows;renderHomework();}
@@ -554,18 +804,30 @@ function renderHomework(){
   q.oninput=e=>{homeworkQuery=e.target.value;paint();};grp.onchange=e=>{homeworkGroup=e.target.value;paint();};st.onchange=e=>{homeworkStatus=e.target.value;paint();};
   root.replaceChildren(h('div',{class:'archive-toolbar'},[q,grp,st,btn('Жаңарту',loadHomework)]),cards);paint();
 }
-const legacyOpenDetail=openDetail;openDetail=async function(sid,stu,task){if(detailDirty&&!confirm('Сақталмаған өзгерістерді тастап, басқа жұмысты ашасыз ба?'))return;detailOrigin=document.activeElement;await legacyOpenDetail(sid,stu);if(!DETAIL)return;decorateDetail(task);$('#panel').focus();};
+const legacyOpenDetail=openDetail;
+openDetail=async function(sid,stu,task){
+  if(detailDirty&&!confirm('Сақталмаған өзгерістерді тастап, басқа жұмысты ашасыз ба?'))return;
+  const origin=document.activeElement;
+  if(!await legacyOpenDetail(sid,stu))return;
+  detailOrigin=origin;decorateDetail(task);$('#panel').focus();
+};
 const legacyPaintDetail=paintDetail;paintDetail=function(j){const key=DETAIL?DETAIL.sid+':'+DETAIL.stu:''; const drafts=lastDetailKey===key?[...document.querySelectorAll('#panel input,#panel textarea')].map((el,i)=>({i,value:el.value,dirty:el.dataset.baseline!==undefined&&el.value!==el.dataset.baseline})).filter(d=>d.dirty):[];legacyPaintDetail(j);lastDetailKey=key;if(j.attempts?.length){const first=$('#panel .p-body>div');const ds=h('div',{class:'box attempt-list'},[h('h3',{text:'Кодтар мен әрекеттер тарихы'})]);j.attempts.forEach(a=>ds.append(h('details',{'data-task':String(a.task)},[h('summary',{text:a.task+'-тапсырма · '+a.title+' · '+a.n+'-әрекет · '+Math.round(a.frac*100)+'%'}),a.code?h('pre',{text:a.code}):'',h('p',{class:'sub',text:(a.detail?.diag||[]).map(d=>d.text).join(' ')||'Қате туралы қосымша хабар жоқ.'})])));first.append(ds);}detailDirty=false;const inputs=[...document.querySelectorAll('#panel input,#panel textarea')];inputs.forEach(el=>el.dataset.baseline=el.value);drafts.forEach(d=>{const el=inputs[d.i];if(el&&el.value!==d.value){el.value=d.value;detailDirty=true;}});decorateDetail();};
 function decorateDetail(task){document.querySelector('#panel .detail-task-nav')?.remove();const body=$('#panel .p-body'),left=body?.firstElementChild;if(!left)return;const boxes=[...left.children];const nav=h('div',{class:'detail-task-nav'});const history=boxes.find(b=>b.classList.contains('attempt-list'));nav.append(btn('Барлығы',()=>{boxes.forEach(b=>b.hidden=false);history?.querySelectorAll('details').forEach(d=>d.hidden=false);nav.querySelectorAll('.btn').forEach(b=>b.classList.remove('on'));},'sm'));boxes.forEach((b,i)=>{const title=b.querySelector('h3')?.textContent;if(!title)return;const n=/^(\d+)-тапсырма/.exec(title)?.[1];const btt=btn(n?n+'-тапсырма':'Кодтар',()=>{boxes.forEach(box=>box.hidden=box!==b);if(n&&history){const attempts=[...history.querySelectorAll('details')];attempts.forEach(d=>d.hidden=d.dataset.task!==n);history.hidden=!attempts.some(d=>!d.hidden);}nav.querySelectorAll('.btn').forEach(bt=>bt.classList.toggle('on',bt===btt));},'sm');nav.append(btt);if(task&&+n===+task){btt.click();}});body.before(nav);}
 $('#panel').addEventListener('input',e=>{if(e.target.matches('input,textarea,select'))detailDirty=true;});
 document.addEventListener('keydown',e=>{const dlg=!$('#newLessonDialog').hidden?$('#newLessonDialog'):!$('#ov').hidden?$('#ov'):!$('#pj').hidden?$('#pj'):null;if(e.key==='Tab'&&dlg){const focus=[...dlg.querySelectorAll('button,input,select,textarea,a[href],[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!focus.length)return;const first=focus[0],last=focus.at(-1);if(e.shiftKey&&(document.activeElement===first||!dlg.contains(document.activeElement))){e.preventDefault();last.focus();}else if(!e.shiftKey&&(document.activeElement===last||!dlg.contains(document.activeElement))){e.preventDefault();first.focus();}}});
-const closeBase=closeDetail;closeDetail=function(){const was=!!DETAIL;closeBase();if(was&&!DETAIL)detailOrigin?.focus();};
+const closeBase=closeDetail;
+closeDetail=function(){
+  const was=!!DETAIL;closeBase();
+  if(was&&!DETAIL){
+    lastDetailKey='';
+    detailOrigin?.focus();
+    if(TAB==='journal'&&journalNeedsRefresh){journalNeedsRefresh=false;loadJournal();}
+  }
+};
 window.addEventListener('beforeunload',e=>{if(detailDirty){e.preventDefault();e.returnValue='';}});
-const startBase=start;start=function(){startBase();goTab(TAB);loadHomeworkBadge();};
 async function loadHomeworkBadge(){const j=await api('homework');if(j.ok){const badge=$('#hwBadge');const count=j.rows.filter(r=>r.teacher_score===null).length;badge.textContent=String(count);badge.hidden=!count;}}
 setInterval(()=>{if(!TOK||document.hidden)return;if(TAB==='homework')loadHomework();else loadHomeworkBadge();},30000);
-// Never restore an old student detail, a pending mutation, or a password.
-try{const saved=JSON.parse(sessionStorage.getItem('teacher-dashboard-ui')||'{}');if(['live','analysis','wrap','plan','homework','journal','roster','archive','progress'].includes(saved.tab))TAB=saved.tab;VIEW=Number(saved.view)||0;}catch{}
-if(TOK)start();
+window.addEventListener('popstate',()=>{if(TOK)restoreWorkspace();});
+if(TOK&&!returnToStudio())start();
 
 })();

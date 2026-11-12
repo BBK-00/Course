@@ -7,7 +7,14 @@ import { documentText, mediaLayout, mediaStyle, photoStyle } from '../assets/stu
 const $ = s => document.querySelector(s);
 const h = (tag, a, kids) => { const e = document.createElement(tag); for (const k in (a || {})) { const v = a[k]; if (k === 'text') e.textContent = v; else if (k === 'class') e.className = v; else if (k === 'on') { for (const ev in v) e.addEventListener(ev, v[ev]); } else if (v === true) e.setAttribute(k, ''); else if (v !== false && v !== null && v !== undefined) e.setAttribute(k, v); } [].concat(kids || []).forEach(c => { if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : document.createTextNode(c)); }); return e; };
 let TOK = ''; try { TOK = sessionStorage.getItem('ttok') || ''; } catch (e) {}
-if (!TOK) { location.replace('index.html'); return; }
+function loginForStudio(){
+  const url = new URL('/teacher/', location.origin);
+  url.searchParams.set('next', 'studio');
+  const q = new URLSearchParams(location.search);
+  for (const key of ['id', 'page']) if (q.get(key)) url.searchParams.set(key, q.get(key));
+  location.replace(url.href);
+}
+if (!TOK) { loginForStudio(); return; }
 
 const TYPES = [
   { t: 'h', ic: '𝗧', name: 'Тақырып', make: () => ({ t: 'h', lv: 2, text: '' }) },
@@ -28,22 +35,30 @@ const uid = () => 'b' + Math.random().toString(36).slice(2, 9);
 async function api(path, body, method, raw){
   try {
     const r = await fetch('/api/teacher/studio/' + path, { method: method || (body !== undefined ? 'POST' : 'GET'), headers: { Authorization: 'Bearer ' + TOK, ...(raw ? raw.headers : { 'Content-Type': 'application/json' }) }, body: raw ? raw.body : body !== undefined ? JSON.stringify(body) : undefined });
-    if (r.status === 401) { try { sessionStorage.removeItem('ttok'); } catch (e) {} location.replace('index.html'); return { ok: false, error: 'auth' }; }
+    if (r.status === 401) { try { sessionStorage.removeItem('ttok'); } catch (e) {} stashDraft(); loginForStudio(); return { ok: false, error: 'auth' }; }
     return await r.json();
   } catch (e) { return { ok: false, error: 'network' }; }
 }
 let toastT = 0;
 function toast(t){ const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { e.hidden = true; }, 3200); }
 const ERR = { network: 'Желі жоқ. Қайта көреміз.', too_big: 'Сабақ тым үлкен.', empty: 'Сабақта мазмұн жоқ: алдымен мәтін, сурет не тапсырма қосыңыз.', no_r2: 'Сурет сақтайтын орын (R2) әлі қосылмаған.', quota: 'Бүгінгі сурет жүктеу шегі аяқталды.', bad_type: 'Тек JPG, PNG, WebP не GIF суреті жарайды.', conflict: 'Сабақ басқа жерде өзгерген.' };
-const ERR2 = { invalid: 'Тапсырмада толтырылмаған жер бар.', ref_fail: 'Үлгі шешім өз тестінен өтпеді.', media_missing: 'Бос фото немесе видео блогын толтырыңыз.', unavailable: 'Код орындау қызметі уақытша жауап бермеді. Кейін қайта тексеріңіз.', used_tasks: 'Бұл сабақ өтіп қойған. Өзгерген тапсырмаларды жаңа көшірмеде жариялаңыз.', has_sessions: 'Бұл сабақ бойынша сабақ өткізілген. Оны жасыруға болады.' };
+const ERR2 = { invalid: 'Тапсырмада толтырылмаған жер бар.', ref_fail: 'Үлгі шешім өз тестінен өтпеді.', media_missing: 'Бос фото немесе видео блогын толтырыңыз.', unavailable: 'Код орындау қызметі уақытша жауап бермеді. Кейін қайта тексеріңіз.', used_tasks: 'Бұл сабақ өтіп қойған. Өзгерген тапсырмаларды жаңа көшірмеде жариялаңыз.', has_sessions: 'Бұл сабақ бойынша сабақ өткізілген. Оны жасыруға болады.', not_found: 'Сабақ немесе нұсқа табылмады.' };
 const etext = j => ERR2[j.error] || ERR[j.error] || ('Қате: ' + (j.error || 'белгісіз'));
 
 /* ---------- Диалог ---------- */
-function dlg(content){ const box = $('#dlgBox'); box.replaceChildren(...[].concat(content)); $('#dlg').hidden = false; const f = box.querySelector('button,input'); if (f) f.focus(); }
-function closeDlg(){ $('#dlg').hidden = true; }
-$('#dlg').addEventListener('click', e => { if (e.target.id === 'dlg') closeDlg(); });
+const dialog = $('#dlg');
+let dialogBusy = false;
+function dlg(content){
+  const box = $('#dlgBox');
+  box.replaceChildren(...[].concat(content));
+  dialog.setAttribute('aria-label', box.querySelector('h2')?.textContent || 'Курс студиясы');
+  if (!dialog.open) dialog.showModal();
+  (box.querySelector('input,select,textarea') || box.querySelector('button'))?.focus();
+}
+function closeDlg(force){ if (dialog.open && (!dialogBusy || force === true)) dialog.close(); }
+dialog.addEventListener('cancel', event => { if (dialogBusy) event.preventDefault(); });
+dialog.addEventListener('click', e => { if (e.target === dialog) closeDlg(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeDlg();
   const focus = document.activeElement;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/^(INPUT|TEXTAREA)$/.test(focus.tagName) && !focus.isContentEditable) {
     e.preventDefault();
@@ -89,7 +104,22 @@ $('#bRedo').addEventListener('click', redo);
 
 /* ---------- Сақтау ---------- */
 let saveT = 0, prevT = 0, histT = 0, saving = null, revision = 0, previewRequest = 0, navigation = 0, mediaPending = 0;
-function setState(t, cls){ const e = $('#saveState'); e.textContent = t; e.className = 'st-save ' + (cls || ''); }
+function setState(t, cls){
+  const e = $('#saveState');
+  e.textContent = t; e.className = 'st-save ' + (cls || '');
+  $('#bSave').hidden = ST.mode === 'page';
+  $('#bSave').disabled = !ST.cur || !ST.dirty || t === 'Сақталуда…';
+  $('#bPreview').disabled = !ST.cur && !ST.page;
+}
+$('#bSave').addEventListener('click', () => save());
+function rememberEditor() {
+  const url = new URL(location.href);
+  url.searchParams.delete('id');
+  url.searchParams.delete('page');
+  if (ST.cur) url.searchParams.set('id', ST.cur.id);
+  if (ST.page) url.searchParams.set('page', ST.page.path);
+  if (url.href !== location.href) history.replaceState(null, '', url);
+}
 const draftKey = id => 'course-studio-draft:' + id;
 function stashDraft(){
   if (ST.mode !== 'lesson' || !ST.cur || !ST.dirty) return;
@@ -179,7 +209,7 @@ $('#bPhone').addEventListener('click', () => { ST.phone = true; $('#frameBox').c
 $('#bWide').addEventListener('click', () => { ST.phone = false; $('#frameBox').className = 'st-frame'; $('#bWide').classList.add('on'); $('#bPhone').classList.remove('on'); });
 
 /* ---------- Сол жақ: пәндер мен сабақтар ---------- */
-const STATE_LBL = { code: 'кодта', studio: '', empty: 'бос' };
+const STATE_LBL = { code: 'дайын', studio: '', empty: 'бос' };
 function topicRow(sub, t){
   const on = (ST.mode === 'page' && ST.page && ST.page.path === t.path) || (ST.mode === 'lesson' && ST.cur && t.lesson && ST.cur.id === t.lesson.id) || (ST.mode === 'topic' && ST.topicCtx && ST.topicCtx.sub === sub.id && ST.topicCtx.num === t.num);
   const dot = t.state === 'code' ? h('i', { class: 'dot code', title: 'Қолмен жасалған сабақ: мәтінін өңдеуге болады' }) : t.state === 'studio' ? h('i', { class: 'dot ' + (t.lesson.dirty ? 'dirty' : t.lesson.status), title: t.lesson.status === 'published' ? 'Жарияланған' : 'Жоба' }) : h('i', { class: 'dot empty', title: 'Әлі жасалмаған' });
@@ -227,40 +257,89 @@ function filterLessons() {
 $('#lessonSearch').addEventListener('input', filterLessons);
 function lessonRow(l){ const cur = ST.mode === 'lesson' && ST.cur && ST.cur.id === l.id; const st = ST.lessons.find(x => x.id === l.id) || l; return h('button', { class: 'st-les' + (cur ? ' on' : ''), type: 'button', on: { click: () => openLesson(l.id) } }, [h('i', { class: 'dot ' + (st.dirty ? 'dirty' : st.status), title: st.status === 'published' ? 'Жарияланған' : st.status === 'hidden' ? 'Жасырылған' : 'Жоба' }), h('span', { class: 't', text: l.title })]); }
 function newSubject(){
-  const inp = h('input', { class: 'st-field', maxlength: 60, placeholder: 'Мысалы: Информатика 8-сынып' });
-  dlg([h('h2', { text: 'Жаңа курс' }), inp, h('div', { class: 'st-row' }, [h('button', { class: 'st-btn st-primary', text: 'Қосу', on: { click: async () => { const j = await api('subject', { title: inp.value }); if (!j.ok) { toast(etext(j)); return; } closeDlg(); await loadList(); const course = ST.subjects.find(s => s.id === j.id); if (course) newLesson(course); } } })])]);
+  const inp = h('input', { class: 'st-field', maxlength: 60, placeholder: 'Курс атауы', 'aria-label': 'Курс атауы', required: true });
+  const status = h('p', { class: 'st-hint', role: 'status' });
+  const submit = h('button', { type: 'submit', class: 'st-btn st-primary', text: 'Курс қосу' });
+  const form = h('form', {}, [inp, status, h('div', { class: 'st-row' }, [
+    submit, h('button', { class: 'st-btn', type: 'button', text: 'Болдырмау', on: { click: closeDlg } })
+  ])]);
+  form.onsubmit = async event => {
+    event.preventDefault();
+    if (dialogBusy || !inp.value.trim()) return;
+    dialogBusy = submit.disabled = true;
+    const j = await api('subject', { title: inp.value.trim() });
+    dialogBusy = submit.disabled = false;
+    if (!j.ok) { status.textContent = etext(j); return; }
+    closeDlg();
+    await loadList();
+    const course = ST.subjects.find(s => s.id === j.id);
+    const group = course && $('#side').querySelector('[data-id="' + course.id + '"]');
+    if (group) group.open = true;
+    toast('Курс қосылды.');
+  };
+  dlg([h('h2', { text: 'Жаңа курс' }), form]);
 }
 $('#newCourse').addEventListener('click', newSubject);
 $('#templates').addEventListener('click', () => {
-  const current = ST.cur?.subject || ST.page?.sub;
-  const sub = ST.subjects.find(s => s.id === current) || ST.subjects[0];
-  if (sub) newLesson(sub); else newSubject();
+  const current = ST.cur?.subject || ST.page?.sub || ST.topicCtx?.sub;
+  if (ST.subjects.length) newLesson(ST.subjects.find(s => s.id === current));
+  else newSubject();
 });
-function newLesson(sub){
-  const T = [['theory', 'Теория үлгісімен', 'Не үйренесің, түсіндіру, мысал, қорытынды дайын тұрады'], ['blank', 'Бос сабақ', 'Өзіңіз бәрін қосасыз']];
-  const inp = h('input', { class: 'st-field', maxlength: 120, placeholder: 'Сабақ атауы', value: '' });
-  const go = async tpl => { const j = await api('lesson/new', { subject: sub.id, title: inp.value || 'Жаңа сабақ', template: tpl }); if (!j.ok) { toast(etext(j)); return; } closeDlg(); await loadList(); await openLesson(j.id); setView('write'); };
-  dlg([h('h2', { text: 'Жаңа сабақ: ' + sub.title }), inp, h('div', { class: 'st-tpls' }, T.map(t => h('button', { class: 'st-tpl', type: 'button', on: { click: () => go(t[0]) } }, [h('b', { text: t[1] }), h('span', { text: t[2] })])))]);
+function newLesson(sub, topic){
+  const course = h('select', { class: 'st-field', 'aria-label': 'Сабақтың курсы', disabled: Boolean(topic) }, [
+    h('option', { value: '', text: 'Курсты таңдаңыз' }),
+    ...ST.subjects.map(s => h('option', { value: s.id, text: s.title }))
+  ]);
+  course.value = sub?.id || '';
+  const inp = h('input', { class: 'st-field', maxlength: 120, placeholder: 'Сабақ атауы', 'aria-label': 'Жаңа сабақ атауы', value: topic?.title || '' });
+  const status = h('p', { class: 'st-hint', role: 'status' });
+  const templates = [['theory', 'Теория үлгісі', 'Мақсат, түсіндірме және мысал'], ['blank', 'Бос сабақ', 'Блоктарды өзіңіз қосасыз']];
+  const go = async template => {
+    if (dialogBusy || !course.value) return;
+    dialogBusy = true; refreshButtons();
+    if (!(await beforeSwitch())) { dialogBusy = false; refreshButtons(); return; }
+    const prepared = revision;
+    status.textContent = 'Жоба жасалуда…';
+    const j = await api('lesson/new', { subject: course.value, title: inp.value.trim() || 'Жаңа сабақ', template, topic_num: topic?.num });
+    if (!j.ok) { dialogBusy = false; refreshButtons(); status.textContent = etext(j); return; }
+    await loadList();
+    dialogBusy = false; refreshButtons();
+    closeDlg();
+    if (await openLesson(j.id, false, prepared)) toast(j.existing ? 'Осы тақырыптағы жоба ашылды.' : 'Жаңа сабақ жоба ретінде ашылды.');
+  };
+  const buttons = templates.map(([id, label, description]) => h('button', {
+    class: 'st-tpl', type: 'button', on: { click: () => go(id) }
+  }, [h('b', { text: label }), h('span', { text: description })]));
+  const refreshButtons = () => buttons.forEach(button => { button.disabled = dialogBusy || !course.value; });
+  course.onchange = refreshButtons;
+  refreshButtons();
+  dlg([h('h2', { text: 'Жаңа сабақ' }), course, inp, h('div', { class: 'st-tpls' }, buttons), status,
+    h('div', { class: 'st-row' }, h('button', { class: 'st-btn', type: 'button', text: 'Болдырмау', on: { click: closeDlg } }))]);
 }
+let listRequest = 0;
 async function loadList(){
-  const j = await api('list'); if (!j.ok) { toast(etext(j)); return; } ST.subjects = j.subjects; ST.lessons = j.lessons; ST.r2 = j.r2;
-  const reg = ST.subjects.filter(x => x.builtin); const res = await Promise.all(reg.map(x => api('topics?subject=' + x.id)));
+  const ticket = ++listRequest;
+  const j = await api('list');
+  if (ticket !== listRequest) return;
+  if (!j.ok) { toast(etext(j)); return; }
+  const reg = j.subjects.filter(x => x.builtin); const res = await Promise.all(reg.map(x => api('topics?subject=' + x.id)));
+  if (ticket !== listRequest) return;
+  ST.subjects = j.subjects; ST.lessons = j.lessons; ST.r2 = j.r2;
   reg.forEach((x, i) => { ST.topics[x.id] = res[i].ok ? res[i] : { topics: [], extra: [] }; }); renderSide();
-}
-function newLessonFromTopic(sub, t){
-  const T = [['theory', 'Теория үлгісімен', 'Не үйренесің, түсіндіру, мысал, қорытынды дайын тұрады'], ['blank', 'Бос сабақ', 'Өзіңіз бәрін қосасыз']];
-  const go = async tpl => { const j = await api('lesson/new', { subject: sub.id, title: t.title, template: tpl, topic_num: t.num }); if (!j.ok) { toast(etext(j)); return; } closeDlg(); await loadList(); await openLesson(j.id); setView('write'); };
-  dlg([h('h2', { text: t.num + '-тақырып: ' + t.title }), h('p', { class: 'st-hint', text: 'Сабақ жарияланған соң пәннің бас бетіндегі осы карточка өздігінен ашылады.' }), h('div', { class: 'st-tpls' }, T.map(x => h('button', { class: 'st-tpl', type: 'button', on: { click: () => go(x[0]) } }, [h('b', { text: x[1] }), h('span', { text: x[2] })])))]);
 }
 
 /* ---------- Сабақты ашу ---------- */
-async function openLesson(id, force){
+async function openLesson(id, force, preparedRevision){
   const selection = ++navigation;
-  if (!force && !(await beforeSwitch())) return;
+  if (!force && ST.cur?.id === id) { setView('write'); return true; }
+  if ((!force && preparedRevision !== revision && !(await beforeSwitch())) || selection !== navigation) return false;
+  const draftRevision = revision;
   const j = await api('lesson?id=' + id);
-  if (selection !== navigation) return;
+  if (selection !== navigation) return false;
+  if (!j.ok) { toast(etext(j)); return false; }
+  if (draftRevision !== revision && ST.dirty && !(await beforeSwitch())) return false;
+  if (selection !== navigation) return false;
   previewRequest++;
-  if (!j.ok) { toast(etext(j)); return; }
   const l = j.lesson; ST.mode = 'lesson'; ST.page = null; ST.topicCtx = null; ST.cur = l; ST.tasks = l.tasks || { v: 1, tasks: [], hw: {} }; if (!force) ST.view = 'theory'; ST.blocks = l.blocks.length ? l.blocks : []; ST.title = l.title; ST.base = l.updated_at; ST.dirty = false; ST.hist = []; pushHist();
   ['title', 'bVers', 'bPub'].forEach(i => { $('#' + i).disabled = false; }); $('#title').value = l.title; setState('');
   let backup = null;
@@ -286,7 +365,9 @@ async function openLesson(id, force){
         h('button', {class:'st-btn', type:'button', text:'Сервер нұсқасын қарау', on:{click:closeDlg}})
       ])]);
   }
-  paintPub(); renderSide(); renderEditor(); preview(); paintReadiness(); setView('write');
+  rememberEditor();
+  paintPub(); renderSide(); renderEditor(); $('#edit').scrollTop = 0; preview(); paintReadiness(); setView('write');
+  return true;
 }
 function paintPub(){
   if (ST.mode === 'page') { const b = $('#bPub'); b.textContent = 'Сайтқа сақтау'; $('#bOpen').hidden = false; $('#bOpen').href = ST.page.path; return; }
@@ -319,22 +400,27 @@ async function openTopic(sub, t){
   ST.hist = []; undone = []; historyButtons();
   ['title', 'bVers', 'bPub'].forEach(i => { $('#' + i).disabled = true; }); $('#title').value = t.title; $('#bOpen').hidden = true; setState('');
   $('#edit').replaceChildren(h('div', { class: 'st-doc' }, [
-    h('div', { class: 'st-empty', style: 'margin:0 0 14px;max-width:none;text-align:left' }, [h('b', { text: t.num + '. ' + t.title }), h('span', { text: sub.title + (t.section ? ' · ' + t.section : '') + ' · материал әзірленуде' }), h('button', { class: 'st-btn st-primary', type: 'button', text: '+ Осы тақырыпқа сабақ жасау', on: { click: () => newLessonFromTopic(sub, t) } })]),
+    h('div', { class: 'st-empty', style: 'margin:0 0 14px;max-width:none;text-align:left' }, [h('b', { text: t.num + '. ' + t.title }), h('span', { text: sub.title + (t.section ? ' · ' + t.section : '') + ' · материал әзірленуде' }), h('button', { class: 'st-btn st-primary', type: 'button', text: '+ Осы тақырыпқа сабақ жасау', on: { click: () => newLesson(sub, t) } })]),
     cardPanel(sub.id, t.num, t.title, t.descr)]));
-  $('#frame').srcdoc = ''; paintReadiness(); renderSide(); setView('write');
+  rememberEditor(); $('#frame').srcdoc = ''; paintReadiness(); renderSide(); setView('write');
 }
 
 /* бар (кодпен жасалған) сабақтың мәтіндерін өңдеу */
 const KIND = { h1: 'Сабақ атауы', h2: 'Бөлім тақырыбы', lead: 'Бөлімнің кіріспесі', p: 'Түсіндірме', goal: 'Мақсат', li: 'Қорытынды тармағы' };
 async function openPage(sub, t){
   const selection = ++navigation;
-  if (!(await beforeSwitch())) return;
-  const j = await api('page?path=' + encodeURIComponent(t.path)); if (!j.ok) { toast(etext(j)); return; }
+  if (ST.page?.path === t.path) { setView('write'); return; }
+  if (!(await beforeSwitch()) || selection !== navigation) return;
+  const draftRevision = revision;
+  const j = await api('page?path=' + encodeURIComponent(t.path));
+  if (selection !== navigation) return;
+  if (!j.ok) { toast(etext(j)); return; }
+  if (draftRevision !== revision && ST.dirty && !(await beforeSwitch())) return;
   if (selection !== navigation) return;
   previewRequest++;
   ST.mode = 'page'; ST.cur = null; ST.topicCtx = null; ST.page = { sub: sub.id, num: t.num, path: t.path, items: j.items, title: t.title }; ST.blocks = j.extra || []; ST.dirty = false; ST.hist = []; pushHist();
   $('#title').disabled = true; $('#title').value = t.title; $('#bVers').disabled = true; $('#bPub').disabled = false; setState(''); paintPub();
-  renderSide(); renderEditor(); preview(); paintReadiness(); setView('write');
+  rememberEditor(); renderSide(); renderEditor(); $('#edit').scrollTop = 0; preview(); paintReadiness(); setView('write');
 }
 function mediaCard(it, pagePath){
   const m = it.media, card = h('div', { class: 'st-blk' + (mediaChanged(it) ? ' st-changed' : '') }), isImg = it.kind === 'img';
@@ -407,19 +493,53 @@ function paintReadiness() {
 }
 
 async function duplicateLesson() {
-  if (!ST.cur || !(await save())) return;
-  const j = await api('lesson/new', {subject: ST.cur.subject, title: ST.title + ' · көшірме', copy: ST.cur.id});
-  if (!j.ok) { toast(etext(j)); return; }
-  closeDlg(); await loadList(); await openLesson(j.id);
+  if (!ST.cur || dialogBusy) return;
+  const { id, subject } = ST.cur;
+  dialogBusy = true;
+  if (!(await save()) || ST.cur?.id !== id) { dialogBusy = false; return; }
+  const j = await api('lesson/new', {subject, title: ST.title + ' · көшірме', copy: id});
+  if (!j.ok) {
+    dialogBusy = false;
+    $('#dlgBox').append(h('p', { class: 'st-hint bad', role: 'alert', text: etext(j) }));
+    return;
+  }
+  await loadList();
+  dialogBusy = false;
+  closeDlg(); await openLesson(j.id);
   toast('Көшірме жоба ретінде жасалды.');
 }
 
 /* ---------- Жариялау, нұсқалар ---------- */
 async function publish() {
+  if (dialogBusy) return;
   if (ST.mode === 'page') { if (await savePage()) toast('Өзгерістер сайтта көрінеді'); return; }
   if (!ST.cur) return; if (!(await save())) return;
   const st = ST.lessons.find(x => x.id === ST.cur.id), pubd = st && st.status === 'published';
-  if (pubd && !st.dirty) { dlg([h('h2', { text: 'Сабақ жарияланған' }), h('p', { text: 'Сілтеме: ' + location.origin + '/c/' + ST.cur.subject + '/' + ST.cur.slug }), h('div', { class: 'st-row' }, [h('button', { class: 'st-btn', text: 'Сілтемені көшіру', on: { click: async () => { try { await navigator.clipboard.writeText(location.origin + '/c/' + ST.cur.subject + '/' + ST.cur.slug); toast('Көшірілді'); } catch (e) { toast('Көшіру мүмкін болмады'); } } } }), h('button', { class: 'st-btn st-danger', text: 'Жасыру', on: { click: async () => { const j = await api('lesson/publish', { id: ST.cur.id, publish: false }); if (!j.ok) { toast(etext(j)); return; } closeDlg(); await loadList(); paintPub(); toast('Сабақ жасырылды'); } } }), h('button', { class: 'st-btn', text: 'Жабу', on: { click: closeDlg } })])]); return; }
+  if (pubd && !st.dirty) {
+    const { id, subject, slug } = ST.cur;
+    const url = location.origin + '/c/' + subject + '/' + slug;
+    const status = h('p', { class: 'st-hint', role: 'status' });
+    const hide = h('button', { class: 'st-btn st-danger', text: 'Жасыру', on: { click: async () => {
+      if (dialogBusy) return;
+      dialogBusy = hide.disabled = true;
+      const j = await api('lesson/publish', { id, publish: false });
+      if (j.ok) await loadList();
+      dialogBusy = hide.disabled = false;
+      if (!j.ok) { status.textContent = etext(j); return; }
+      closeDlg();
+      if (ST.cur?.id === id) paintPub();
+      toast('Сабақ жасырылды.');
+    } } });
+    dlg([h('h2', { text: 'Сабақ жарияланған' }), h('a', { href: url, target: '_blank', rel: 'noopener', text: 'Студент бетін ашу' }), status,
+      h('div', { class: 'st-row' }, [
+        h('button', { class: 'st-btn', text: 'Сілтемені көшіру', on: { click: async () => {
+          try { await navigator.clipboard.writeText(url); status.textContent = 'Сілтеме көшірілді.'; }
+          catch { status.textContent = 'Көшіру мүмкін болмады.'; }
+        } } }),
+        hide, h('button', { class: 'st-btn', text: 'Жабу', on: { click: closeDlg } })
+      ])]);
+    return;
+  }
   const problems = draftProblems();
   if (problems.length) {
     dlg([h('h2', {text:'Жариялау алдында түзетіңіз'}), h('ul', {class:'stt-list bad'}, problems.map(text => h('li', {text}))), h('button', {class:'st-btn', type:'button', text:'Редакторға қайту', on:{click:closeDlg}})]);
@@ -429,12 +549,13 @@ async function publish() {
   const status = h('p', {class:'st-hint', role:'status'});
   const target = ST.cur.id;
   confirmPublish.addEventListener('click', async () => {
-    if (ST.cur?.id !== target || !(await save())) return;
-    confirmPublish.disabled = true;
+    if (dialogBusy || ST.cur?.id !== target) return;
+    dialogBusy = confirmPublish.disabled = true;
+    if (!(await save()) || ST.cur?.id !== target) { dialogBusy = confirmPublish.disabled = false; return; }
     status.textContent = 'Мазмұн мен тапсырмалар тексерілуде…';
     const j = await api('lesson/publish', {id: target});
-    confirmPublish.disabled = false;
     if (!j.ok) {
+      dialogBusy = confirmPublish.disabled = false;
       status.textContent = etext(j);
       status.classList.add('bad');
       if (j.problems) status.replaceChildren(h('ul', {class:'stt-list bad'}, j.problems.map(text => h('li', {text}))));
@@ -442,23 +563,58 @@ async function publish() {
       return;
     }
     await loadList();
+    dialogBusy = confirmPublish.disabled = false;
     if (ST.cur?.id === target) paintPub();
     dlg([h('h2', {text:'Сабақ жарияланды'}), h('p', {text:ST.title}), h('div', {class:'st-row'}, [
       h('a', {class:'st-btn st-primary', href:j.url, target:'_blank', rel:'noopener', text:'Студент бетін ашу'}),
       h('button', {class:'st-btn', type:'button', text:'Сілтемені көшіру', on:{click:async () => {
-        try { await navigator.clipboard.writeText(location.origin + j.url); toast('Сілтеме көшірілді.'); }
-        catch { toast('Сілтемені ашып, мекенжай жолағынан көшіріңіз.'); }
+        const notice = $('#dlgBox .st-hint');
+        try { await navigator.clipboard.writeText(location.origin + j.url); notice.textContent = 'Сілтеме көшірілді.'; }
+        catch { notice.textContent = 'Сілтемені ашып, мекенжай жолағынан көшіріңіз.'; }
       }}})
-    ])]);
+    ]), h('p', { class: 'st-hint', role: 'status' })]);
   });
   dlg([h('h2', {text:'Сабақты жариялау'}), h('p', {text:ST.title}), h('p', {class:'st-hint', text:'Тексеру аяқталса, осы нұсқа студенттерге ашылады.'}), status,
     h('div', {class:'st-row'}, [confirmPublish, h('button', {class:'st-btn', type:'button', text:'Болдырмау', on:{click:closeDlg}})])]);
 }
 $('#bPub').addEventListener('click', publish);
 $('#bVers').addEventListener('click', async () => {
-  if (!ST.cur) return; const j = await api('versions?id=' + ST.cur.id); if (!j.ok) { toast(etext(j)); return; }
-  const fmt = t => { const d = new Date(t); return d.toLocaleDateString('kk-KZ') + ' ' + d.toTimeString().slice(0, 5); };
-  dlg([h('h2', { text: 'Нұсқалар тарихы' }), ...(j.versions.length ? j.versions.map(v => h('div', { class: 'st-ver' }, [h('div', {}, [h('b', { text: v.title || 'Атаусыз' }), h('br'), h('small', { text: fmt(v.at) + (v.label ? ' · ' + v.label : '') })]), h('span', { class: 'sp' }), h('button', { class: 'st-btn', text: 'Қалпына келтіру', on: { click: async () => { if (!(await save())) return; const r = await api('restore', { id: ST.cur.id, ver: v.ver }); if (!r.ok) { toast(etext(r)); return; } closeDlg(); await openLesson(ST.cur.id, true); toast('Нұсқа қалпына келтірілді'); } } })])) : [h('p', { text: 'Нұсқалар әзірге жоқ.' })]), h('div', { class: 'st-row' }, [h('button', { class: 'st-btn', text: 'Көшірме жасау', on: { click: duplicateLesson } }), h('button', { class: 'st-btn', text: 'Жабу', on: { click: closeDlg } })])]);
+  if (!ST.cur || dialog.open) return;
+  const id = ST.cur.id, selection = navigation;
+  const trigger = $('#bVers');
+  trigger.disabled = true;
+  const j = await api('versions?id=' + id);
+  trigger.disabled = !ST.cur;
+  if (selection !== navigation || ST.cur?.id !== id || dialog.open) return;
+  if (!j.ok) { toast(etext(j)); return; }
+  const dates = new Intl.DateTimeFormat('kk-KZ', { timeZone: 'Asia/Qyzylorda', dateStyle: 'short', timeStyle: 'short' });
+  const status = h('p', { class: 'st-hint', role: 'status' });
+  const restore = async (event, version) => {
+    if (dialogBusy || ST.cur?.id !== id) return;
+    const button = event.currentTarget;
+    dialogBusy = button.disabled = true;
+    if (!(await save()) || ST.cur?.id !== id) { dialogBusy = button.disabled = false; return; }
+    status.textContent = 'Нұсқа қалпына келтірілуде…';
+    const result = await api('restore', { id, ver: version, base: ST.base });
+    if (result.ok) {
+      await loadList();
+      if (ST.cur?.id === id) await openLesson(id, true);
+    }
+    dialogBusy = button.disabled = false;
+    if (!result.ok) { status.textContent = etext(result); return; }
+    closeDlg();
+    toast('Нұсқа қалпына келтірілді.');
+  };
+  const versions = j.versions.map(v => h('div', { class: 'st-ver' }, [
+    h('div', {}, [h('b', { text: v.title || 'Атаусыз' }), h('br'), h('small', { text: dates.format(new Date(v.at)) + (v.label ? ' · ' + v.label : '') })]),
+    h('span', { class: 'sp' }),
+    h('button', { class: 'st-btn', type: 'button', text: 'Қалпына келтіру', on: { click: event => restore(event, v.ver) } })
+  ]));
+  dlg([h('h2', { text: 'Нұсқалар тарихы' }), ...(versions.length ? versions : [h('p', { text: 'Нұсқалар әзірге жоқ.' })]), status,
+    h('div', { class: 'st-row' }, [
+      h('button', { class: 'st-btn', type: 'button', text: 'Көшірме жасау', on: { click: duplicateLesson } }),
+      h('button', { class: 'st-btn', type: 'button', text: 'Жабу', on: { click: closeDlg } })
+    ])]);
 });
 
 /* ---------- Блоктар ---------- */
@@ -702,9 +858,12 @@ $('#bClosePreview').addEventListener('click', () => setView('write'));
 
 (async function init(){
   await loadList();
-  const q = new URLSearchParams(location.search).get('id'); if (q) await openLesson(+q);
-  else if (ST.lessons.length === 0 && ST.subjects.length) { const side = $('#side'); side.querySelector('details') && (side.querySelector('details').open = true); }
-  if (!ST.cur && matchMedia('(max-width:760px)').matches) setView('side');
-  if (!ST.r2) toast('Ескерту: сурет сақтайтын R2 әлі қосылмаған, сурет жүктеу істемейді.');
+  const params = new URLSearchParams(location.search), id = Number(params.get('id')), path = params.get('page');
+  if (Number.isSafeInteger(id) && id > 0) await openLesson(id);
+  else if (path) {
+    const subject = ST.subjects.find(s => ST.topics[s.id]?.topics.some(t => t.path === path && t.state === 'code'));
+    if (subject) await openPage(subject, ST.topics[subject.id].topics.find(t => t.path === path));
+  }
+  if (!ST.cur && !ST.page && matchMedia('(max-width:760px)').matches) setView('side');
 })();
 })();

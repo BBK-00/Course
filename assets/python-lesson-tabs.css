@@ -1,0 +1,42 @@
+.pt-lesson-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  margin-inline-start: auto;
+  border: 1px solid #dce0ef;
+  border-radius: 11px;
+  background: #eef0f8;
+}
+.pt-lesson-tabs [role=tab] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 35px;
+  padding: 5px 13px;
+  border-radius: 7px;
+  color: #46516a;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: .9rem;
+  font-weight: 720;
+}
+.pt-lesson-tabs [aria-selected=true] {
+  background: #fff;
+  color: #3031a8;
+  box-shadow: 0 1px 5px #27326612;
+}
+.python-theory [role=tabpanel][hidden] { display: none !important; }
+.pp-quiz-only .pp-hero { padding-block: 15px; }
+.pp-quiz-only .pp-answer { min-height: 38px; }
+.pp-quiz-only textarea.pp-answer { min-height: 70px; }
+@media (min-width: 870px) {
+  .pp-quiz-only #pp-test { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  .pp-quiz-only .pp-stage-head { grid-column: 1 / -1; margin-bottom: 0; }
+  .pp-quiz-only .pp-question { margin-bottom: 0; }
+}
+.python-theory .pt-neighbors { margin: 24px 0; }
+.python-theory .pp-stage-head .btn { margin-inline-start: auto; }
+@media(max-width:540px) {
+  .python-theory .topbar-in { flex-wrap: wrap; gap: 5px 10px; padding-block: 7px; }
+  .pt-lesson-tabs { flex-basis: 100%; margin: 0; }
+  .pt-lesson-tabs [role=tab] { flex: 1; justify-content: center; min-height: 32px; padding: 3px 6px; }
+}

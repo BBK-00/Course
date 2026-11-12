@@ -1,0 +1,180 @@
+.teacher-dashboard .dash-main { min-width: 0 }
+.teacher-dashboard .teacher-nav-label:not(:first-child) { margin-top: 13px }
+.workspace-breadcrumb { color: var(--teacher-muted); font-size: .81rem; font-weight: 650 }
+.workspace-card {
+  min-width: 0;
+  border: 1px solid var(--teacher-border, #e0e2ef);
+  border-radius: 13px;
+  background: #fff;
+  padding: 16px;
+}
+.workspace-empty {
+  color: var(--teacher-muted, #5d607a);
+  background: #f7f7fd;
+  border: 1px dashed #d6d7ea;
+  border-radius: 10px;
+  margin: 0;
+  padding: 20px;
+}
+.workspace-empty > p { margin: 0 0 10px }
+.workspace-filters {
+  display: grid;
+  grid-template-columns: minmax(145px, 1.55fr) repeat(4, minmax(115px, 1fr));
+  gap: 10px;
+}
+.workspace-filter { display: grid; align-content: start; gap: 5px; min-width: 0 }
+.workspace-filter > span { font-size: .75rem; color: var(--teacher-muted); font-weight: 700 }
+.workspace-filter .field { width: 100%; min-width: 0 }
+.workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px }
+.workspace-actions > .sp { flex: 1 }
+.workspace-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.workspace-metrics > div {
+  background: #fff;
+  border: 1px solid var(--teacher-border);
+  border-radius: 12px;
+  padding: 11px 14px;
+}
+.workspace-metrics > div:last-child { background: #ebebff; border-color: #dbdcfa }
+.workspace-metrics dt { font-size: .76rem; font-weight: 670; color: var(--teacher-muted) }
+.workspace-metrics dd { margin: 2px 0 0; font-size: clamp(1.25rem, 2.4vw, 1.8rem); font-weight: 780; font-variant-numeric: tabular-nums }
+.journal-table-card { padding: 0; overflow: hidden }
+.journal-legend { color: var(--teacher-muted); margin: 0; padding: 12px 16px; font-size: .76rem }
+.journal-scroll { max-height: min(57vh, 620px); overflow: auto; border-top: 1px solid var(--teacher-border) }
+.journal-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .81rem; font-variant-numeric: tabular-nums }
+.journal-table th, .journal-table td { min-width: 108px; max-width: 185px; text-align: center; padding: 8px; border-bottom: 1px solid #ececf4 }
+.journal-table thead th { position: sticky; z-index: 2; top: 0; color: #3b3f64; background: #f0f0fa }
+.journal-table small { display: block; font-weight: 500; font-size: .69rem; line-height: 1.35 }
+.journal-table .journal-student {
+  position: sticky;
+  z-index: 1;
+  left: 0;
+  min-width: 170px;
+  text-align: left;
+  padding-inline: 14px;
+  background: #fff;
+  border-right: 1px solid var(--teacher-border);
+}
+.journal-table thead .journal-student { z-index: 3; background: #f0f0fa }
+.journal-table tbody tr:nth-child(even) > * { background: #fafaff }
+.journal-table tbody tr:hover > * { background: #f5f5fe }
+.journal-table .journal-student small { color: var(--teacher-muted) }
+.journal-table tfoot th, .journal-table tfoot td { background: #f0f0fa; font-weight: 750 }
+.journal-mark {
+  cursor: pointer;
+  display: inline-grid;
+  gap: 1px;
+  min-width: 52px;
+  min-height: 34px;
+  place-content: center;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  white-space: nowrap;
+}
+.journal-mark:hover { border-color: currentColor }
+.journal-mark.high { background: #dff7ea; color: #125c42 }
+.journal-mark.good { background: #edeefc; color: #383694 }
+.journal-mark.mid { background: #fff3d6; color: #744b00 }
+.journal-mark.low { background: #fae6e8; color: #8e2737 }
+.journal-mark.interim { background: #f5f5fa; color: #545a76; border: 1px dashed #bfc2d8 }
+.journal-blank { color: #747a92 }
+.journal-average { font-weight: 760; color: #343690 }
+.journal-table-card .workspace-empty { margin: 0 16px 16px }
+
+.archive-filters { display: grid; gap: 12px; margin-bottom: 12px }
+.archive-advanced summary { width: fit-content; cursor: pointer; font-size: .78rem; font-weight: 680; color: var(--teacher-muted) }
+.workspace-card.archive-results { padding: 0 }
+.archive-results .archive-selection { padding: 11px 14px }
+.archive-results .archive-list { max-height: none; padding: 0; overflow: visible }
+.archive-results .archive-item, .archive-results .archive-columns {
+  display: grid;
+  grid-template-columns: 20px minmax(160px, 2fr) minmax(125px, 1fr) 100px minmax(190px, max-content);
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+}
+.archive-columns { background: #f0f0fa; color: var(--teacher-muted); font-size: .75rem; font-weight: 720 }
+.archive-results .archive-item:last-child { border-radius: 0 0 13px 13px }
+.archive-item:hover { background: #fafaff }
+.archive-results .archive-main { min-width: 0; overflow-wrap: anywhere }
+.archive-main small, .archive-work small { display: block; font-size: .74rem; color: var(--teacher-muted) }
+.archive-work b { display: block }
+.archive-results .archive-actions { margin: 0; justify-content: flex-end }
+.archive-results .archive-item .archive-menu-body { min-width: 155px; z-index: 7 }
+.archive-results .archive-item .archive-menu summary { min-width: 34px }
+.archive-results .analysis-empty { margin: 10px }
+
+#s-progress { min-width: 0 }
+#s-progress .progress-content { gap: 10px }
+.progress-course-picker { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px }
+.progress-course-picker .progress-field { flex: 1 1 260px; min-width: 0 }
+.progress-course-picker select { width: 100%; max-width: none }
+.progress-course-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; width: 100%; border-top: 1px solid var(--teacher-border); padding-top: 10px }
+.progress-course-meta p { margin: 0 }
+.progress-course-meta .btn { min-height: 34px; font-size: .75rem }
+.teacher-dashboard #s-progress .progress-card { margin: 0; padding: 15px; box-shadow: none }
+.progress-report-controls .progress-field > .field { min-width: 0; max-width: 100% }
+.progress-report-controls .progress-modes .btn[aria-pressed="true"] { background: #fff; color: #393ab5 }
+.progress-report-controls .progress-modes { align-self: flex-end; background: #efeffa }
+.progress-stamp:not(:empty) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 }
+.progress-stamp .btn { min-height: 30px; font-size: .74rem }
+.teacher-dashboard #s-progress .progress-bar-fill { background: #5756d0 }
+.teacher-dashboard #s-progress .progress-bar-fill.low { background: #bb5e6c }
+.teacher-dashboard #s-progress .progress-metrics > div { background: #f3f3fd; border-color: #e2e2f6 }
+
+.workspace-dialog {
+  width: min(480px, calc(100% - 28px));
+  max-height: 85dvh;
+  color: var(--teacher-ink);
+  border: 1px solid var(--teacher-border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 22px 60px #20224840;
+}
+.workspace-dialog::backdrop { background: #18193480 }
+.workspace-dialog h2 { font-size: 1.13rem; margin: 0 0 8px }
+.workspace-dialog .workspace-actions { justify-content: flex-end }
+.workspace-link-form { margin: 12px 0 }
+
+@media (max-width: 1020px) {
+  .workspace-filters { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .archive-results .archive-item, .archive-results .archive-columns { grid-template-columns: 18px minmax(120px, 2fr) minmax(100px, 1fr) 85px minmax(170px, max-content) }
+}
+@media (max-width: 800px) {
+  .archive-results .archive-columns { display: none }
+  .archive-results .archive-item { grid-template-columns: 18px minmax(0, 1fr) max-content; gap: 7px; padding: 12px }
+  .archive-results .archive-work { grid-row: 2; grid-column: 2 }
+  .archive-results .archive-actions { grid-column: 3; grid-row: 2 }
+  .archive-results .archive-state { grid-column: 3; grid-row: 1; justify-self: end }
+}
+@media (max-width: 650px) {
+  .teacher-dashboard .dash-topbar:has(.workspace-breadcrumb) { min-height: 52px }
+  .teacher-dashboard .context-bar:has(.workspace-breadcrumb) { order: 0; flex: 1; width: auto }
+}
+@media (max-width: 560px) {
+  .workspace-card { padding: 11px }
+  .workspace-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px }
+  .workspace-filters > :first-child { grid-column: 1 / -1 }
+  .workspace-actions > .sp { display: none }
+  .workspace-actions .btn { min-height: 38px }
+  .workspace-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px }
+  .workspace-metrics > div { padding: 8px 11px }
+  .journal-table-card { padding: 0 }
+  .journal-table .journal-student { min-width: 118px; max-width: 125px; padding-inline: 8px; overflow-wrap: anywhere }
+  .journal-table th, .journal-table td { min-width: 91px; padding: 6px }
+  .journal-mark { min-height: 42px }
+  .archive-results .archive-item { grid-template-columns: 18px minmax(0, 1fr) max-content }
+  .archive-results .archive-work { grid-column: 2 / -1 }
+  .archive-results .archive-actions { grid-column: 2 / -1; grid-row: 3; justify-content: flex-start }
+  .archive-results .archive-actions .btn { min-height: 37px }
+  .progress-report-controls { align-items: stretch }
+  .progress-report-controls .progress-toolbar { width: 100% }
+  .progress-report-controls .progress-field { flex: 1 1 130px; min-width: 0 }
+  .progress-course-picker > .btn { width: 100% }
+}

@@ -1,4 +1,4 @@
-import { drawPythonReport } from './python-report-view.js?v=3';
+import { drawPythonReport } from './python-report-view.js?v=4';
 
 let current;
 const messages={journal_format:'Файлдың пішімі жарамсыз. Excel немесе Google Sheets-тен TSV ретінде жүктеңіз.',journal_header:'«Аты-жөні» бағаны табылмады.',journal_dates:'Журнал күндері таңдалған оқу жылына сәйкес келмеді.',no_group:'Алдымен осы топтың сабағын таңдаңыз.',no_scores:'Талдауға бағаланған дерек жеткіліксіз.',ai_config:'ЖИ қызметі бапталмаған. Диаграммалар мен есептелген ұсыныстар қолжетімді.',ai_unavailable:'ЖИ қазір жауап бермеді. Есептелген ұсыныстар төменде сақталды.'};
@@ -31,9 +31,9 @@ function paintAI(state) {
   },[h('h3',{text:title}),h('p',{text:result[key]})]))));
 }
 
-export function mountPythonReport(host,{session,students,api,h}) {
-  if(current?.id!==session.id){
-    const state={id:session.id,entries:[],results:new Map(),names:false,source:'Журнал тексерілуде…',date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Qyzylorda',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(session.created_at*1000))};
+export function mountPythonReport(host,{session,students,api,h,openProgress,linkCourse,revision}) {
+  if(current?.id!==session.id||current.revision!==revision||current.link!==session.course_group_id){
+    const state={id:session.id,revision,link:session.course_group_id,entries:[],results:new Map(),names:false,source:'Журнал тексерілуде…',date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Qyzylorda',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(session.created_at*1000))};
     current=state;
     state.root=h('div'); state.report=h('div',{class:'pr-report'});
     state.status=h('p',{class:'pr-note pr-status',role:'status'});
@@ -68,10 +68,11 @@ export function mountPythonReport(host,{session,students,api,h}) {
       state.uploading=false;e.target.value='';
     }}});
     const upload=h('details',{class:'pr-upload'},[h('summary',{text:'Басқа журналды TSV файлынан ашу'}),file,state.status]);
+    const links=h('div',{class:'pr-controls'});
     const controls=h('section',{class:'pr-card pr-ai-panel'},[
       h('h2',{text:'ЖИ талдауы және сабақ жоспары'}),
       h('p',{class:'pr-note',text:'Топты немесе студентті таңдаңыз. ЖИ бағалар мен тапсырма көрсеткіштеріне сүйеніп, жаттығу және тексеру жоспарын ұсынады.'}),
-      h('div',{class:'pr-controls'},[choice,ai,names]),answer,upload]);
+      h('div',{class:'pr-controls'},[choice,ai,names]),answer,links,upload]);
     Object.assign(state,{choice,answer,ai});
     state.analyze=id=>{
       choice.value=String(id);
@@ -85,7 +86,11 @@ export function mountPythonReport(host,{session,students,api,h}) {
     state.root.append(controls,state.report);
     api('python-report?session='+state.id).then(j=>{
       if(current!==state||state.local)return;
-      if(j.ok){state.date=j.date;state.entries=j.entries;state.results.clear();state.source=j.source;}
+      if(j.ok){
+        state.date=j.date;state.entries=j.entries;state.threshold=j.threshold;state.results.clear();state.source=j.source;
+        if(j.courseId&&openProgress)links.append(btn('Курстың үлгерімін ашу',()=>openProgress(j.courseId)));
+        if(j.needsCourse&&linkCourse)links.append(btn('Курспен байланыстыру',linkCourse));
+      }
       else state.source='Журнал дерегін жүктеу мүмкін болмады. Сайт нәтижесі қолжетімді.';
       if(!state.uploading)render(state);
     });
@@ -104,7 +109,7 @@ function render(state){
   const previous=choice.value;
   choice.replaceChildren(h('option',{value:'',text:'Топ бойынша ЖИ'}),...students.map((s,i)=>h('option',{value:s.id,text:state.names?s.name:'Студент '+String(i+1).padStart(2,'0')})));
   choice.value=previous;
-  state.reportData=drawPythonReport(state.report,h,students,state.entries,{date:state.date,source:state.source,privateNames:state.names,onAnalyze:state.analyze});
+  state.reportData=drawPythonReport(state.report,h,students,state.entries,{date:state.date,source:state.source,privateNames:state.names,onAnalyze:state.analyze,threshold:state.threshold});
   state.report.querySelectorAll('details').forEach((d,i)=>{if(opened.includes(i))d.open=true;});
   paintAI(state);
 }

@@ -10,15 +10,20 @@
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=20261111-visual">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="rose">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">19 / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · 19-САБАҚ</span>
@@ -97,18 +102,20 @@
     <p id="checkFeedback" role="status"></p>
     <noscript><p>Үтір бөлгіш болғандықтан, нәтижеде екі элемент бар.</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="19"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="19" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     <a class="btn " href="/python/18-joldy-izdeu-auystyru">← Алдыңғы сабақ</a>
     <a class="btn" href="./">Барлық тақырып</a>
     <a class="btn primary" href="/python/20-bir-olshemdi-massiv">Келесі сабақ →</a>
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">{"steps":[[1,"Бастапқы жолда үтір екі бөлікті ажыратады.",[["text","Аян,16"]],""],[2,"Үтірді алып тастап, екі мәтін элементін аламыз.",[["parts[0]","Аян"],["parts[1]","16"]],""],[3,"join() элементтердің арасына бөлгіш қояды.",[["Бөлгіш"," · "],["card","Аян · 16"]],""],[4,"f-жол card мәнін дайын мәтінге енгізеді.",[["card","Аян · 16"]],"Визитка: Аян · 16"]],"correct":1,"reason":"Үтір бөлгіш болғандықтан, нәтижеде екі элемент бар.","cases":[["split()","\"Аян,16\".split(\",\")","Үтір — бөлгіш. Нәтижедегі екі мән де мәтін.",[["Жол","Аян,16"],["Бөлгіш",","],["Тізім","[\"Аян\", \"16\"]","on"]]],["join()","\" · \".join(parts)","Бөлгіш элементтердің арасына ғана қойылады.",[["Тізім","[\"Аян\", \"16\"]"],["Бөлгіш"," · "],["Жол","Аян · 16","on"]]],["f-жол","f\"Визитка: {card}\"","Жақша ішіндегі card мәні дайын мәтінге кірістіріледі.",[["card","Аян · 16"],["Үлгі","Визитка: {card}"],["Жол","Визитка: Аян · 16","on"]]]]}</script>
 <script src="../assets/python-theory.js?v=20261111-visual"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>

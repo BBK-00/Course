@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+  --bg: #f2f3f8;
+  --card: #fff;
+  --ink: #202243;
+  --mut: #5c607a;
+  --line: #e0e2ef;
+  --acc: #4041cf;
+  --acc2: #3031a8;
+  --ok: #157549;
+  --r: 12px;
+}
+.st-app { font-family: Inter, "Segoe UI", system-ui, sans-serif }
+.st-top {
+  display: grid;
+  grid-template-columns: max-content minmax(120px, 1fr) max-content;
+  gap: 12px;
+}
+.st-back { padding-inline: 0; font-size: .9rem }
+.st-mark { background: #e4fa94; color: #242a1e; font-size: 17px }
+.st-current { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px }
+.st-title { flex: 1 1 140px; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px }
+.st-save { overflow-wrap: anywhere; white-space: normal; font-size: .72rem }
+.st-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px }
+.st-actions .st-btn { min-height: 36px; min-width: 35px; padding: 0 10px; font-size: .8rem }
+.st-side { background: #202248; color: #f6f5ff; border-right: 0; scrollbar-color: #6c6c9d #202248 }
+.st-side-head { border-bottom: 1px solid #444675; margin-bottom: 10px }
+.st-side .st-field { background: #30325c; border-color: #535584; color: #fff; font-size: .8rem; padding: 7px 9px }
+.st-side .st-field::placeholder { color: #c4c7e6 }
+.st-side-actions { display: grid; grid-template-columns: 1fr 1fr }
+.st-side-actions .st-btn { background: #343660; color: #f6f5ff; border-color: #52547c }
+.st-side-actions #templates { background: #e4fa94; color: #292c21; border-color: #e4fa94 }
+.st-sub > summary:hover, .st-les:hover { background: #363862 }
+.st-side .st-sub > summary, .st-side .st-sub[open] > summary { color: #f1f2ff }
+.st-side .st-sec, .st-side .st-les .lbl, .st-side .st-sub .n, .st-empty-topics > summary { color: #d0d2ed }
+.st-side .st-les { font-size: .79rem; min-height: 39px; margin: 2px 0 }
+.st-side .st-les.on { background: #ececff; color: #30318b }
+.st-side .st-les.on .lbl { color: #4e5094 }
+.st-side .st-les .dot.published { background: #60d2a1 }
+.st-side .st-add { color: #e8f7b0; border-color: #64678e; min-height: 36px; font-size: .79rem }
+.st-side .st-add:hover { background: #343660 }
+.st-edit { padding: clamp(14px, 2.3vw, 30px) clamp(12px, 2.2vw, 30px) 110px }
+.st-doc { max-width: 920px }
+.st-empty { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; font-size: .88rem }
+.st-prev { background: #ececf5 }
+.st-prev-head { padding: 14px 12px 0 }
+.st-prev-head h2 { font-size: .94rem }
+.st-prev-head .st-btn, .st-prev-bar .st-chip { min-height: 34px; font-size: .76rem }
+.st-frame iframe { box-shadow: 0 2px 8px #2022480d }
+.st-chip.on { background: #e5e5fa; color: #3738a4; border-color: #cdcff4 }
+.st-info { background: #eaeafd; border-color: #d9daf5 }
+.st-dialog {
+  max-width: min(510px, calc(100% - 24px));
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0;
+  color: var(--ink);
+  background: var(--card);
+  box-shadow: 0 16px 52px #20224840;
+}
+.st-dialog::backdrop { background: #18193480 }
+.st-dialog .st-dlg-box { max-width: none }
+.st-dialog .st-field + .st-field { margin-top: 8px }
+.st-dialog .st-field { min-height: 38px; padding: 7px 9px }
+.st-dialog .st-tpls { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+.st-dialog .st-tpl:disabled { opacity: .55 }
+@media (max-width: 980px) {
+  .st-top { grid-template-columns: max-content minmax(0, 1fr) }
+  .st-actions { grid-column: 1 / -1 }
+}
+@media (max-width: 760px) {
+  .st-top { padding: 7px 9px; gap: 5px 8px }
+  .st-back { font-size: .8rem }
+  .st-mark { width: 25px; height: 25px; border-radius: 7px }
+  .st-top .st-save { flex: initial; padding: 0 }
+  .st-title { min-height: 35px; font-size: .83rem }
+  .st-actions .st-btn { min-height: 36px; padding: 0 8px; font-size: .75rem }
+  .st-actions #bPreview { display: none }
+  .st-edit { padding: 12px 10px 80px }
+  .st-tabs button.on { background: #e8e8fe; color: #3334aa }
+}

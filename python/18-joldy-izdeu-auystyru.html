@@ -10,15 +10,20 @@
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=20261111-visual">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="rose">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">18 / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · 18-САБАҚ</span>
@@ -98,18 +103,20 @@
     <p id="checkFeedback" role="status"></p>
     <noscript><p>find() сәйкестік таппаса, -1 қайтарады.</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="18"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="18" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     <a class="btn " href="/python/17-joldar">← Алдыңғы сабақ</a>
     <a class="btn" href="./">Барлық тақырып</a>
     <a class="btn primary" href="/python/19-bolu-biriktiru-pishim">Келесі сабақ →</a>
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">{"steps":[[1,"Бастапқы мәтін text айнымалысында сақталады.",[["text","Сәлем, достар!"]],""],[2,"Ізделген бөлік 7-индекстен басталады.",[["Ізделген бөлік","достар"],["index","7"]],""],[3,"replace() жаңа жол жасайды.",[["text","Сәлем, достар!"],["new","Сәлем, Python!"]],""],[5,"Алдымен индекс, сосын жаңа мәтін шығады.",[["Индекс","7"],["Жаңа мәтін","Сәлем, Python!"]],"7\nСәлем, Python!"]],"correct":1,"reason":"find() сәйкестік таппаса, -1 қайтарады.","cases":[["Табылды","text.find(\"достар\")","find() сөздің басталған индексін береді. «Сәлем, » бөлігінде 7 таңба бар.",[["Бастапқы жол","Сәлем, достар!"],["Ізделген сөз","достар"],["Индекс","7","on"]]],["Табылмады","text.find(\"әлем\")","Бұл жолда «әлем» жоқ. find() нәтижесі −1 болады.",[["Бастапқы жол","Сәлем, достар!"],["Ізделген сөз","әлем"],["Индекс","-1","off"]]],["Ауыстыру","text.replace(\"достар\", \"Python\")","replace() бастапқы жолды пайдаланып, жаңа мәтін құрастырады.",[["Бастапқы жол","Сәлем, достар!"],["Ауыстырылатын сөз","достар"],["Жаңа жол","Сәлем, Python!","on"]]]]}</script>
 <script src="../assets/python-theory.js?v=20261111-visual"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>

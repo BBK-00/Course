@@ -21,10 +21,22 @@ for (const topic of topics) {
   assert(lesson.warm.length >= 2 && lesson.code.length >= 2);
   assert.equal(lesson.quiz.length, topic.num <= 2 ? 0 : 10);
   if (lesson.review) assert(lesson.code.length >= 5);
+  if (lesson.rotation) {
+    const { only, count, pool } = lesson.rotation;
+    assert(html.includes('data-practice-rotation'));
+    assert(pool.length > count && new Set(pool.map(item => JSON.stringify(item))).size === pool.length);
+    assert.equal(count + (only ? 0 : lesson.warm.length + lesson.code.length), 15);
+    assert.equal(only, topic.num <= 2);
+  }
+  if ([4, 7, 8, 9, 10, 12].includes(topic.num)) assert(!html.includes('data-practice-rotation'));
   for (const item of lesson.code) check(item.ref, item.cases, topic.num + ' ' + item.title);
-  for (const item of [...lesson.warm, ...lesson.quiz]) {
+  const items = [...lesson.warm, ...lesson.quiz, ...(lesson.rotation?.pool || [])];
+  for (const item of new Map(items.map(value => [JSON.stringify(value), value])).values()) {
     assert(item.reason);
-    if (item.opts) assert(item.correct >= 0 && item.correct < item.opts.length);
+    if (item.opts) {
+      assert(item.correct >= 0 && item.correct < item.opts.length);
+      assert.equal(new Set(item.opts).size, item.opts.length);
+    }
     else check(item.code, [[item.input || '', item.answer]], topic.num + ' quiz');
   }
 }

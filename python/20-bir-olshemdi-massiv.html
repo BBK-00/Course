@@ -10,15 +10,20 @@
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=20261111-visual">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="blue">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">20 / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · 20-САБАҚ</span>
@@ -99,18 +104,20 @@
     <p id="checkFeedback" role="status"></p>
     <noscript><p>1 индексі екінші элементке сәйкес келеді.</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="20"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="20" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     <a class="btn " href="/python/19-bolu-biriktiru-pishim">← Алдыңғы сабақ</a>
     <a class="btn" href="./">Барлық тақырып</a>
     <a class="btn primary" href="/python/21-tizim-adisteri">Келесі сабақ →</a>
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">{"steps":[[1,"Үш элемент ретімен тізімге түседі.",[["0","12"],["1","15"],["2","18"]],""],[2,"1-индекстегі 15 саны 16 болып өзгереді.",[["0","12"],["1","16"],["2","18"]],""],[3,"for тізімдегі мәндерді ретімен алады.",[["score","12 → 16 → 18"]],""],[4,"Әр элемент жеке жолға шығады.",[["Элемент саны","3"]],"12\n16\n18"]],"correct":1,"reason":"1 индексі екінші элементке сәйкес келеді.","cases":[["Оқу","scores[1]","1 индексі екінші элементті оқиды. Нәтиже — 15.",[["0","12"],["1","15","on"],["2","18"]]],["Өзгерту","scores[1] = 16","Сол индекс сақталады, тек ондағы мән 16 болады.",[["0","12"],["1","16","on"],["2","18"]]]]}</script>
 <script src="../assets/python-theory.js?v=20261111-visual"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>

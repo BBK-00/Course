@@ -10,15 +10,20 @@
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=20261111-visual">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="blue">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">1 / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · 01-САБАҚ</span>
@@ -162,18 +167,20 @@
     <p id="checkFeedback" role="status"></p>
     <noscript><p>Тырнақшасыз 2 + 3 өрнек ретінде есептеледі.</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="1"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="1" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     
     <a class="btn" href="./">Барлық тақырып</a>
     <a class="btn primary" href="/python/02-ainymalilar-tipter">Келесі сабақ →</a>
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">{"steps":[[1,"Бұл жол түсініктеме болғандықтан, экранға ештеңе шықпайды.",[["Жол түрі","Түсініктеме"]],""],[2,"print() тырнақша ішіндегі мәтінді экранға шығарады.",[["Мәтін","Сәлем, Python!"]],"Сәлем, Python!"],[3,"Python 2 + 3 өрнегін есептеп, нәтижесін жаңа жолға шығарады.",[["Өрнек","2 + 3"],["Нәтиже","5"]],"Сәлем, Python!\n5"]],"correct":1,"reason":"Тырнақшасыз 2 + 3 өрнек ретінде есептеледі.","cases":[["Мәтін","print(\"Сәлем\")","Тырнақша ішіндегі таңбалар консольге сол күйінде шығады.",[["Редактор","\"Сәлем\""],["Python","мәтінді оқиды"],["Консоль","Сәлем","on"]]],["Өрнек","print(2 + 3)","Тырнақшасыз 2 + 3 алдымен есептеледі. Содан кейін ғана print() нәтижені шығарады.",[["Редактор","2 + 3"],["Python","есептейді"],["Консоль","5","on"]]]]}</script>
 <script src="../assets/python-theory.js?v=20261111-visual"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>

@@ -54,15 +54,20 @@ function render(lesson) {
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 <link rel="stylesheet" href="../assets/python-theory.css?v=${version}">
 <link rel="stylesheet" href="../assets/python-practice.css?v=1">
+<link rel="stylesheet" href="../assets/python-lesson-tabs.css?v=1">
 </head>
 <body class="student-lesson python-theory" data-tone="${visual.tone}">
 <a class="skip-link" href="#main">Мазмұнға өту</a>
 <header class="topbar"><div class="topbar-in">
   <a class="pt-brand" href="./"><span aria-hidden="true">←</span> Python</a>
   <span class="pt-course">${n} / 24 сабақ</span>
-  <a class="pt-header-link" href="#task">Тапсырмалар <span aria-hidden="true">↓</span></a>
+  <nav class="pt-lesson-tabs" role="tablist" aria-label="Сабақ бөлімдері">
+    <a href="#theory" id="pt-tab-theory" role="tab" aria-controls="theory" aria-selected="true">Түсіндіру</a>
+    <a href="#task" id="pt-tab-task" role="tab" aria-controls="task" aria-selected="false">Тапсырмалар</a>
+  </nav>
 </div></header>
 <main class="wrap" id="main">
+  <div id="theory" role="tabpanel" aria-labelledby="pt-tab-theory">
   <section class="pt-hero" aria-labelledby="title">
     <div>
       <span class="pt-kicker">PYTHON · ${String(n).padStart(2, '0')}-САБАҚ</span>
@@ -139,19 +144,21 @@ ${input.length ? '    <p class="pt-input"><b>Мысалдағы енгізу</b>
     <p id="checkFeedback" role="status"></p>
     <noscript><p>${esc(reason)}</p></noscript>
   </section>
-  <section id="task" class="pp-practice" data-python-practice="${n}"></section>
+  </div>
+  </div>
+  </div>
+  <section id="task" class="pp-practice" role="tabpanel" aria-labelledby="pt-tab-task" data-python-practice="${n}" data-practice-rotation></section>
   <nav class="pt-neighbors" aria-label="Басқа сабақтар">
     ${neighbor(n - 1, '← Алдыңғы сабақ', '')}
     <a class="btn" href="./">Барлық тақырып</a>
     ${neighbor(n + 1, 'Келесі сабақ →', 'primary')}
   </nav>
-  </div>
-  </div>
 </main>
 <footer class="pt-footer">Python · Бақытжанов Бекет Қайратұлы</footer>
 <script type="application/json" id="theoryData">${data}</script>
 <script src="../assets/python-theory.js?v=${version}"></script>
-<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/python-lesson-tabs.js?v=1"></script>
+<script src="../assets/python-practice.js?v=2"></script>
 </body>
 </html>
 `;

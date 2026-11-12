@@ -284,8 +284,12 @@ export async function studioTeacher(path, method, b, request, env) {
   if (path === 'restore' && method === 'POST') {
     const v = await DB.prepare('SELECT * FROM lesson_versions WHERE lesson_id=? AND ver=?').bind(+b.id, +b.ver).first(); if (!v) return err('not_found', 404);
     const l = await DB.prepare('SELECT * FROM lessons WHERE id=?').bind(+b.id).first(); if (!l) return err('not_found', 404);
+    if (b.base !== undefined && l.updated_at !== Number(b.base)) return err('conflict', 409);
+    const t = Math.max(Date.now(), l.updated_at + 1);
+    const restored = await DB.prepare('UPDATE lessons SET title=?, blocks=?, tasks=?, updated_at=? WHERE id=? AND updated_at=? RETURNING id')
+      .bind(v.title, v.blocks, v.tasks || '[]', t, l.id, l.updated_at).first();
+    if (!restored) return err('conflict', 409);
     await snapshot(DB, l, 'Қалпына келтірер алдында');
-    const t = Math.max(Date.now(), l.updated_at + 1); await DB.prepare('UPDATE lessons SET title=?, blocks=?, tasks=?, updated_at=? WHERE id=?').bind(v.title, v.blocks, v.tasks || '[]', t, l.id).run();
     return json({ ok: true, updated_at: t });
   }
   if (path === 'render' && method === 'POST') {   /* жарияламай алдын ала қарау: сервер сол генераторды қолданады */
