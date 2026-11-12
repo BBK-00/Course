@@ -13,10 +13,9 @@ const plan = object({
 });
 const slide = object({
   type: { ...str, enum: ['title', 'content', 'two_col', 'stats', 'quote', 'end'] },
-  title: str, subtitle: str, points: list(str, 1, 5), note: str, left_title: str,
-  left_points: list(str, 1, 5), right_title: str, right_points: list(str, 1, 5),
-  stats: list(object({ value: str, label: str }), 1, 4), quote: str, author: str, message: str
-}, ['type', 'title']);
+  title: str,
+  lines: list(str, 1, 8)
+});
 const quiz = object({
   matching: list(object({ left: str, right: str }), 5),
   trueFalse: list(object({ question: str, answer: bool }), 5)
@@ -24,6 +23,21 @@ const quiz = object({
 const languages = { kz: 'Kazakh', ru: 'Russian', en: 'English' };
 const clean = (value, max) => typeof value === 'string' && value.length <= max ? value.trim() : '';
 const validText = value => typeof value === 'string' && !!value.trim();
+
+function presentationSlide({ type, title, lines }) {
+  if (type === 'title') return { type, title, subtitle: lines.join(' ') };
+  if (type === 'end') return { type, title, message: lines.join(' ') };
+  if (type === 'quote') return { type, title, quote: lines[0], author: lines[1] || '' };
+  if (type === 'two_col' && lines.length >= 6) return {
+    type, title, left_title: lines[0], right_title: lines[1],
+    left_points: lines.slice(2, 4), right_points: lines.slice(4, 6)
+  };
+  if (type === 'stats' && lines.length >= 2 && lines.length % 2 === 0) return {
+    type, title, stats: lines.filter((_, index) => index % 2 === 0)
+      .map((value, index) => ({ value, label: lines[index * 2 + 1] }))
+  };
+  return { type: 'content', title, points: lines.slice(0, 5) };
+}
 
 export function ustazaiTask(body) {
   const topic = clean(body.topic, 300);
@@ -57,10 +71,11 @@ export function ustazaiTask(body) {
     if (!Number.isInteger(count) || count < 4 || count > 15) return null;
     return {
       schema: object({ title: str, slides: list(slide, count) }),
-      prompt: context + ' Create exactly ' + count + ' slides. Begin with a title slide and end with a recap. Populate the fields for each selected slide type. Prefer content and two-column slides. Use verified facts and avoid invented statistics or quotes. Topic and brief: ' + JSON.stringify({ topic, extra: clean(body.extra, 1800) }),
-      validate: result => validText(result.title) && result.slides?.length === count && result.slides.every(s =>
-        validText(s?.title) && slide.properties.type.enum.includes(s.type) &&
-        (s.type !== 'content' || Array.isArray(s.points) && s.points.every(validText)))
+      prompt: context + ' Create exactly ' + count + ' slides. Use title first (lines: subtitle), content slides (lines: 3 to 5 bullet points), and end last (lines: concise recap). Optional two_col slide uses six lines: two headings, two left bullets and two right bullets. A stats slide uses alternating verified value and label lines. A quote slide uses a verified quote and its attribution. Topic and brief: ' + JSON.stringify({ topic, extra: clean(body.extra, 1800) }),
+      validate: result => validText(result.title) && Array.isArray(result.slides) && result.slides.length === count && result.slides.every(s =>
+        validText(s?.title) && slide.properties.type.enum.includes(s.type) && Array.isArray(s.lines) &&
+        s.lines.length >= 1 && s.lines.every(validText)),
+      format: result => ({ title: result.title, slides: result.slides.map(presentationSlide) })
     };
   }
   if (body.kind === 'quiz') return {
@@ -72,6 +87,7 @@ export function ustazaiTask(body) {
   return null;
 }
 
-export async function runUstazaiTask(env, { prompt, schema, validate }) {
-  return geminiJson(env, [{ text: prompt }], schema, { validate, budgetMs: 38000, timeoutMs: 16000, maxOutputTokens: 3800 });
+export async function runUstazaiTask(env, { prompt, schema, validate, format }) {
+  const result = await geminiJson(env, [{ text: prompt }], schema, { validate, budgetMs: 38000, timeoutMs: 16000, maxOutputTokens: 3800 });
+  return format ? format(result) : result;
 }

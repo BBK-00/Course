@@ -26,14 +26,25 @@ test('UstazAI uses the learner session, validates input and limits Gemini reques
     matching: Array.from({ length: 5 }, (_, i) => ({ left: 'A' + i, right: 'B' + i })),
     trueFalse: Array.from({ length: 5 }, (_, i) => ({ question: 'Сұрақ ' + i, answer: i % 2 === 0 }))
   };
+  const presentation = { title: 'Python циклі', slides: [
+    { type: 'title', title: 'Кіріспе', lines: ['Цикл түрлері'] },
+    { type: 'content', title: 'for', lines: ['Тізбектегі мәндер'] },
+    { type: 'two_col', title: 'Салыстыру', lines: ['for', 'while', 'Тізім', 'range()', 'Шарт', 'Санауыш'] },
+    { type: 'end', title: 'Қайталау', lines: ['Шекараны тексеріңіз'] }
+  ] };
   t.mock.method(globalThis, 'fetch', async (url, init) => {
     assert.equal(new URL(url).host, 'generativelanguage.googleapis.com');
     assert.equal(init.headers['x-goog-api-key'], 'fake-server-key');
-    assert.match(JSON.parse(init.body).contents[0].parts[0].text, /Python циклі/);
+    const input = JSON.parse(init.body);
+    assert.match(input.contents[0].parts[0].text, /Python циклі/);
     sent++;
-    return Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify(quiz) }] } }] });
+    const output = input.generationConfig.responseSchema.properties.slides ? presentation : quiz;
+    return Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] } }] });
   });
-  for (let n = 0; n < 8; n++) assert.deepEqual(await (await request('ustazai', payload)).json(), { ok: true, data: quiz });
+  const slides = await (await request('ustazai', { ...payload, kind: 'presentation', count: '4' })).json();
+  assert.equal(slides.data.slides[0].subtitle, 'Цикл түрлері');
+  assert.deepEqual(slides.data.slides[2].right_points, ['Шарт', 'Санауыш']);
+  for (let n = 0; n < 7; n++) assert.deepEqual(await (await request('ustazai', payload)).json(), { ok: true, data: quiz });
   assert.equal((await request('ustazai', payload)).status, 429);
   assert.equal(sent, 8);
   assert(ustazaiTask({ kind: 'lesson', topic: 'Цикл', duration: 45 }));
