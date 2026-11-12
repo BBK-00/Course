@@ -48,6 +48,8 @@
 .py-ans-row.no{border-color:#f87171;background:#fef2f2}.py-ans-row.no .py-ans-mark{color:#dc2626}
 .py-ans-fb{grid-column:1/-1}.py-ans-fb:empty{display:none}.py-ans-fb p{margin:2px 0}
 @media (max-width:620px){.py-ans-row{grid-template-columns:2em minmax(0,1fr) 1.5em}.py-ans-code{grid-column:2/4}.py-ans-arrow{display:none}.py-ans-in{grid-column:1/3}.py-ans-mark{grid-column:3}}
+.py-quiz-written{grid-template-columns:minmax(0,1fr) 1.5em;max-width:520px}
+.py-quiz-written .py-ans-in,.py-quiz-written .py-ans-mark{grid-column:auto}
 /* консоль: онлайн компилятор сияқты (4-сабақ) */
 .py-con{margin:10px 0;border-radius:14px;overflow:hidden;background:#020617;color:#e2e8f0;box-shadow:0 10px 24px rgba(15,23,42,.25)}
 .py-con-head{display:flex;align-items:center;gap:7px;padding:8px 14px;background:#0f172a;border-bottom:1px solid #1e293b}

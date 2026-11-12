@@ -6,10 +6,11 @@
 <title>7-тақырып: if шарты операторы — Python</title>
 <meta name="description" content="Тармақталған алгоритмдер. if шарты операторы. Видео, интерактивті мысалдар, Python-да код жазу және қатемен жұмыс.">
 <link rel="stylesheet" href="../assets/lesson.css">
-<link rel="stylesheet" href="../assets/py-work.css">
 <link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/student.css?v=20261111">
+<link rel="stylesheet" href="../assets/python-practice.css?v=1">
 </head>
-<body class="pl">
+<body class="student-lesson pl">
 <header class="topbar pl-top"><div class="topbar-in">
   <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
   <div class="pl-brand"><i>7</i><span>if шарты операторы</span></div>
@@ -73,47 +74,30 @@
 
 <!-- 2. ТАПСЫРМАЛАР -->
 <section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
-  <div class="pl-card">
-    <h2><span class="ic">2</span>Тапсырмалар: 100 балл, 60 минут</h2>
-    <div class="pl-rules">
-      <div class="pl-rule"><b>Төрт тапсырма</b><p>1) 4 есеп, 2) 2 күрделі есеп, 3) 4 кодтағы қатені түзету, 4) тест.</p></div>
-      <div class="pl-rule"><b>Тапсырманы бүтін жібер</b><p>Тапсырмадағы барлық есепті орындап болған соң, төмендегі «Жіберу» батырмасын бас. Код нақты орындалып, тест жағдайларымен салыстырылады. Бірінші жіберу негізгі баға береді.</p></div>
-      <div class="pl-rule"><b>Қатемен жұмыс</b><p>Қате есептің астында түсініктеме шығады: оны оқып, кодты түзетіп қайта жібер. Жоғалтқан баллдың 70%-ы қайтады (тестте 50%). Уақыт біткен соң тағы 15 минут беріледі.</p></div>
-      <div class="pl-rule"><b>«▶ Орындау» бағаланбайды</b><p>Ол кодты өз енгізуіңмен сынауға арналған. Кеңес алуға сабақта 6 мүмкіндік бар.</p></div>
-    </div>
-  </div>
-  <div id="pyTasks"></div>
+  <div class="pp-practice" data-python-practice="7"></div>
 </section>
 
 <!-- 3. ҚОРЫТЫНДЫ -->
 <section class="pl-pane" id="sum" data-pane="sum" hidden>
   <div class="pl-card">
-    <h2><span class="ic">3</span>Қорытынды және бекіту</h2>
-    <p class="pl-lead">Бұл бөлімде нәтижеңді, әр есепке жұмсаған уақытыңды және қайталауға тұратын тақырыптарды көресің.</p>
-    <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
-    <div id="pySum"></div>
-  </div>
-  <div class="pl-card">
-    <h2><span class="ic">★</span>Өзін-өзі бағалау</h2>
-    <p>Бүгінгі тақырыпты қаншалықты түсіндің?</p>
-    <div class="faces" id="faces"></div><div id="learned"></div>
-    <div class="stepbar"><button type="button" class="btn primary" id="fbSend">Жіберу</button></div>
-    <div class="xl-msg" id="fbMsg" role="status"></div>
+    <h2><span class="ic">3</span>Өзіндік нәтиже</h2>
+    <p data-practice-summary role="status"></p>
+    <button type="button" class="btn primary" data-go="task">Тапсырмаларға қайту</button>
   </div>
 </section>
 </main>
 <footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
 
-<script src="../assets/lesson-core.js"></script>
-<script src="../assets/join.js"></script>
+<script src="../assets/lesson-core.js?v=20261111"></script>
 <script src="../assets/code-editor.js"></script>
+<script src="../assets/python-practice.js?v=1"></script>
 <script src="../assets/py-demos.js"></script>
-<script src="../assets/py-work.js"></script>
 <script>
 (function(){
-const { $, el } = L;
+const { $ } = L;
 const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
 function go(id, push){
+  if (id.startsWith('pp-')) id = 'task';
   if (!panes.some(p => p.id === id)) id = 'teo';
   panes.forEach(p => { p.hidden = p.id !== id; });
   tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -130,26 +114,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { v.addEventListene
 
 PyDemos.mount({ flow:$('#dFlow'), syntax:$('#dSyntax'), ops:$('#dOps'), ex:$('#dEx'), err:$('#dErr') });
 
-/* ---------- Өзін-өзі бағалау ---------- */
-(function(){
-  let level = 0; const learned = new Set(), F = ['😟', '😕', '😐', '🙂', '😀'];
-  F.forEach((f, i) => { const b = el('button', { type:'button', text:f, 'aria-label':'Баға ' + (i + 1) }); b.addEventListener('click', () => { level = i + 1; [...$('#faces').children].forEach((x, j) => x.classList.toggle('on', j === i)); }); $('#faces').append(b); });
-  ['if операторының жазылуы', 'салыстыру амалдары (==, >=, <)', 'кірістірілген шарттар', 'кодтағы қатені табу және түзету'].forEach(t => {
-    const id = 'l' + Math.random().toString(36).slice(2, 7), c = el('input', { type:'checkbox', id });
-    c.addEventListener('change', () => { c.checked ? learned.add(t) : learned.delete(t); });
-    $('#learned').append(el('label', { for:id, style:'display:block;margin:4px 0' }, [c, ' Үйрендім: ' + t]));
-  });
-  $('#fbSend').addEventListener('click', async () => {
-    const m = $('#fbMsg'), me = window.Join.get();
-    if (!me || me.guest){ m.className = 'xl-msg bad'; m.textContent = 'Алдымен студент ретінде сабаққа кіріңіз.'; return; }
-    if (!level){ m.className = 'xl-msg bad'; m.textContent = 'Бағаңды таңда.'; return; }
-    const j = await window.Join.api('feedback', { level, learned:[...learned], hard:'', comment:'' });
-    m.className = 'xl-msg ' + (j.ok ? 'ok' : 'bad'); m.textContent = j.ok ? 'Рахмет! Жауабың жіберілді.' : 'Жіберу мүмкін болмады. Қайта көр.';
-  });
-})();
 
-window.Join.mount({ gate:true, title:'Python, 7-тақырып: if шарты операторы' });
-window.PyWork.mount({ tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
 })();
 </script>
 </body>

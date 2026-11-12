@@ -5,7 +5,7 @@
 'use strict';
 const { el, fmt, Course } = window.L;
 const MIN = 35, mmss = s => Math.floor(Math.max(0, s) / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
-const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', closed:'Сабақ жабылған.', already:'Бұл тапсырма жіберіліп қойған.', auth:'Сабаққа қайта кір.', task_not_started:'Алдымен жұмысты бастау керек.' };
+const ERR = { not_started:'Оқытушы жұмысты әлі бастаған жоқ.', closed:'Сабақ жабылған.', work_stopped:'Оқытушы жұмысты тоқтатты.', already:'Бұл тапсырма жіберіліп қойған.', auth:'Сабаққа қайта кір.', task_not_started:'Алдымен жұмысты бастау керек.' };
 const LANGS = [['python', 'Python'], ['cpp', 'C++'], ['javascript', 'JavaScript'], ['java', 'Java'], ['c', 'C']];
 const n2 = v => String(v).replace('-', '−');
 const factor = late => late <= 1 ? 1 : Math.max(0.4, 1 - 0.03 * (late - 1));
@@ -53,7 +53,7 @@ window.CourseWork7 = { mount(host, cfg){
     if (!me.guest && (me.session.topic !== '7' || !me.data)){ head.append(el('h4', { text:'Бұл сабақ 7-тақырыпқа ашылмаған' }), el('p', { text:'Қазір басқа тақырыптың сабағы өтіп жатыр. Оқытушыдан 7-тақырыпты бастауды сұра.' })); built = 'x:' + me.session.id; return; }
     if (me.guest){ head.append(el('h4', { text:me.student.name + ' · қонақ мұғалім' }), el('p', { text:'Сіз мұғалім ретінде кірдіңіз: сабақ материалын көре аласыз. Практикалық тапсырманы студенттер орындайды.' })); built = 'g:' + me.student.name; return; }
     D = load(me); D.k = dkey(me);
-    const status = el('p', { role:'status' }), sum = el('div', { role:'status' }), pre = el('div'), main = el('div'); main.hidden = true;
+    const status = el('div', { role:'status' }), sum = el('div', { role:'status' }), pre = el('div'), main = el('div'); main.hidden = true;
     head.append(el('h4', { text:me.student.name + ' · ' + me.student.group }), el('p', { class:'muted', text:'Нұсқа №' + me.variant + ' · қатысым: ' + me.attendance + ' балл.' }), status, sum);
     /* ережелер және бастау */
     const start = el('button', { type:'button', class:'btn primary big', text:'▶ Жұмысты бастау · ' + MIN + ' минут' }), smsg = el('div', { role:'status' });
@@ -64,7 +64,7 @@ window.CourseWork7 = { mount(host, cfg){
         el('li', { html:'<b>3 тапсырма, 60 балл:</b> оңай (15), орташа (22), орташа (23). Барлығына бірге <b>' + MIN + ' минут</b> беріледі.' }),
         el('li', { text:'Кодты осы беттегі редакторға өзің жазасың. Редактор VS Code сияқты кеңес береді: сөздің басын жаз, ұсыныстан таңда (Tab немесе Enter).' }),
         el('li', { html:'<b>Қою (Ctrl+V) өшірілген.</b> Басқа жерден көшіріп қойған код тапсырмаға автоматты <b>0 балл</b> алады.' }),
-        el('li', { text:'Уақыт бітсе де жіберуге болады, бірақ балл азаяды: әр кешіккен минутқа шамамен 3%, ең көбі 60%.' }),
+        el('li', { text:'Таймер біткен соң, оқытушы жұмысты жапқанға дейін жіберуге болады. Кешіккен әр минут үшін балл шамамен 3%-ға азаяды (ең көбі 60%).' }),
         el('li', { text:'Бағдарлама серверде нақты орындалады: нәтижесі дұрыс болса, балл беріледі. Кодтың логикасын жасанды интеллект тексереді.' })
       ])]), el('div', { class:'stepbar' }, start), smsg);
     const cards = {};
@@ -119,21 +119,23 @@ window.CourseWork7 = { mount(host, cfg){
 
   function update(me){
     if (!ui || !me || me.guest) return;
-    const s = me.session, nowS = window.Join.serverNow() / 1000, t1 = me.tasks[1], begun = !!t1.started_at, open = s.status === 'open' && !!s.work_until;
-    ui.status.innerHTML = '';
-    if (s.status !== 'open') ui.status.append(el('p', { class:'notice', text:'Сабақ жабылған.' }));
-    else if (!s.work_until) ui.status.append(el('p', { class:'notice', text:'Оқытушы жұмысты бастағанда тапсырмалар ашылады. Бетті жаппа.' }));
+    const s = me.session, nowS = window.Join.serverNow() / 1000, t1 = me.tasks[1], begun = !!t1.started_at, open = s.status === 'open' && !!s.work_until && !s.work_stopped_at;
+    let message = '';
+    if (s.status !== 'open') message = ERR.closed;
+    else if (s.work_stopped_at) message = ERR.work_stopped;
+    else if (!s.work_until) message = 'Оқытушы жұмысты бастағанда тапсырмалар ашылады. Бетті жаппа.';
+    if (ui.status.textContent !== message) ui.status.replaceChildren(...(message ? [el('p', { class:'notice', text:message })] : []));
     ui.start.disabled = !open; ui.pre.hidden = begun; ui.main.hidden = !begun;
     const left = begun ? Math.floor(t1.started_at + MIN * 60 - nowS) : 0, lateMin = left < 0 ? -left / 60 : 0, allSent = [1, 2, 3].every(n => me.tasks[n].sent);
-    ui.clock.hidden = !begun || allSent;
-    if (begun && !allSent){
+    ui.clock.hidden = !open || !begun || allSent;
+    if (!ui.clock.hidden){
       ui.clock.className = 'w7-clock' + (left <= 0 ? ' over' : left <= 300 ? ' warn' : '');
       ui.clock.textContent = left > 0 ? '⏱ Қалған уақыт: ' + mmss(left) : '⏱ Уақыт бітті. Жіберуге болады, бірақ балл ' + Math.round((1 - factor(lateMin)) * 100) + '% азайды' + (factor(lateMin) > 0.4 ? ' және әр минутта азая түседі.' : ' (ең көбі).');
     }
     [1, 2, 3].forEach(n => {
       const t = me.tasks[n], c = ui.cards[n];
-      c.ed.setDisabled(t.sent || !open); c.sel.disabled = t.sent; c.run.disabled = t.sent || !open; c.send.disabled = t.sent || !open;
-      c.late.hidden = t.sent || lateMin <= 1;
+      c.ed.setDisabled(t.sent || !open); c.sel.disabled = t.sent || !open; c.run.disabled = t.sent || !open; c.send.disabled = t.sent || !open;
+      c.late.hidden = !open || t.sent || lateMin <= 1;
       if (!c.late.hidden) c.late.textContent = '⏱ Кешіккенің: ' + Math.floor(lateMin) + ' минут. Осы тапсырманың баллы ×' + fmt(factor(lateMin), 2) + ' болады.';
       c.res.innerHTML = '';
       if (t.sent){

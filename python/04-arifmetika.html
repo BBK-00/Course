@@ -6,11 +6,12 @@
 <title>4-тақырып: арифметикалық операторлар және типтерді түрлендіру — Python</title>
 <meta name="description" content="Python-дағы арифметикалық операторлар, олардың орындалу реті, int(), float(), str() арқылы типтерді түрлендіру және input() мәнімен жұмыс. Интерактивті мысалдар мен қатені табу.">
 <link rel="stylesheet" href="../assets/lesson.css">
-<link rel="stylesheet" href="../assets/py-work.css?v=20261106-queue">
 <link rel="stylesheet" href="../assets/py-lesson.css">
 <link rel="stylesheet" href="../assets/py-lesson4.css?v=20261106-compact">
+<link rel="stylesheet" href="../assets/student.css?v=20261111">
+<link rel="stylesheet" href="../assets/python-practice.css?v=1">
 </head>
-<body class="pl p4">
+<body class="student-lesson pl p4">
 <header class="topbar pl-top"><div class="topbar-in">
   <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
   <div class="pl-brand"><i>4</i><span>Арифметикалық операторлар</span></div>
@@ -97,43 +98,31 @@
 </section>
 
 <section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
-  <div class="pl-card p4-task-overview">
-    <div class="p4-task-title"><h2><span class="ic">2</span>Тапсырмалар</h2><span class="p4-task-total">Барлығы 100 балл</span></div>
-    <ol class="p4-task-map" aria-label="Тапсырмалардың уақыты мен балы">
-      <li><span class="p4-task-number">1</span><div><b>Жылдам есептер</b><span>7 минут · 15 балл</span></div></li>
-      <li><span class="p4-task-number">2</span><div><b>Код жазу</b><span>22 минут · 30 балл</span></div></li>
-      <li><span class="p4-task-number">3</span><div><b>Өрнектер</b><span>15 минут · 20 балл</span></div></li>
-      <li><span class="p4-task-number">4</span><div><b>Тест</b><span>5 минут · 10 балл</span></div></li>
-      <li><span class="p4-task-number">5</span><div><b>Үй жұмысы</b><span>Фото · 25 балл</span></div></li>
-    </ol>
-  </div>
-  <div id="pyTasks"></div>
-  <div id="pyPreview"></div>
+  <div class="pp-practice" data-python-practice="4"></div>
 </section>
 
 <section class="pl-pane" id="sum" data-pane="sum" hidden>
   <div class="pl-card">
-    <h2><span class="ic">3</span>Қорытынды және бекіту</h2>
-    <p class="pl-lead">Бұл бөлімде нәтижеңді және қайталауға тұратын амалдарды көресің.</p>
-    <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
-    <div id="pySum"></div>
+    <h2><span class="ic">3</span>Өзіндік нәтиже</h2>
+    <p data-practice-summary role="status"></p>
+    <button type="button" class="btn primary" data-go="task">Тапсырмаларға қайту</button>
   </div>
 </section>
 </main>
 <footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
 
-<script src="../assets/lesson-core.js"></script>
-<script src="../assets/join.js"></script>
+<script src="../assets/lesson-core.js?v=20261111"></script>
 <script src="../assets/code-editor.js"></script>
 <script src="../assets/py-figs.js"></script>
+<script src="../assets/python-practice.js?v=1"></script>
 <script src="../assets/py-demos4.js"></script>
 <script src="../assets/py-demos4-ui.js"></script>
-<script src="../assets/py-work.js?v=20261106-queue-revision"></script>
 <script>
 (function(){
 const { $ } = L;
 const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
 function go(id, push){
+  if (id.startsWith('pp-')) id = 'task';
   if (!panes.some(p => p.id === id)) id = 'teo';
   panes.forEach(p => { p.hidden = p.id !== id; });
   tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -143,11 +132,7 @@ function go(id, push){
 tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
 go((location.hash || '').slice(1), false);
-window.Join.mount({ title:'Python, 4-тақырып: арифметикалық операторлар' });   /* теория ашық, тапсырма үшін жоғарыдағы «Сабаққа кіру» батырмасы */
-window.PyWork.mount({ topic:'P4', tasks:$('#pyTasks'), summary:$('#pySum'), summaryBtn:$('#pySumBtn') });
-/* нақты тапсырмалар көрінгенде үлгі жасырылады; кірмеген кезде (оқытушы да) үлгі көрінеді */
-{ const tk = $('#pyTasks'), pv = $('#pyPreview'), sync = () => { pv.hidden = !!tk.querySelector('.py-bar'); }; new MutationObserver(sync).observe(tk, { childList:true, subtree:true }); sync(); }
-PyDemos4.mount({ preview:$('#pyPreview'), hero:$('#pHero'), ops:$('#pOps'), order:$('#pOrder'), aug:$('#pAug'), conv:$('#pConv'), nfun:$('#pNfun'), inp:$('#pInp'), rules:$('#pRules'), err:$('#pErr') });
+PyDemos4.mount({ hero:$('#pHero'), ops:$('#pOps'), order:$('#pOrder'), aug:$('#pAug'), conv:$('#pConv'), nfun:$('#pNfun'), inp:$('#pInp'), rules:$('#pRules'), err:$('#pErr') });
 })();
 </script>
 </body>

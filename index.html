@@ -3,63 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Бақытжанов Бекет Қайратұлы — интерактивті сабақтар</title>
-<meta name="description" content="Бақытжанов Бекет Қайратұлының пәндері бойынша интерактивті сабақтар жинағы.">
+<title>Оқу кеңістігі — Бақытжанов Бекет Қайратұлы</title>
+<meta name="description" content="Python, Scratch, Сандық әдістер және АКТ бойынша интерактивті сабақтар.">
+<link rel="stylesheet" href="assets/lesson.css">
 <link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/student.css?v=20261111">
 </head>
-<body>
+<body class="student-portal">
+<a class="skip-link" href="#subjects">Пәндерге өту</a>
 <header class="site-head">
-  <div class="wrap head-in"><a class="logo" href="index.html"><span class="logo-mark">ББ</span><span>Интерактивті сабақтар</span></a></div>
+  <div class="wrap head-in">
+    <a class="logo" href="/" aria-current="page"><span class="logo-mark" aria-hidden="true">ББ</span><span>Оқу кеңістігі</span></a>
+    <nav class="head-nav" aria-label="Негізгі навигация"><a href="#subjects">Пәндер</a></nav>
+  </div>
 </header>
-<main>
-  <section class="hero-site"><div class="wrap">
-    <p class="eyebrow">Оқытушының курстар жинағы</p>
-    <h1>Бақытжанов Бекет Қайратұлы</h1>
-    <p class="lead">Бұл сайтта мен сабақ беретін пәндердің интерактивті материалдары жинақталған. Әр тақырыпта түсіндіру, өз бетінше орындайтын тапсырмалар және тест бар.</p>
-  </div></section>
-  <div class="wrap">
-    <h2 class="sec-title">Пәндер</h2>
-    <div class="grid">
-      <a class="subject" href="sandyq-adister/index.html">
-        <span class="subject-ico" aria-hidden="true">∑</span>
-        <h3>Сандық әдістер</h3>
-        <p>Пән 15 тақырыптан тұрады.</p>
-        <div class="meter" role="img" aria-label="15 тақырыптың 3-і дайын"><span style="width:20%"></span></div>
-        <p class="meta">3 тақырып дайын · 8 тақырып әзірленуде</p>
-        <span class="go">Пәнге өту →</span>
-      </a>
-      <a class="subject" href="akt/index.html">
-        <span class="subject-ico" aria-hidden="true">💻</span>
-        <h3>Ақпараттық-коммуникациялық технологиялар</h3>
-        <p>Пән 36 тақырыптан тұрады.</p>
-        <div class="meter" role="img" aria-label="36 тақырыптың 3-і ашық"><span style="width:8.33%"></span></div>
-        <p class="meta">3 тақырып ашық · 33 тақырып әзірленуде</p>
-        <span class="go">Пәнге өту →</span>
-      </a>
-      <a class="subject" href="scratch/index.html">
-        <span class="subject-ico" aria-hidden="true">🎮</span>
-        <h3>Scratch программалау ортасында ойынды жобалау</h3>
-        <p>Пән 18 тақырыптан тұрады.</p>
-        <div class="meter" role="img" aria-label="18 тақырыптың 1-і ашық"><span style="width:5.6%"></span></div>
-        <p class="meta">1 тақырып ашық · 17 тақырып әзірленуде</p>
-        <span class="go">Пәнге өту →</span>
-      </a>
-      <a class="subject" href="python/index.html">
-        <span class="subject-ico" aria-hidden="true">🐍</span>
-        <h3>Python тілінде программалау</h3>
-        <p>Пән 24 тақырыптан тұрады.</p>
-        <div class="meter" role="img" aria-label="24 тақырыптың 1-і ашық"><span style="width:4.2%"></span></div>
-        <p class="meta">2 тақырып ашық · 22 тақырып әзірленуде</p>
-        <span class="go">Пәнге өту →</span>
-      </a>
-      <div class="subject soon">
-        <span class="subject-ico" aria-hidden="true">+</span>
-        <h3>Жаңа пәндер</h3>
-        <p>Басқа пәндердің материалдары кейін қосылады.</p>
+<main class="wrap">
+  <section class="student-hero" aria-labelledby="home-title">
+    <div class="student-hero-copy">
+      <p class="eyebrow">Интерактивті сабақтар</p>
+      <h1 id="home-title">Бүгін не үйренеміз?</h1>
+      <p>Тақырыпты таңда, мысалды іске қосып көр және біліміңді тапсырмамен тексер.</p>
+      <div class="student-hero-actions">
+        <button type="button" class="btn primary" id="homeJoin">Сабаққа кодпен кіру <span aria-hidden="true">↗</span></button>
+        <a class="btn" href="#subjects">Пәндерді қарау <span aria-hidden="true">↓</span></a>
       </div>
     </div>
-  </div>
+    <div class="student-live" aria-labelledby="live-title">
+      <span class="student-live-label" id="live-title"><i aria-hidden="true"></i> Ағымдағы сабақ</span>
+      <strong id="liveName" role="status">Сабақ күйі тексерілуде…</strong>
+      <p id="liveHint">Ашық сабақ осы жерде көрсетіледі.</p>
+      <a class="student-live-link" id="liveLink" hidden>Сабақ материалын ашу →</a>
+    </div>
+  </section>
+
+  <section id="subjects" aria-labelledby="subjects-title">
+    <div class="student-section-head"><div><p class="eyebrow">Сабақтар жинағы</p><h2 id="subjects-title">Пәндер</h2></div><span>4 пән</span></div>
+    <div class="grid student-subjects">
+      <a class="subject subject-python" href="python/">
+        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg></span>
+        <h3>Python</h3><p>Амалдар, шарттар, циклдер және код жазу.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="subject subject-scratch" href="scratch/">
+        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v4h3v5H4V7h3zm-3 9v6h4v3h8v-3h4v-6M9 8h.01M15 8h.01"/></svg></span>
+        <h3>Scratch</h3><p>Блоктармен ойын мен анимация құрастыр.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="subject subject-math" href="sandyq-adister/">
+        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 3v17h17M7 15l4-5 4 2 5-7"/><circle cx="11" cy="10" r="1"/><circle cx="15" cy="12" r="1"/></svg></span>
+        <h3>Сандық әдістер</h3><p>Теңдеулер жүйесі және функцияларды жуықтау.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="subject subject-akt" href="akt/">
+        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span>
+        <h3>АКТ</h3><p>Компьютер, электрондық кесте және мультимедиа.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
+      </a>
+    </div>
+  </section>
 </main>
 <footer class="site-foot"><div class="wrap">© Бақытжанов Бекет Қайратұлы</div></footer>
+<script src="assets/lesson-core.js?v=20261111"></script>
+<script src="assets/join.js?v=20261112"></script>
+<script src="assets/student-home.js?v=20261112"></script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 /* Тапсырмаларды бағалау: тест, қолмен есеп, бағдарлама (Gemini) және жиынтық балл. 6-тақырып. */
 import { V6 } from './variants.js';
 import { V7, MAX7, AI7, LIMIT7, prompt7 } from './approx.js';
-import { PY_MAX, PY_MAXS, pyTasks } from './py.js';
+import { PY_MAX, PY_MAXS, pyTasks, maxesOf, isPy } from './py.js';
+import { P12_MINUTES } from './py12.js';
 import { geminiJson } from './gemini.js';
 
 export const TOPICS = {
@@ -19,9 +20,13 @@ TOPICS['10'] = { title: 'АКТ · 10-тақырып', variants: new Array(20).f
 TOPICS['7'] = { title: '7-тақырып', variants: V7, limits: { 1: LIMIT7, 2: LIMIT7, 3: LIMIT7 }, code7: true };   /* үш код тапсырмасы, 35 минут бірге */
 TOPICS['P8'] = { title: 'Python · 8-тақырып', variants: new Array(20).fill(0), limits: { 1: 60, 2: 60, 3: 60 }, xlsx: true };   /* if–else және elif: 1 (2 есеп, 30), 2 (жұптық сандық, 25), 3 (тест, 20); 4 (үй жұмысы) кейін */
 TOPICS['P4'] = { title: 'Python · 4-тақырып', variants: new Array(20).fill(0), limits: { 1: 7, 2: 22, 3: 15, 4: 5 }, xlsx: true };   /* арифметикалық операторлар: 1 (15 жылдам есеп, 15 балл, 7 минут), 2 (5 код есебі, 35 балл, 25 минут), 4 (үй жұмысы, 20 балл) кейін қосылады */
+TOPICS['P9'] = { title: 'Python · 9-тақырып', variants: new Array(20).fill(0), limits: { 1: 20, 2: 12, 3: 15, 4: 7 }, xlsx: true };   /* құрамды шарттар (and/or/not) */
+TOPICS['P10'] = { title: 'Python · 10-тақырып', variants: new Array(20).fill(0), limits: { 1: 20, 2: 12, 3: 15, 4: 7 }, xlsx: true };   /* кірістірілген шарттар */
+TOPICS['P12'] = { title: 'Python · for және range()', variants: [0], limits: P12_MINUTES, xlsx: true };
 TOPICS['P7'] = { title: 'Python · 7-тақырып', variants: new Array(20).fill(0), limits: { 1: 60, 2: 60, 3: 60, 4: 60 }, xlsx: true };   /* if шарты: 4 тапсырма, 100 балл, қатемен жұмыс */
 export const MAX = { 1: 24, 2: 24, 3: 12 };
-export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 18, 3: 10, 4: 30 }, 'P4': PY_MAXS.P4, 'P7': PY_MAX, 'P8': PY_MAXS.P8 };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+export const MAXT = { '6': MAX, '7': MAX7, '10': { 1: 15, 2: 20, 3: 25 }, 'S7': { 1: 5, 2: 20, 3: 35 }, 'A13': { 1: 20, 2: 30, 3: 20 }, 'A2': { 1: 12, 2: 18, 3: 10, 4: 30 }, 'P4': PY_MAXS.P4, 'P9': PY_MAXS.P9, 'P10': PY_MAXS.P10, 'P7': PY_MAX, 'P8': PY_MAXS.P8 };   /* 1 қолмен (фото) · 2 бағдарлама · 3 тест */
+MAXT.P12 = PY_MAXS.P12;
 
 /* ---------- Есептеу ---------- */
 export function solve(A, b) {
@@ -190,8 +195,8 @@ function compute7(att, subs, result, bonus) {
   return { attendance, tasks, quality: Math.round(quality * 10) / 10, ai_pct: aiPct, k: Math.round(k * 100) / 100, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: all && !anyPending, edited_total: base !== auto };
 }
 /* Python сабағы: қатысым балы жоқ, барлығы 100 балл тапсырмалардан (қатемен жұмыс есепке алынған). Көшіру белгілері баллға автоматты әсер етпейді. */
-function computeP(att, subs, result, bonus, topic) {
-  const M = MAXT[topic], NS = pyTasks(topic), by = {}; (subs || []).forEach(s => { by[s.task] = s; });
+function computeP(att, subs, result, bonus, topic, ses) {
+  const M = maxesOf(topic, ses), NS = pyTasks(topic, ses), by = {}; (subs || []).forEach(s => { by[s.task] = s; });
   const tasks = {}; let quality = 0, done = true;
   NS.forEach(n => {
     const s = by[n], max = M[n];
@@ -204,8 +209,8 @@ function computeP(att, subs, result, bonus, topic) {
   const auto = Math.min(100, Math.round(quality)), base = result && result.teacher_total !== null && result.teacher_total !== undefined ? result.teacher_total : auto;
   return { attendance: 0, tasks, quality: Math.round(quality * 10) / 10, ai_pct: 0, k: 1, auto, base, bonus: bonus || 0, final: Math.min(100, base + (bonus || 0)), complete: done, edited_total: base !== auto };
 }
-export function compute(att, subs, result, bonus, topic) {
-  if (String(topic) === 'P4' || String(topic) === 'P7' || String(topic) === 'P8') return computeP(att, subs, result, bonus, String(topic));
+export function compute(att, subs, result, bonus, topic, ses) {
+  if (isPy(topic)) return computeP(att, subs, result, bonus, String(topic), ses);
   if (String(topic) === '10' || String(topic) === 'S7' || String(topic) === 'A13' || String(topic) === 'A2') return compute10(att, subs, result, bonus, String(topic));
   if (String(topic) === '7') return compute7(att, subs, result, bonus);
   const by = {}; (subs || []).forEach(s => { by[s.task] = s; });

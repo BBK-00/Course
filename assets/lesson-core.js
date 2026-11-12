@@ -186,10 +186,18 @@ const Course = {
     const nav = el('ol', { class:'nav-list' });
     this.links = {};
     o.sections.forEach(s => { const a = el('a', { href:'#' + s.id }, [el('span', { class:'nn', text:String(s.n) }), el('span', { class:'nl', text:s.title })]); nav.append(el('li', null, a)); this.links[s.id] = a; });
+    const menu = el('nav', { class:'nav', id:'course-sections', 'aria-label':'Сабақ бөлімдері' }, nav);
+    const menuToggle = el('button', { type:'button', class:'btn nav-toggle', text:'Бөлімдер', 'aria-expanded':'false', 'aria-controls':menu.id });
+    menuToggle.addEventListener('click', () => menuToggle.setAttribute('aria-expanded', String(menuToggle.getAttribute('aria-expanded') !== 'true')));
+    menu.addEventListener('click', event => {
+      if (!event.target.closest('a')) return;
+      menuToggle.setAttribute('aria-expanded', 'false');
+      if (menuToggle.getClientRects().length) menuToggle.focus({preventScroll:true});
+    });
     this.fill = el('div', { class:'progress-fill' }); this.ptext = el('span', { class:'progress-text', text:'0 / ' + o.sections.length });
     const head = el('header', { class:'topbar' }, [
-      el('div', { class:'topbar-in' }, [el('a', { class:'brand', href:o.back.href }, [el('span', { text:'←' }), el('span', { class:'bl', text:o.back.text.replace(/^←s*/, ' ') })])].concat(o.title ? [el('span', { class:'lesson-title' }, [el('b', { text:String(o.title[0]) }), o.title[1]])] : [], [el('nav', { class:'nav', 'aria-label':'Сабақ бөлімдері' }, nav)])),
-      el('div', { class:'progress' }, [el('span', { text:'Сабақ барысы' }), el('div', { class:'progress-track' }, this.fill), this.ptext])
+      el('div', { class:'topbar-in' }, [el('a', { class:'brand', href:o.back.href, 'aria-label':o.back.text }, [el('span', { text:'←' }), el('span', { class:'bl', text:o.back.text.replace(/^←\s*/, ' ') })])].concat(o.title ? [el('span', { class:'lesson-title' }, [el('b', { text:String(o.title[0]) }), o.title[1]])] : [], document.body.classList.contains('student-lesson') ? [menuToggle, menu] : [menu])),
+      el('div', { class:'progress' }, [el('span', { text:'Қарап отырған бөлім' }), el('div', { class:'progress-track' }, this.fill), this.ptext])
     ]);
     document.body.prepend(head);
     this.prevB = el('button', { type:'button', class:'btn', text:'← Артқа' });

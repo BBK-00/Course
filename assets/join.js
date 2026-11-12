@@ -6,24 +6,36 @@
 'use strict';
 const { el } = window.L;
 const TK = 'bbk-join-token', DK = 'bbk-device';
-const S = { token:'', me:null, open:false, topic:'', fns:[], skew:0, gate:false, title:'6-тақырып: Гаусс–Зейдель әдісі' };
+const S = { token:'', me:null, open:false, sessionKey:null, fns:[], skew:0, gate:false, title:'6-тақырып: Гаусс–Зейдель әдісі' };
 try { S.token = localStorage.getItem(TK) || ''; } catch (e) {}
 const device = () => { let d = ''; try { d = localStorage.getItem(DK); if (!d){ d = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(DK, d); } } catch (e) {} return d || 'nolocal'; };
 const emit = () => S.fns.forEach(f => { try { f(S.me); } catch (e) {} });
 async function api(path, body){
-  const r = await fetch('/api/' + path, { method:body ? 'POST' : 'GET', headers:{ 'Content-Type':'application/json', ...(S.token ? { Authorization:'Bearer ' + S.token } : {}) }, body:body ? JSON.stringify(body) : undefined });
-  let j = {}; try { j = await r.json(); } catch (e) {}
-  return { status:r.status, ...j };
+  try {
+    const r = await fetch('/api/' + path, { method:body ? 'POST' : 'GET', headers:{ 'Content-Type':'application/json', ...(S.token ? { Authorization:'Bearer ' + S.token } : {}) }, body:body ? JSON.stringify(body) : undefined });
+    return { status:r.status, ...await r.json() };
+  } catch { return { ok:false, error:'network' }; }
 }
 const saveToken = t => { S.token = t; try { t ? localStorage.setItem(TK, t) : localStorage.removeItem(TK); } catch (e) {} };
 async function refresh(){
   if (!S.token){ S.me = null; sync(); return; }
+  const token = S.token;
   const j = await api('me');
+  if (S.token !== token) return;
   if (j.ok){ S.me = j; S.skew = j.now * 1000 - Date.now(); }
   else if (j.status === 401 || j.error === 'auth'){ saveToken(''); S.me = null; }
   sync();
 }
-async function check(){ const j = await api('public/roster'); const was = S.open; S.open = !!j.open; S.topic = j.topic || ''; if (S.gate && gateBox && was !== S.open) renderGate(); chip(); }
+function setLesson(lesson){
+  const key = lesson?.session_id ?? lesson?.topic ?? null;
+  if (S.sessionKey === key) return;
+  S.sessionKey = key;
+  S.open = !!lesson;
+  if (gateBox) renderGate();
+  activeDialog?.renderForm?.();
+  chip();
+}
+async function check(){ const j = await api('public/lesson'); if (j.ok) setLesson(j.lesson); }
 function sync(){ emit(); chip(); if (S.gate) lock(!S.me); }
 
 /* Жоғарғы панельдегі батырма */
@@ -39,8 +51,14 @@ async function buildForm(box, onDone, onCancel){
   box.innerHTML = '';
   const bid = box._bf = (box._bf || 0) + 1;   /* бір мезгілде екі рет шақырылса, соңғысы ғана салынады (форма екеу болмауы үшін) */
   const info = el('p', { text:'Тексеріп жатыр…' }); box.append(info);
-  const r = await api('public/roster'); S.open = !!r.open;
-  if (box._bf !== bid) return;
+  const r = await api('public/roster');
+  if (box._bf !== bid || !box.isConnected) return;
+  if (gateBox?.body === box && r.ok) gateBox.title.textContent = r.open ? 'Сабаққа кіру' : 'Сабақ әлі басталған жоқ';
+  if (!r.ok) {
+    info.className = 'errbox'; info.textContent = 'Сабақ күйін жүктеу мүмкін болмады.';
+    box.append(el('button', { type:'button', class:'btn', text:'Қайта тексеру', onclick:() => buildForm(box, onDone, onCancel) }));
+    return;
+  }
   if (!r.open){ info.className = 'notice'; info.textContent = 'Сабақ әзірге ашылмаған. Оқытушы сабақты бастағанда кіре аласың. Бет өзі тексеріп тұрады.'; if (onCancel) box.append(el('div', { class:'stepbar' }, el('button', { type:'button', class:'btn', text:'Жабу', onclick:onCancel }))); return; }
   let role = 'student';
   const tabs = el('div', { class:'role-tabs' }), form = el('div');
@@ -55,9 +73,11 @@ async function buildForm(box, onDone, onCancel){
   const nm = el('input', { class:'cf-input wide', id:'jt', type:'text', autocomplete:'name', placeholder:'Аты-жөніңізді жазыңыз' });
   const paint = () => {
     bS.classList.toggle('on', role === 'student'); bT.classList.toggle('on', role === 'teacher'); msg.innerHTML = '';
+    bS.setAttribute('aria-pressed', String(role === 'student')); bT.setAttribute('aria-pressed', String(role === 'teacher'));
+    go.hidden = role === 'student' && !r.groups.length;
     form.innerHTML = '';
     if (role === 'student'){
-      if (!r.groups.length){ form.append(el('p', { class:'notice', text:'Студенттер тізімі әлі жасалмаған. Оқытушыға айт.' })); return; }
+      if (!r.groups.length){ form.append(el('p', { class:'notice', text:'Студенттер тізімі әлі жасалмаған. Оқытушыға айт.' }), el('button', { type:'button', class:'btn', text:'Тізімді жаңарту', onclick:() => buildForm(box, onDone, onCancel) })); return; }
       form.append(el('div', { class:'submit-grid' }, [el('label', { for:'jg', text:'Топ' }), gs, el('label', { for:'jn', text:'Аты-жөні' }), ns, el('label', { for:'jc', text:'Код' }), code]));
     } else form.append(el('div', { class:'submit-grid' }, [el('label', { for:'jt', text:'Аты-жөні' }), nm, el('label', { for:'jc', text:'Код' }), code]), el('p', { class:'muted', text:'Мұғалім ретінде сабақты көре аласыз. Тапсырмаларды студенттер орындайды.' }));
   };
@@ -65,37 +85,57 @@ async function buildForm(box, onDone, onCancel){
   info.textContent = 'Кім екеніңді таңда және оқытушы көрсеткен кодты енгізіп, «Кіру» батырмасын бас.';
   box.append(tabs, form, el('div', { class:'stepbar' }, [go].concat(onCancel ? [el('button', { type:'button', class:'btn ghost', text:'Бас тарту', onclick:onCancel })] : [])), msg); paint();
   const submit = async () => {
+    if (go.disabled) return;
     go.disabled = true; msg.innerHTML = '';
     const j = role === 'student' ? await api('join', { student_id:Number(ns.value), code:code.value.trim(), device:device() }) : await api('join_guest', { name:nm.value, code:code.value.trim() });
     go.disabled = false;
     if (j.ok){ saveToken(j.token); await refresh(); if (onDone) onDone(); return; }
-    const t = { bad_code:'Код дұрыс емес.', taken:'Бұл атпен басқа құрылғыдан кірілген. Оқытушыға айт, ол босатады.', wait:'Қате көп болды. 1 минуттан кейін қайта көр.', no_session:'Сабақ жабылған.', wrong_group:'Бұл сабақ сіздің тобыңызға ашылмаған.', bad_request:role === 'teacher' ? 'Аты-жөніңізді толық жазыңыз.' : 'Барлық өрісті толтыр.' }[j.error] || 'Кіру мүмкін болмады. Қайта көр.';
+    const t = { bad_code:'Код дұрыс емес.', taken:'Бұл атпен басқа құрылғыдан кірілген. Оқытушыға айт, ол босатады.', wait:'Қате көп болды. 1 минуттан кейін қайта көр.', no_session:'Сабақ жабылған.', wrong_group:'Бұл сабақ сіздің тобыңызға ашылмаған.', network:'Байланыс үзілді. Кіруді қайта байқап көр.', bad_request:role === 'teacher' ? 'Аты-жөніңізді толық жазыңыз.' : 'Барлық өрісті толтыр.' }[j.error] || 'Кіру мүмкін болмады. Қайта көр.';
     msg.append(el('p', { class:'errbox', text:t }));
   };
   go.addEventListener('click', submit); code.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
 }
 
 /* Терезе (кіргеннен кейін профиль, кіру үшін форма) */
+let activeDialog = null;
 function dialog(){
+  const returnFocus = document.activeElement;
   const box = el('div', { class:'modal-box', role:'dialog', 'aria-modal':'true', 'aria-label':'Сабаққа кіру' });
   const ov = el('div', { class:'modal' }, box);
-  const close = () => ov.remove();
+  const close = () => { ov.remove(); activeDialog = null; document.removeEventListener('keydown', esc); returnFocus?.focus(); };
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
-  document.addEventListener('keydown', function esc(e){ if (e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc); } });
+  function esc(e){
+    if (e.key === 'Escape') close();
+    if (e.key !== 'Tab') return;
+    const focusable = [...box.querySelectorAll('button:not(:disabled), input, select')].filter(node => node.getClientRects().length);
+    const first = focusable[0], last = focusable.at(-1);
+    if (!first || e.shiftKey && (document.activeElement === first || document.activeElement === box) || !e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); (e.shiftKey ? last : first)?.focus();
+    }
+  }
   document.body.append(ov);
+  box.tabIndex = -1; box.focus();
+  document.addEventListener('keydown', esc);
   return { box, close };
 }
-function openJoin(){
-  const { box, close } = dialog();
+function openJoin(onJoined){
+  if (activeDialog) return;
+  const { box, close } = activeDialog = dialog();
   box.append(el('h3', { text:'Сабаққа кіру' }));
   if (S.me){
-    box.append(el('p', { html:'<b>' + S.me.student.name + '</b> · ' + S.me.student.group }), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : (S.me.session && ['10', 'A2', 'A13', 'S7'].includes(S.me.session.topic) ? '' : 'Нұсқаң: №' + S.me.variant + '. ') + 'Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
+    box.append(el('p', {}, [el('b', {text:S.me.student.name}), ' · ' + S.me.student.group]), el('p', { class:'muted', text:S.me.guest ? 'Қонақ мұғалім ретінде кірдіңіз.' : (S.me.session && ['10', 'A2', 'A13', 'S7'].includes(S.me.session.topic) ? '' : 'Нұсқаң: №' + S.me.variant + '. ') + 'Қатысымың белгіленді: ' + S.me.attendance + ' балл.' }));
     const out = el('button', { type:'button', class:'btn ghost', text:S.me.guest ? 'Шығу' : 'Шығу (басқа құрылғыға ауысу үшін оқытушыға айт)' });
     out.addEventListener('click', () => { saveToken(''); S.me = null; sync(); close(); });
     box.append(el('div', { class:'stepbar' }, [el('button', { type:'button', class:'btn primary', text:'Жабу', onclick:close }), out]));
     return;
   }
-  const holder = el('div'); box.append(holder); buildForm(holder, close, close);
+  const holder = el('div');
+  box.append(el('button', {type:'button', class:'join-close', 'aria-label':'Кіру терезесін жабу', text:'×', onclick:close}), holder);
+  activeDialog.renderForm = () => {
+    if (holder.contains(document.activeElement)) box.focus();
+    buildForm(holder, () => { if (!holder.isConnected) return; close(); if (typeof onJoined === 'function') onJoined(S.me); }, close);
+  };
+  activeDialog.renderForm();
 }
 
 /* Қақпа: сабақ беті кодсыз жабық */
@@ -103,8 +143,10 @@ let gateBox = null, gateOv = null;
 function renderGate(){ if (gateBox) buildForm(gateBox.body, null, null); }
 function openGate(){
   if (gateOv) return;
-  const body = el('div'); gateBox = { body };
-  gateOv = el('div', { class:'modal gate' }, el('div', { class:'modal-box' }, [el('h3', { text:'🔒 Сабақ жабық' }), el('p', { class:'muted', text:S.title + '. Сабаққа оқытушы көрсеткен кодпен кіресің.' }), body]));
+  const body = el('div'), title = el('h3', {text:'Сабаққа кіру'});
+  const back = document.querySelector('.topbar .brand, .topbar .pl-back')?.getAttribute('href') || '/';
+  gateBox = { body, title };
+  gateOv = el('div', { class:'modal gate' }, el('div', { class:'modal-box' }, [title, el('p', { class:'muted', text:S.title + '. Сабаққа оқытушы көрсеткен кодпен кіресің.' }), body, el('a', { href:back, class:'btn ghost', text:'← Пәнге қайту' })]));
   document.body.append(gateOv); renderGate();
 }
 function lock(on){
@@ -113,18 +155,19 @@ function lock(on){
 }
 
 window.Join = {
-  get: () => S.me, on(fn){ S.fns.push(fn); }, refresh, open:openJoin, api,
+  get: () => S.me, on(fn){ S.fns.push(fn); }, refresh, open:openJoin, api, setLesson,
   raw: (path, init) => fetch('/api/' + path, { ...(init || {}), headers:{ ...((init && init.headers) || {}), ...(S.token ? { Authorization:'Bearer ' + S.token } : {}) } }),
   serverNow: () => Date.now() + S.skew,
   mount(o){
     S.gate = !!(o && o.gate); if (o && o.title) S.title = o.title;
+    const checkStatus = o?.checkStatus !== false;
     const m = /[#&]t=([^&]+)/.exec(location.hash || '');
     if (m){ saveToken(decodeURIComponent(m[1])); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     const bar = document.querySelector('.topbar-in');
     if (bar){ btn = el('button', { type:'button', class:'join-chip' }); btn.addEventListener('click', openJoin); bar.append(btn); chip(); }
     if (S.gate) document.body.classList.add('locked');
-    refresh(); check();
-    setInterval(() => { if (document.hidden) return; if (S.token) refresh(); else check(); }, 6000);
+    refresh(); if (checkStatus) check();
+    setInterval(() => { if (document.hidden) return; if (S.token) refresh(); else if (checkStatus) check(); }, 6000);
   }
 };
 })();

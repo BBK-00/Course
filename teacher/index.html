@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../assets/site.css">
 <link rel="stylesheet" href="panel-base.css">
 <link rel="stylesheet" href="dashboard.css?v=20261106-homework-review">
+<link rel="stylesheet" href="progress.css?v=1">
 </head>
 <body class="teacher-dashboard">
 <main id="login" class="login">
@@ -26,8 +27,10 @@
       <button class="dash-nav on" type="button" data-route="live"><span data-icon="monitor"></span><span class="nav-label">Сабақ</span></button>
       <button class="dash-nav" type="button" data-route="homework"><span data-icon="file"></span><span class="nav-label">Үй жұмысы</span><span id="hwBadge" class="nav-count" hidden></span></button>
       <button class="dash-nav" type="button" data-route="journal"><span data-icon="book"></span><span class="nav-label">Журнал</span></button>
+      <button class="dash-nav" type="button" data-route="progress"><span data-icon="chart"></span><span class="nav-label">Үлгерім</span></button>
       <button class="dash-nav" type="button" data-route="roster"><span data-icon="users"></span><span class="nav-label">Топтар</span></button>
       <button class="dash-nav" type="button" data-route="archive"><span data-icon="archive"></span><span class="nav-label">Архив</span></button>
+      <a class="dash-nav" href="studio.html" style="text-decoration:none"><span data-icon="file"></span><span class="nav-label">Курс студиясы</span></a>
     </nav>
     <div class="sidebar-bottom"><span class="teacher-avatar">БҚ</span><span class="nav-label"><b>Оқытушы</b><small>Сабақтарды басқару</small></span><button id="bOut" class="icon-btn" type="button" title="Шығу" aria-label="Шығу"><span data-icon="logout"></span></button></div>
   </aside>
@@ -39,6 +42,7 @@
     <main class="dash-main" id="mainContent"><div id="pageHeading" class="page-heading"></div>
       <div class="tabs lesson-tabs" id="tabs" role="tablist" aria-label="Сабақ бөлімдері"><button class="tab on" type="button" role="tab" data-t="live">Барысы</button><button class="tab" type="button" role="tab" data-t="analysis">Талдау</button><button class="tab" type="button" role="tab" data-t="wrap">Бекіту</button><button class="tab" type="button" role="tab" data-t="plan">Жоспар</button></div>
       <section class="sec on" id="s-live" aria-label="Сабақ барысы"></section><section class="sec" id="s-analysis" aria-label="Талдау"></section><section class="sec" id="s-wrap" aria-label="Бекіту"></section><section class="sec" id="s-plan" aria-label="Сабақ жоспары"></section><section class="sec" id="s-roster" aria-label="Топтар"></section><section class="sec" id="s-journal" aria-label="Журнал"></section><section class="sec" id="s-archive" aria-label="Архив"></section><section class="sec" id="s-homework" aria-label="Үй жұмысы"></section>
+      <section class="sec" id="s-progress" aria-label="Үлгерім"></section>
     </main>
     <footer class="dash-sync" id="syncStatus" role="status"><i></i><span>Деректерді жүктеу…</span></footer>
   </div>
@@ -47,9 +51,10 @@
 <div class="overlay" id="ov" hidden role="dialog" aria-modal="true" aria-label="Студенттің жұмысы"><div class="panel" id="panel" tabindex="-1"></div></div>
 <div class="overlay" id="newLessonDialog" hidden role="dialog" aria-modal="true" aria-labelledby="newLessonTitle"><div class="new-lesson-dialog"><div class="row"><h2 id="newLessonTitle">Жаңа сабақ</h2><span class="sp"></span><button type="button" class="icon-btn" id="closeNewLesson" aria-label="Жабу">✕</button></div><div id="newLessonBody"></div></div></div>
 <div id="toast" class="dash-toast" role="status" hidden></div>
-<script src="lesson-catalog.js"></script>
+<script src="lesson-catalog.js?v=20261110-p12-2"></script>
 <script src="archive.js?v=20261106"></script>
 <script src="analysis.js?v=20261106"></script>
-<script src="panel.js?v=20261106-homework-review"></script>
+<script src="progress.js?v=1"></script>
+<script src="panel.js?v=20261112-live-python"></script>
 </body>
 </html>

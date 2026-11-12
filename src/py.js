@@ -6,16 +6,41 @@
 
 import { buildP8, P8_MAX, CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT } from './py8.js';
 import { buildP4, P4_MAX, OP_SKILLS, gradeTyped } from './py4.js';
+import { buildP9, P9_DEF, P9_SKILLS } from './py9.js';
+import { buildP10, P10_DEF, P10_SKILLS } from './py10.js';
+import { buildP12, P12_MAX, P12_SKILLS } from './py12.js';
 export { CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT };
 
 export const PY_MAX = { 1: 20, 2: 40, 3: 20, 4: 20 };
-export const PY_MAXS = { P4: P4_MAX, P7: PY_MAX, P8: P8_MAX };   /* тақырып → тапсырма → максимум балл */
-export const pyTasks = topic => Object.keys(PY_MAXS[String(topic)] || PY_MAX).map(Number);
+/* 9–10-сабақтар: ұпай оқытушы панелінен өзгертіледі (sessions.cfg), үй жұмысын белгі арқылы қосуға/өшіруге болады */
+export const NEW_LESSONS = { P9: { build: buildP9, def: P9_DEF }, P10: { build: buildP10, def: P10_DEF } };
+export const HW_MAX_PTS = 25;
+export const PY_MAXS = { P4: P4_MAX, P7: PY_MAX, P8: P8_MAX, P9: { ...P9_DEF.withHw, 5: HW_MAX_PTS }, P10: { ...P10_DEF.withHw, 5: HW_MAX_PTS }, P12: P12_MAX };   /* тақырып → тапсырма → максимум балл */
+/* сабақтың баптауы: { hw, pts:{1..5} }. 4-сабақта (P4) бұрынғы тұрақты ереже, баптау жоқ (null) */
+export function cfgOf(ses) {
+  const L = NEW_LESSONS[ses && ses.topic]; if (!L) return null;
+  let c = {}; try { c = JSON.parse(ses.cfg || '{}') || {}; } catch (e) { c = {}; }
+  const hw = c.hw === undefined ? L.def.hwDefault !== false : !!c.hw, base = hw ? L.def.withHw : L.def.noHw, pts = {};
+  [1, 2, 3, 4].filter(n => base[n] !== undefined).forEach(n => { const raw = c.pts && c.pts[n], v = Number(raw); pts[n] = raw !== undefined && raw !== null && raw !== '' && Number.isFinite(v) && v >= 0 && v <= 100 ? Math.round(v * 10) / 10 : base[n]; });
+  pts[5] = hw ? HW_MAX_PTS : 0;
+  return { hw, pts };
+}
+export const pyTasks = (topic, ses) => { const k = Object.keys(PY_MAXS[String(topic)] || PY_MAX).map(Number), c = ses ? cfgOf({ ...ses, topic: String(topic) }) : null; return c && !c.hw ? k.filter(n => n !== 5) : k; };
+export const maxesOf = (topic, ses) => { const c = ses ? cfgOf({ ...ses, topic: String(topic) }) : null; return c ? c.pts : PY_MAXS[String(topic)] || PY_MAX; };
+/* кодтың/тесттің ұпайларын тапсырма салмағына сәйкес пропорционалды түрде масштабтау */
+function scaleTasks(tasks, pts, def) {
+  const same = m => m && Object.keys(m).every(n => m[n] === pts[n]), tab = def && def.itemPts && (same(def.noHw) ? def.itemPts.noHw : same(def.withHw) ? def.itemPts.withHw : null);
+  if (tab) { tasks.forEach(t => { const a = tab[t.n]; if (a && a.length === t.items.length) t.items.forEach((i, k) => { i.max = a[k]; }); }); return tasks; }
+  tasks.forEach(t => { const sum = t.items.reduce((a, i) => a + i.max, 0), target = pts[t.n]; if (target === undefined || !sum) return; const k = target / sum; t.items.forEach(i => { i.max = Math.round(i.max * k * 100) / 100; }); });
+  return tasks;
+}
 export const REV = { code: 0.7, quiz: 0.5 };          /* қайта жіберу арқылы қайтарылатын жоғалған баллдың үлесі */
 export const REV_TRIES = { code: 3, quiz: 1 };        /* қайта жіберу әрекеттерінің саны */
 export const REVISE_MIN = 15;                         /* жұмыс біткен соң қатемен жұмысқа берілетін минут */
-export const reviseMin = topic => (String(topic) === 'P4' ? 10 : REVISE_MIN);   /* 4-сабақта 90 минутқа сыю үшін 10 минут */
-export const PY_TOPICS = ['P4', 'P7', 'P8'];
+export const reviseMin = topic => (['P4', 'P9', 'P10'].includes(String(topic)) || /^D\d+$/.test(String(topic)) ? 10 : REVISE_MIN);   /* 4-сабақта 90 минутқа сыю үшін 10 минут */
+export const PY_TOPICS = ['P4', 'P7', 'P8', 'P9', 'P10', 'P12'];
+export const WIN_TOPICS = ['P4', 'P9', 'P10', 'P12'];   /* әр тапсырма жеке басталатын сабақтар */
+export const isWin = t => WIN_TOPICS.includes(String(t));
 export const isPy = t => PY_TOPICS.includes(String(t));
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -24,6 +49,7 @@ export function shuffle(arr, seed) { const R = rng(seed), a = arr.slice(); for (
 
 /* ---------- Дағдылар және кеңестер ---------- */
 export const SKILLS = {
+  ...P12_SKILLS,
   syntax: { name: 'Синтаксис: қос нүкте және шегініс', tip: 'if шартынан кейін қос нүкте (:) қойылады, ал шарт орындалатын жолдар 4 бос орынға (Tab) ығыстырылып жазылады.' },
   compare: { name: 'Салыстыру амалдары', tip: 'Теңдікті == тексереді, ал = айнымалыға мән береді. Салыстыру таңбалары: >, <, >=, <=, ==, !=.' },
   input: { name: 'Енгізуді санға айналдыру', tip: 'input() әрдайым мәтін қайтарады. Санмен салыстыру немесе есептеу үшін int(input()) жазу керек.' },
@@ -36,7 +62,7 @@ export const SKILLS = {
   elif: { name: 'elif арқылы көп шарт', tip: 'Бірнеше шартты if → elif → else тізбегімен жаз. «else if» емес, тек elif деп жазылады. Python бірінші True шартта тоқтайды.' },
   order: { name: 'Шарттар реті', tip: 'Шарттар жоғарыдан төмен тексеріледі. Қатаң шартты (мысалы, >= 90) бірінші қой, әйтпесе жеңілірек шарт (>= 50) оны жауып кетеді. Бөлек if-тер бір-біріне тәуелсіз тексеріледі.' },
   logic: { name: 'Логика және есептеу', tip: 'Формуланы қағазда бір санмен тексеріп көр, содан кейін кодқа аудар.' },
-  ...OP_SKILLS
+  ...OP_SKILLS, ...P9_SKILLS, ...P10_SKILLS
 };
 
 /* ---------- Мәтінді салыстыру ---------- */
@@ -47,6 +73,11 @@ const near = (a, b) => Math.abs(a - b) <= Math.max(0.011, Math.abs(b) * 0.0006);
 /* Бір тест жағдайы: шығыста күтілген хабарлама/сандар бар, тыйым салынғандар жоқ, қате болмауы керек */
 export function checkCase(c, res) {
   if (res.err) return false;
+  if (c.strictLines) {
+    const clean = value => String(value).trim().replace(/[ \t]+/g, ' ');
+    const lines = String(res.out || '').split(/\r?\n/).map(clean).filter(Boolean);
+    return lines.length === c.exp.length && c.exp.every((value, index) => lines[index] === clean(value));
+  }
   const out = String(res.out || ''), lines = out.split(/\r?\n/).map(norm).filter(Boolean), nums = numsOf(out);
   const has = e => typeof e === 'number' ? nums.some(v => near(v, e)) : lines.some(l => l.includes(norm(e)));
   return (c.exp || []).every(has) && !(c.not || []).some(has);
@@ -168,7 +199,10 @@ export function lessonP7(variant) {
   T.forEach(t => t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') { it.cases.forEach(c => { c.in = c.in.map(String); }); } }));
   return T;
 }
-export function lessonOf(topic, variant, pv) {
+export function lessonOf(topic, variant, pv, ses) {
+  if (String(topic) === 'P12') return buildP12();
+  if (NEW_LESSONS[String(topic)]) { const c = cfgOf({ ...(ses || {}), topic: String(topic) }); return scaleTasks(NEW_LESSONS[String(topic)].build(variant, { rng, shuffle }), c.pts, NEW_LESSONS[String(topic)].def).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') it.cases.forEach(c2 => { c2.in = c2.in.map(String); }); }); return t; }); }
+
   if (String(topic) === 'P4') return buildP4(variant, { rng, shuffle }).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind === 'code') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; });
   return String(topic) === 'P8' ? buildP8(variant, { rng, pick, shuffle }, pv).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; }) : lessonP7(variant);
 }
@@ -176,9 +210,9 @@ export function itemOf(variant, id) { for (const t of lessonP7(variant)) for (co
 export const allItemIds = () => lessonP7(1).flatMap(t => t.items.map(i => i.id));
 
 /* Студентке жіберілетін көрініс: тест жағдайлары мен дұрыс жауап жасырылады */
-export function publicLesson(variant, seedBase, topic = 'P7', pv) {
-  return lessonOf(topic, variant, pv).map(t => ({ n: t.n, title: t.title, info: t.info || '', pair: !!t.pair, items: t.items.map(it => {
-    if (it.typed) return { id: it.id, task: it.task, kind: 'quiz', typed: true, max: it.max, title: it.title, q: it.q, code: it.code || '', diff: '', opts: [] };
+export function publicLesson(variant, seedBase, topic = 'P7', pv, ses) {
+  return lessonOf(topic, variant, pv, ses).map(t => ({ n: t.n, title: t.title, info: t.info || '', pair: !!t.pair, items: t.items.map(it => {
+    if (it.typed) return { id: it.id, task: it.task, kind: 'quiz', typed: true, max: it.max, title: it.title, q: it.q, code: it.code || '', diff: it.diff || '', opts: [] };
     if (it.kind === 'quiz') return { id: it.id, task: it.task, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
     return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, tag: it.tag || '', text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length, fig: it.fig || '', formula: it.formula || '' };
   }) }));
@@ -300,6 +334,22 @@ export async function execCases(run, code, cases) {
 /* Кодтағы талап: and болмауы және кірістірілген if болуы */
 export function stripCode(code) { return String(code || '').replace(/#.*$/gm, '').replace(/("""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/g, '""'); }
 export function constraintOk(item, code) {
+  if (item.constraint === 'for-range' || item.constraint === 'for-if') {
+    const lines = stripCode(code).replace(/\t/g, '    ').split(/\r?\n/).filter(line => line.trim());
+    const loops = lines.map((line, index) => ({ match: /^( *)for\s+.+?\s+in\s+range\s*\(/.exec(line), index })).filter(loop => loop.match);
+    if (!loops.length) return { ok: false, text: 'Есепті for және range() арқылы орында.', skill: 'loop_range' };
+    if (item.constraint === 'for-if') {
+      const inside = loops.some(({ match, index }) => {
+        for (const line of lines.slice(index + 1)) {
+          if (line.length - line.trimStart().length <= match[1].length) break;
+          if (/^\s*if\b/.test(line)) return true;
+        }
+        return false;
+      });
+      if (!inside) return { ok: false, text: 'if шартын for циклінің ішінде жаз. Ол әр санға тексерілуі керек.', skill: 'loop_filter' };
+    }
+    return { ok: true };
+  }
   if (item.constraint === 'else' || item.constraint === 'elif') {
     const t = stripCode(code), hasElse = /^\s*else\s*:/m.test(t), hasElif = /^\s*elif\b/m.test(t);
     if (item.constraint === 'else' && !hasElse) return { ok: false, text: 'Талап бұзылған: есепті if–else арқылы жаз. else: блогы жоқ.', skill: 'ifelse' };
@@ -321,9 +371,10 @@ export function constraintOk(item, code) {
 function explainSyntax(s) {
   const m = String(s.msg || ''), line = s.line ? s.line + '-жол' : '';
   const where = (line ? line + ': ' : '') + (s.text ? '«' + String(s.text).trim().slice(0, 60) + '». ' : '');
-  if (/expected ':'/.test(m) || (/invalid syntax/.test(m) && /^\s*(if|elif|else|while|for)\b[^:]*$/.test(s.text || ''))) return { skill: 'syntax', text: where + 'Шарттың соңында қос нүкте (:) жоқ. if жолы қос нүктемен аяқталуы керек.' };
-  if (/expected an indented block/.test(m) || s.type === 'IndentationError' && /indent/.test(m) && !/unindent|unexpected/.test(m)) return { skill: 'syntax', text: where + 'if-тен кейінгі жол шегіністе болуы керек: оны 4 бос орынға (Tab) ығыстыр.' };
+  if (/expected ':'/.test(m) || (/invalid syntax/.test(m) && /^\s*(if|elif|else|while|for)\b[^:]*$/.test(s.text || ''))) return { skill: 'syntax', text: where + 'Блокты бастайтын жолдың соңына қос нүкте (:) қой.' };
+  if (/expected an indented block/.test(m)) return { skill: 'syntax', text: where + 'Блок ішіндегі жолдың шегінісін алдыңғы деңгейден 4 бос орынға арттыр.' };
   if (/unexpected indent/.test(m)) return { skill: 'syntax', text: where + 'Бұл жолда артық шегініс бар. Шегіністі алып таста.' };
+  if (s.type === 'IndentationError' || s.type === 'TabError') return { skill: 'syntax', text: where + 'Бұл жолдың шегінісі блок деңгейіне сәйкес келмейді. Бір блоктағы жолдарды бір деңгейге турала. Шегініс үшін бос орын қолдан.' };
   if (/Maybe you meant '=='|cannot assign|invalid syntax.*=/.test(m) || /\bif\b[^=!<>]*[^=!<>]=[^=]/.test(s.text || '')) return { skill: 'compare', text: where + 'Шартта теңдікті тексеру үшін == жазылады. Бір = таңбасы — айнымалыға мән беру.' };
   return { skill: 'syntax', text: where + 'Синтаксис қатесі: ' + m + '. Жақшаның, тырнақшаның және қос нүктенің дұрыс қойылғанын тексер.' };
 }
@@ -333,6 +384,7 @@ function explainRuntime(e) {
   if (t === 'TypeError' && /not supported between/.test(m)) return { skill: 'input', text: ln + 'input() мәтін қайтарады, ал мәтінді санмен салыстыруға болмайды. int(input()) жазып, енгізуді санға айналдыр.' };
   if (t === 'TypeError') return { skill: 'input', text: ln + 'Түрлері сәйкес емес амал: ' + m.slice(0, 80) + '. Сан мен мәтінді араластырма, енгізуді int() арқылы санға айналдыр.' };
   if (t === 'NameError') return { skill: 'logic', text: ln + 'Анықталмаған айнымалы: ' + (/'(.+)'/.exec(m) || [, '?'])[1] + '. Айнымалыны қолданбай тұрып оған мән бер, жазылуын тексер.' };
+  if (t === 'ValueError' && /range\(\) arg 3 must not be zero/.test(m)) return { skill: 'loop_step', text: ln + 'range() қадамы 0 бола алмайды. Өсуге оң, кемуге теріс қадам таңда.' };
   if (t === 'ValueError') return { skill: 'input', text: ln + 'int() ішіне сан емес мән түсті. input() ішіне түсініктеме мәтінін жазбай, int(input()) қолдан.' };
   if (t === 'EOFError') return { skill: 'input', text: 'Бағдарлама тапсырмада айтылғаннан көп input() сұрап тұр. Енгізулер санын тексер.' };
   if (t === 'ZeroDivisionError') return { skill: 'logic', text: ln + 'Нөлге бөлуге болмайды.' };
@@ -350,6 +402,7 @@ export function diagnose(item, code, exec, results) {
   const con = constraintOk(item, code); if (!con.ok) add({ skill: con.skill, text: con.text });
   const H = item.hints || {};
   bad.filter(b => !b.r.err).forEach(b => {
+    if (b.c.strictLines) { if (H.under) add({ skill: item.skills[0], text: H.under }); return; }
     if (item.arith) { const sk = item.skills[0]; if (b.c.tag === 'edge' && H.edge) add({ skill: sk, text: H.edge }); else if (H.under) add({ skill: sk, text: H.under }); return; }
     const c = b.c, shouldPrint = (c.exp || []).length > 0, printed = String(b.r.out || '').trim().length > 0;
     if (c.tag === 'edge' && H.edge) add({ skill: 'boundary', text: H.edge });
@@ -388,6 +441,16 @@ export async function gradeCodeItems(run, list) {
 }
 
 export function gradeQuizItem(item, choice) {
+  if (Array.isArray(item.accepted)) {
+    const normalize = value => {
+      const text = String(value ?? '').trim().normalize('NFC').toLocaleLowerCase('kk');
+      if (item.answerFormat === 'numbers') return text.replace(/−/g, '-').split(/[\s,]+/).filter(Boolean).join(' ');
+      return text.replace(/\s+/g, ' ');
+    };
+    const correct = item.accepted.some(answer => normalize(answer) === normalize(choice));
+    const frac = correct ? 1 : 0;
+    return { frac, passed: frac, total: 1, cases: [], diag: correct ? [] : [{ skill: item.skills?.[0] || 'logic', text: item.why }], quiz: true, typed: true };
+  }
   if (item.typed) return gradeTyped(item, choice);
   const ok = Number(choice) === item.correct;
   return { frac: ok ? 1 : 0, passed: ok ? 1 : 0, total: 1, cases: [], diag: ok ? [] : [{ skill: item.skills[0], text: item.why }], quiz: true };

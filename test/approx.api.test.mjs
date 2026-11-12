@@ -28,8 +28,18 @@ let me = (await call('me', {}, t1)).j; ok(me.ok && me.variant === 1 && me.data &
 ok(!JSON.stringify(me).includes('"one"'), 'дұрыс жауап студентке көрінбейді');
 r = await call('task/start', { body: { task: 1 } }, t1); ok(r.s === 403 && r.j.error === 'not_started', 'жұмыс басталмай тапсырма жоқ');
 r = await T('session/work', { body: { minutes: 35 } }); ok(r.j.ok, 'оқытушы жұмысты бастады (35 мин)');
+await T('session/stopwork', { body: {} });
+r = await call('task/start', { body: { task: 1 } }, t1); ok(r.s === 403 && r.j.error === 'work_stopped', 'оқытушы тоқтатқанда жаңа тапсырма басталмайды');
+await T('session/work', { body: { minutes: 35 } });
 r = await call('submit', { body: { task: 1, payload: { code: 'print(1)', lang: 'python' }, signals: {} } }, t1); ok(r.j.error === 'task_not_started', 'бастамай жіберуге болмайды');
 r = await call('task/start', { body: { task: 1 } }, t1); ok(r.j.ok && [1, 2, 3].every(n => r.j.tasks[n].started_at && r.j.tasks[n].limit === 35), 'бір «Бастау» үш тапсырманы да бастайды (35 мин)');
+await T('session/stopwork', { body: {} });
+r = await call('submit', { body: { task: 1, payload: { code: 'print(1)', lang: 'python' }, signals: { pasted: 40 } } }, t1); ok(r.s === 403 && r.j.error === 'work_stopped', 'оқытушы тоқтатқанда басталған тапсырма жіберілмейді');
+me = (await call('me', {}, t1)).j;
+ok(me.session.work_stopped_at && !me.tasks[1].sent, 'тоқтату күйі көрінеді, жауап сақталмады');
+await T('session/work', { body: { minutes: 5, extend: true } });
+me = (await call('me', {}, t1)).j;
+ok(!me.session.work_stopped_at && me.tasks[1].started_at, 'жұмысты жалғастырғанда бұрынғы бастау уақыты сақталады');
 
 const py1 = v => { const d = data7(v).t1; return 'x0 = ' + d.x0 + '\ny0 = ' + d.y0 + '\nx1 = ' + d.x1 + '\ny1 = ' + d.y1 + '\nx = ' + d.x + '\nk = (y1 - y0) / (x1 - x0)\np = y0 + k * (x - x0)\nprint(k)\nprint(p)\n'; };
 console.log('Дұрыс код → автоматты балл');

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Курс студиясы</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/studio-lesson.css?v=2">
+<link rel="stylesheet" href="studio.css?v=3">
+</head>
+<body>
+<div id="app" class="st-app" data-view="write">
+  <header class="st-top">
+    <a class="st-back" href="index.html" aria-label="Оқытушы панеліне оралу"><span class="st-mark" aria-hidden="true">▱</span><span class="st-hide-m">Курс студиясы</span></a>
+    <input id="title" class="st-title" type="text" maxlength="120" placeholder="Сабақ атауы" aria-label="Сабақ атауы" disabled>
+    <span id="saveState" class="st-save" role="status" aria-live="polite"></span>
+    <button id="bUndo" class="st-btn" type="button" title="Қайтару (Ctrl+Z)" disabled>↶</button>
+    <button id="bRedo" class="st-btn" type="button" title="Қайталау (Ctrl+Shift+Z)" disabled>↷</button>
+    <button id="bVers" class="st-btn" type="button" disabled>Нұсқалар</button>
+    <button id="bPreview" class="st-btn" type="button" aria-pressed="false">Алдын ала қарау</button>
+    <button id="bPub" class="st-btn st-primary" type="button" disabled>Жариялау</button>
+  </header>
+  <aside class="st-side" aria-label="Пәндер мен сабақтар">
+    <div class="st-side-head"><h2>Курс құрылымы</h2><input id="lessonSearch" class="st-field" type="search" placeholder="Сабақ іздеу" aria-label="Курс пен сабақты іздеу"><div class="st-side-actions"><button id="newCourse" class="st-btn" type="button">+ Курс</button><button id="templates" class="st-btn" type="button">Сабақ үлгілері</button></div></div>
+    <div id="side"></div>
+  </aside>
+  <main id="edit" class="st-edit" aria-label="Редактор"><div class="st-empty"><b>Сабақ таңдаңыз</b><span>Сол жақтан сабақты ашыңыз не жаңа сабақ жасаңыз.</span></div></main>
+  <section id="prev" class="st-prev" aria-label="Телефонда қалай көрінеді">
+    <div class="st-prev-head"><h2>Студентке көрінісі</h2><button id="bClosePreview" class="st-btn" type="button" aria-label="Редакторға қайту">←</button></div>
+    <div class="st-prev-bar"><button id="bPhone" class="st-chip on" type="button">Телефон</button><button id="bWide" class="st-chip" type="button">Кең экран</button><a id="bOpen" class="st-chip" href="#" target="_blank" rel="noopener" hidden>Ашу ↗</a></div>
+    <div id="frameBox" class="st-frame phone"><iframe id="frame" title="Алдын ала қарау" sandbox="allow-same-origin allow-popups"></iframe></div>
+    <div id="readiness" class="st-readiness" hidden></div>
+  </section>
+  <nav class="st-tabs" aria-label="Көрініс">
+    <button type="button" data-v="side">Сабақтар</button><button type="button" data-v="write" class="on">Жазу</button><button type="button" data-v="prev">Көрініс</button>
+  </nav>
+</div>
+<div id="dlg" class="st-dlg" hidden role="dialog" aria-modal="true"><div class="st-dlg-box" id="dlgBox"></div></div>
+<div id="toast" class="st-toast" role="status" hidden></div>
+<script src="../assets/lesson-core.js"></script>
+<script src="../assets/code-editor.js?v=20261108-studio"></script>
+<script src="studio-tasks.js?v=2"></script>
+<script type="module" src="studio.js?v=3"></script>
+</body>
+</html>

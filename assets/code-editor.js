@@ -204,10 +204,13 @@ function create(host, o){
   ta.addEventListener('scroll', () => { sync(); closePop(); });
   /* қою да, сүйреп әкелу де өшірулі */
   const blocked = (n, why) => { stats.paste++; stats.pasted += n; if (o.onBlocked) o.onBlocked(n, why); };
-  ta.addEventListener('paste', e => { e.preventDefault(); blocked(((e.clipboardData && e.clipboardData.getData('text')) || '').length, 'paste'); });
-  ta.addEventListener('drop', e => { e.preventDefault(); blocked(((e.dataTransfer && e.dataTransfer.getData('text')) || '').length, 'drop'); });
-  ta.addEventListener('dragover', e => e.preventDefault());
+  if (!o.allowPaste) {
+    ta.addEventListener('paste', e => { e.preventDefault(); blocked(((e.clipboardData && e.clipboardData.getData('text')) || '').length, 'paste'); });
+    ta.addEventListener('drop', e => { e.preventDefault(); blocked(((e.dataTransfer && e.dataTransfer.getData('text')) || '').length, 'drop'); });
+    ta.addEventListener('dragover', e => e.preventDefault());
+  }
   ta.addEventListener('beforeinput', e => {
+    if (o.allowPaste) return;
     if (progr) return;
     if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop' || e.inputType === 'insertFromYank'){ e.preventDefault(); blocked((e.data || '').length || 1, e.inputType); }
     else if (e.inputType === 'insertText' && (e.data || '').length > 30){ e.preventDefault(); blocked(e.data.length, 'big'); }

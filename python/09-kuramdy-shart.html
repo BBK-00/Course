@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9-тақырып: құрамды шарттар (and, or, not) — Python</title>
+<meta name="description" content="Python-да and, or, not операторлары, ақиқат кестесі, шарттардың орындалу реті. Интерактивті мысалдар, қатені табу және кодты өзің орындайтын компилятор.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson4.css?v=20261106-compact">
+<link rel="stylesheet" href="../assets/py-lesson9.css?v=20261108">
+<link rel="stylesheet" href="../assets/student.css?v=20261111">
+<link rel="stylesheet" href="../assets/python-practice.css?v=1">
+</head>
+<body class="student-lesson pl p4 p9">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>9</i><span>Құрамды шарттар</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button type="button" role="tab" data-tab="teo" class="on">1 Түсіндіру</button>
+    <button type="button" role="tab" data-tab="task">2 Тапсырмалар</button>
+    <button type="button" role="tab" data-tab="sum">3 Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+
+<section class="pl-pane" id="teo" data-pane="teo">
+  <div class="pl-card p4-hero">
+    <div class="pl-hero">
+      <div class="pl-video"><div class="p4-player" id="pHero" role="region" aria-label="Қысқаша анимация"></div></div>
+      <div class="pl-goals">
+        <h1>Құрамды шарттар: and, or, not</h1>
+        <p>Бір if ішінде бірнеше шартты қатар тексеруді үйренесің.</p>
+        <div class="pl-goal"><b>1</b>and, or, not операторларын және ақиқат кестесін білесің.</div>
+        <div class="pl-goal"><b>2</b>Шарттардың орындалу ретін түсінесің.</div>
+        <div class="pl-goal"><b>3</b>Шартты дұрыс жазып, қатені табасың.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">1</span>and, or, not және ақиқат кестесі</h2>
+    <p class="pl-lead">Бұл бөлімде үш логикалық оператормен танысасың. Кілттерді бас: A мен B мәнін ауыстырып, шамның қашан жанатынын көр.</p>
+    <div id="pTruth"></div>
+    <div class="p9-tip"><b>Жиі қате:</b> <code>x == 1 or 2</code> деп жазуға болмайды: <code>2</code> әрқашан ақиқат. Дұрысы: <code>x == 1 or x == 2</code>.</div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">2</span>Координата ширегі</h2>
+    <p class="pl-lead">Бұл бөлімде құрамды шартты нақты есепте қолданасың. Нүктені таңда, қай шарттың ақиқат болғанын және код қай жолдардан өткенін көр.</p>
+    <div id="pPlane"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Қатені тап</h2>
+    <p class="pl-lead">Міндетті оқы, терминалдағы нәтижені күткенімен салыстыр да, қате жолды бас.</p>
+    <div id="pBug"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">4</span>Кодты өзің орында</h2>
+    <div id="pPlay"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">5</span>Қысқаша қорытынды</h2>
+    <ul class="p4-recap">
+      <li><span><code>and</code>: екі шарт та ақиқат болса ғана <code>True</code>. <code>or</code>: біреуі ақиқат болса да <code>True</code>. <code>not</code>: мәнді керісінше өзгертеді.</span></li>
+      <li><span>Тексеру реті: салыстыру → <code>not</code> → <code>and</code> → <code>or</code>. Күмән болса, жақша қой.</span></li>
+      <li><span>Аралық: <code>7 &lt;= age and age &lt;= 17</code>. Аралықтан тыс: <code>x &lt; 10 or x &gt; 100</code>.</span></li>
+      <li><span>Әр шартты толық жаз: <code>x == 1 or x == 2</code>, ал <code>x == 1 or 2</code> қате.</span></li>
+      <li><span>if, elif, else жолдары қос нүктемен аяқталады, ал ішкі код төрт бос орынмен ішке жазылады.</span></li>
+    </ul>
+  </div>
+
+  <div class="pl-next"><button type="button" class="btn primary big" data-go="task">Тапсырмаларға өту →</button></div>
+</section>
+
+<section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
+  <div class="pp-practice" data-python-practice="9"></div>
+</section>
+
+<section class="pl-pane" id="sum" data-pane="sum" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Өзіндік нәтиже</h2>
+    <p data-practice-summary role="status"></p>
+    <button type="button" class="btn primary" data-go="task">Тапсырмаларға қайту</button>
+  </div>
+</section>
+</main>
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+
+<script src="../assets/lesson-core.js?v=20261111"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-bool.js"></script>
+<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/py-demos-common.js?v=20261111-practice"></script>
+<script src="../assets/py-demos9.js?v=20261108"></script>
+<script>
+(function(){
+const { $ } = L;
+const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
+function go(id, push){
+  if (id.startsWith('pp-')) id = 'task';
+  if (!panes.some(p => p.id === id)) id = 'teo';
+  panes.forEach(p => { p.hidden = p.id !== id; });
+  tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  if (push !== false) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
+}
+tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+go((location.hash || '').slice(1), false);
+PyDemos9.mount({ hero:$('#pHero'), truth:$('#pTruth'), plane:$('#pPlane'), bug:$('#pBug'), play:$('#pPlay') });
+})();
+</script>
+</body>
+</html>

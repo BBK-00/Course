@@ -41,7 +41,7 @@
     const ring=h('div',{class:'va-ring',role:'img','aria-label':report.first+' бірден дұрыс, '+report.fixed+' түзетілді, '+report.wrong+' қате қалды',style:report.answers?'background:conic-gradient(#319581 0 '+pct+'%,#5c83e8 '+pct+'% '+(pct+fixPct)+'%,#edab57 '+(pct+fixPct)+'% 100%)':''},h('div',{},[h('strong',{text:report.answers||'—'}),h('small',{text:'жауап'})]));
     summary.append(h('div',{class:'va-ring-row'},[ring,h('div',{class:'va-totals'},[['first',report.first,'Бірден дұрыс'],['fixed',report.fixed,'Кейін түзетілді'],['wrong',report.wrong,'Қате қалды']].map(([cls,n,label])=>h('div',{},[h('i',{class:cls}),h('b',{text:n}),h('span',{text:label})])))]));
     if(data.ops?.length){
-      summary.append(h('h3',{class:'va-small-title',text:'7 амал · алғашқы жауаптардың дұрыстығы'}));
+      summary.append(h('h3',{class:'va-small-title',text:(data.ops.length===7?'7 амал':'Концепттер')+' · алғашқы жауаптардың дұрыстығы'}));
       const ops=h('div',{class:'va-ops'});
       data.ops.forEach(o=>{const col=h('div',{title:o.name+' · '+(o.answers?o.correct+'/'+o.answers+' дұрыс':'әлі жауап жоқ')},[h('small',{text:o.answers?o.pct+'%':'—'}),h('div',{class:'va-op-track'},h('i',{style:'height:'+(o.pct||0)+'%;background:'+(o.pct>=75?'#319581':o.pct>=50?'#5c83e8':'#edab57')})),h('b',{text:o.sym})]);ops.append(col);});summary.append(ops);
     }

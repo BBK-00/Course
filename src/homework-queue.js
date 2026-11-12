@@ -12,7 +12,7 @@ export async function drainHomeworkQueue(env, options={}){
     await DB.prepare("INSERT OR IGNORE INTO homework_queue(job_id,session_id,student_id,status,created_at,next_at) SELECT job_id,session_id,student_id,'queued',started_at,? FROM py_hw_uploads WHERE status='queued' OR (status='checking' AND updated_at<?) OR (status='error' AND COALESCE(error_kind,'')!='image')").bind(now(),now()-90).run();
     await DB.prepare("UPDATE py_hw_uploads SET status='queued' WHERE job_id IN (SELECT job_id FROM homework_queue WHERE status='queued')").run();
     while(Date.now()-began<(options.budgetMs??12000)){
-      const q=await DB.prepare("SELECT q.*,u.photo,u.mime FROM homework_queue q JOIN students st ON st.id=q.student_id JOIN sessions se ON se.id=q.session_id JOIN py_hw_uploads u ON u.job_id=q.job_id AND u.session_id=q.session_id AND u.student_id=q.student_id WHERE q.status='queued' AND q.next_at<=? ORDER BY q.created_at,q.job_id LIMIT 1").bind(now()).first();
+      const q=await DB.prepare("SELECT q.*,u.photo,u.mime,se.topic FROM homework_queue q JOIN students st ON st.id=q.student_id JOIN sessions se ON se.id=q.session_id JOIN py_hw_uploads u ON u.job_id=q.job_id AND u.session_id=q.session_id AND u.student_id=q.student_id WHERE q.status='queued' AND q.next_at<=? ORDER BY q.created_at,q.job_id LIMIT 1").bind(now()).first();
       if(!q)break;
       await DB.batch([
         DB.prepare('UPDATE homework_queue_lock SET until_at=? WHERE id=1 AND owner=?').bind(now()+90,owner),
@@ -20,7 +20,7 @@ export async function drainHomeworkQueue(env, options={}){
         DB.prepare("UPDATE py_hw_uploads SET status='checking',updated_at=? WHERE job_id=?").bind(now(),q.job_id)
       ]);
       let grade;
-      try{grade=await(options.grade||gradeHomeworkPhoto)(env,q.photo,q.mime,{budgetMs:12000,timeoutMs:4000});}
+      try{grade=await(options.grade||gradeHomeworkPhoto)(env,q.photo,q.mime,{budgetMs:12000,timeoutMs:4000,topic:q.topic});}
       catch(e){
         const terminal=e.kind==='image',delay=e.kind==='quota'?60:Math.min(300,15*2**Math.min(q.tries,5));
         await DB.batch([

@@ -41,6 +41,8 @@ g = await gradeCodeItem(run, A, A.ref.replace('>=', '='));
 ok(g.syntax && g.diag[0].skill === 'compare', '= орнына == → «салыстыру» түсініктемесі: ' + (g.diag[0] || {}).text);
 g = await gradeCodeItem(run, A, 'age = int(input())\nif age >= 1:\nprint("x")\n');
 ok(g.syntax && /шегініс/.test(g.diag[0].text), 'шегініс жоқ → шегініс түсініктемесі');
+g = await gradeCodeItem(run, A, 'age = int(input())\nif age >= 1:\n    print("x")\n  print("y")\n');
+ok(g.syntax && g.diag[0].text.includes('бір деңгейге турала'), 'шегініс сәйкес емес → жолдарды туралау кеңесі');
 g = await gradeCodeItem(run, A, 'print("Жеке куәлік алуға болады")');
 ok(g.frac < 1 && g.passed > 0, 'шартсыз print: бір бөлігі ғана өтеді (' + g.passed + '/' + g.total + ')');
 g = await gradeCodeItem(run, A, 'while True:\n    pass\n');

@@ -1,6 +1,9 @@
 /* Кестелер бірінші сұраныста өзі жасалады (IF NOT EXISTS), қолмен миграция қажет емес. */
 export const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS groups ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE )",
+  "CREATE TABLE IF NOT EXISTS progress_courses (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE RESTRICT, course TEXT NOT NULL, subject TEXT NOT NULL, year INTEGER NOT NULL, threshold INTEGER NOT NULL, sheet TEXT NOT NULL, UNIQUE(group_id, course, subject, year))",
+  "CREATE TABLE IF NOT EXISTS progress_imports (id INTEGER PRIMARY KEY AUTOINCREMENT, course_id INTEGER NOT NULL REFERENCES progress_courses(id) ON DELETE RESTRICT, created_at INTEGER NOT NULL, entries TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS idx_progress_imports_course ON progress_imports(course_id, id)",
   "CREATE TABLE IF NOT EXISTS students ( id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE, full_name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1 )",
   "CREATE INDEX IF NOT EXISTS idx_students_group ON students(group_id)",
   "CREATE TABLE IF NOT EXISTS sessions ( id INTEGER PRIMARY KEY AUTOINCREMENT, topic TEXT NOT NULL, code TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, work_started_at INTEGER, work_until INTEGER )",
@@ -27,5 +30,12 @@ export const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS py_pairs ( id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, a_id INTEGER NOT NULL, b_id INTEGER, created_at INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0, try_at INTEGER, last TEXT, open_at INTEGER, hints INTEGER, UNIQUE (session_id, a_id) )",
   "CREATE INDEX IF NOT EXISTS idx_py_pairs_b ON py_pairs(session_id, b_id)",
   "CREATE TABLE IF NOT EXISTS py_hw ( session_id INTEGER NOT NULL, student_id INTEGER NOT NULL, photo TEXT NOT NULL, mime TEXT NOT NULL, score REAL NOT NULL, comment TEXT, attempts INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (session_id, student_id) )",
-  "CREATE TABLE IF NOT EXISTS py_wins ( session_id INTEGER NOT NULL, task INTEGER NOT NULL, start_at INTEGER NOT NULL, until_at INTEGER NOT NULL, PRIMARY KEY (session_id, task) )"
+  "CREATE TABLE IF NOT EXISTS py_wins ( session_id INTEGER NOT NULL, task INTEGER NOT NULL, start_at INTEGER NOT NULL, until_at INTEGER NOT NULL, PRIMARY KEY (session_id, task) )",
+  "CREATE TABLE IF NOT EXISTS subjects (id TEXT PRIMARY KEY, title TEXT NOT NULL, icon TEXT, ord INTEGER NOT NULL DEFAULT 0)",
+  "CREATE TABLE IF NOT EXISTS lessons (id INTEGER PRIMARY KEY AUTOINCREMENT, subject TEXT NOT NULL, slug TEXT NOT NULL, title TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft', blocks TEXT NOT NULL DEFAULT '[]', tasks TEXT NOT NULL DEFAULT '[]', cfg TEXT, topic_num INTEGER, pub_title TEXT, pub_blocks TEXT, pub_tasks TEXT, ord INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, published_at INTEGER)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_lessons_slug ON lessons(subject, slug)",
+  "CREATE TABLE IF NOT EXISTS lesson_versions (lesson_id INTEGER NOT NULL, ver INTEGER NOT NULL, title TEXT, blocks TEXT, tasks TEXT, label TEXT, at INTEGER NOT NULL, PRIMARY KEY (lesson_id, ver))",
+  "CREATE TABLE IF NOT EXISTS media (id INTEGER PRIMARY KEY AUTOINCREMENT, r2_key TEXT NOT NULL, mime TEXT NOT NULL, bytes INTEGER NOT NULL, alt TEXT, created_at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS topic_meta (subject TEXT NOT NULL, num INTEGER NOT NULL, title TEXT, descr TEXT, PRIMARY KEY (subject, num))",
+  "CREATE TABLE IF NOT EXISTS page_edits (path TEXT PRIMARY KEY, edits TEXT NOT NULL, updated_at INTEGER NOT NULL)"
 ];

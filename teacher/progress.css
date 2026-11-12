@@ -1,0 +1,87 @@
+#s-progress.on,
+.progress-content {
+  display: grid;
+  gap: 16px;
+}
+.progress-toolbar,
+.progress-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+.progress-fields > label {
+  flex: 1 1 155px;
+}
+.progress-toolbar > .field {
+  max-width: 100%;
+}
+.progress-card > h2 {
+  margin: 0 0 8px;
+}
+.progress-card > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.progress-form,
+.progress-field {
+  display: grid;
+  gap: 8px;
+}
+.progress-field > span {
+  font-size: .85rem;
+  font-weight: 600;
+}
+.progress-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 8px 0;
+  resize: vertical;
+}
+.progress-stat {
+  margin: 6px 0 12px;
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+.progress-preview:not(:empty) {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+.progress-table {
+  margin: 12px 0;
+  overflow: auto;
+}
+.progress-table td {
+  text-align: left;
+}
+.progress-chart {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding: 10px 0 24px;
+}
+.progress-bar {
+  position: relative;
+  display: flex;
+  align-items: end;
+  height: 100px;
+  min-width: 40px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+.progress-bar-fill {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  background: #3159cf;
+}
+.progress-bar span {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 3px;
+  text-align: center;
+  font-size: 11px;
+}

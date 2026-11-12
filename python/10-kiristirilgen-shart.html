@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10-тақырып: кірістірілген шарттар — Python</title>
+<meta name="description" content="Python-да кірістірілген if, else қай if-ке жататыны, шегініс ережесі. Интерактивті мысалдар, қатені табу және компилятор.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson4.css?v=20261106-compact">
+<link rel="stylesheet" href="../assets/py-lesson9.css?v=20261108">
+<link rel="stylesheet" href="../assets/student.css?v=20261111">
+<link rel="stylesheet" href="../assets/python-practice.css?v=1">
+</head>
+<body class="student-lesson pl p4 p9 p10">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>10</i><span>Кірістірілген шарттар</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button type="button" role="tab" data-tab="teo" class="on">1 Түсіндіру</button>
+    <button type="button" role="tab" data-tab="task">2 Тапсырмалар</button>
+    <button type="button" role="tab" data-tab="sum">3 Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+
+<section class="pl-pane" id="teo" data-pane="teo">
+  <div class="pl-card p4-hero">
+    <div class="pl-hero">
+      <div class="pl-video"><div class="p4-player" id="pHero" role="region" aria-label="Қысқаша анимация"></div></div>
+      <div class="pl-goals">
+        <h1>Кірістірілген шарттар</h1>
+        <p>Шарттың ішіне шарт жазуды және көп сатылы шешім қабылдауды үйренесің.</p>
+        <div class="pl-goal"><b>1</b>Кірістірілген if қалай жұмыс істейтінін білесің.</div>
+        <div class="pl-goal"><b>2</b>else қай if-ке жататынын және шегініс ережесін түсінесің.</div>
+        <div class="pl-goal"><b>3</b>Көп сатылы шартты жазып, қатені табасың.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">1</span>Шарттың ішінде шарт</h2>
+    <p class="pl-lead">Бұл бөлімде кірістірілген if қалай жұмыс істейтінін үйренесің. Бағдарламаны таңда, жүгірткімен мәнді өзгерт, қай жолдар орындалғанын көр.</p>
+    <div id="pTrace"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">2</span>else қай if-ке жатады</h2>
+    <p class="pl-lead">Бұл бөлімде шегініс (бос орын) кодтың мағынасын қалай өзгертетінін үйренесің. Екі нұсқаны ауыстырып салыстыр.</p>
+    <div id="pPair"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Кірістіру немесе and</h2>
+    <p class="pl-lead">Бұл бөлімде бір есепті екі жолмен жазуды үйренесің. x пен y мәнін өзгертіп, екі кодтың нәтижесін салыстыр.</p>
+    <div id="pEquiv"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">4</span>Қатені тап</h2>
+    <p class="pl-lead">Міндетті оқы, терминалдағы нәтижені күткенімен салыстыр да, қате жолды бас.</p>
+    <div id="pBug"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">5</span>Кодты өзің орында</h2>
+    <div id="pPlay"></div>
+  </div>
+
+  <div class="pl-card">
+    <h2><span class="ic">6</span>Қысқаша қорытынды</h2>
+    <ul class="p4-recap">
+      <li><span>Кірістірілген шарт — if ішіндегі if. Ішкі шарт тек сыртқысы ақиқат болғанда тексеріледі.</span></li>
+      <li><span>Шегініс (4 бос орын) кодтың қай шартқа жататынын көрсетеді.</span></li>
+      <li><span><code>else</code> өзімен бірдей деңгейдегі if-ке жатады.</span></li>
+      <li><span>Екі шарт қатар ақиқат болуы керек болса, <code>and</code> қысқа жазуға мүмкіндік береді.</span></li>
+      <li><span>Әр if, elif, else жолы қос нүктемен аяқталады.</span></li>
+    </ul>
+  </div>
+
+  <div class="pl-next"><button type="button" class="btn primary big" data-go="task">Тапсырмаларға өту →</button></div>
+</section>
+
+<section class="pl-pane pl-tasks" id="task" data-pane="task" hidden>
+  <div class="pp-practice" data-python-practice="10"></div>
+</section>
+
+<section class="pl-pane" id="sum" data-pane="sum" hidden>
+  <div class="pl-card">
+    <h2><span class="ic">3</span>Өзіндік нәтиже</h2>
+    <p data-practice-summary role="status"></p>
+    <button type="button" class="btn primary" data-go="task">Тапсырмаларға қайту</button>
+  </div>
+</section>
+</main>
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+
+<script src="../assets/lesson-core.js?v=20261111"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-bool.js"></script>
+<script src="../assets/python-practice.js?v=1"></script>
+<script src="../assets/py-demos-common.js?v=20261111-practice"></script>
+<script src="../assets/py-demos10.js?v=20261108"></script>
+<script>
+(function(){
+const { $ } = L;
+const panes = [...document.querySelectorAll('.pl-pane')], tabs = [...document.querySelectorAll('.pl-seg button')];
+function go(id, push){
+  if (id.startsWith('pp-')) id = 'task';
+  if (!panes.some(p => p.id === id)) id = 'teo';
+  panes.forEach(p => { p.hidden = p.id !== id; });
+  tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  if (push !== false) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
+}
+tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+go((location.hash || '').slice(1), false);
+PyDemos10.mount({ hero:$('#pHero'), trace:$('#pTrace'), pair:$('#pPair'), equiv:$('#pEquiv'), bug:$('#pBug'), play:$('#pPlay') });
+})();
+</script>
+</body>
+</html>

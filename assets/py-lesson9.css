@@ -1,0 +1,52 @@
+/* Python 9, 10-сабақтар: p9- сыныптары (py-lesson4.css үстінен) */
+.p9-stage{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.p9-sws{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.p9-sw,.p9-stp{min-height:48px}
+.p9-sw{flex:1;min-width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:2px solid var(--line,#d6dae3);border-radius:14px;background:var(--surface,#fff);color:inherit;font:inherit;cursor:pointer;padding:8px}
+.p9-sw.on{border-color:#16a34a;background:#dcfce7;color:#14532d}
+.p9-sw.off{border-color:#dc2626;background:#fee2e2;color:#7f1d1d}
+.p9-sw b{font-size:20px}
+.p9-lamp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;padding:10px;text-align:center;border:2px solid transparent}
+.p9-lamp .bulb{font-size:38px;line-height:1}
+.p9-lamp.on{background:#fef9c3;border-color:#eab308;color:#713f12}
+.p9-lamp.off{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+.p9-tt td,.p9-tt th{text-align:center}
+.p9-tt tr.on{outline:2px solid #2563eb;outline-offset:-2px;background:#eff6ff}
+.p9-tf{display:inline-block;padding:2px 8px;border-radius:999px;font:600 13px ui-monospace,Consolas,monospace}
+.p9-tf.T{background:#dcfce7;color:#166534}
+.p9-tf.F{background:#fee2e2;color:#991b1b}
+.p9-xrow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.p9-xrow input[type=range]{flex:1;min-height:32px}
+.p9-xv{font:600 15px ui-monospace,Consolas,monospace;min-width:64px}
+.p9-planegrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.p9-plane{width:100%;max-width:340px;height:auto;display:block;margin:0 auto;border:1px solid var(--line,#d6dae3);border-radius:12px;background:var(--surface,#fff);cursor:crosshair;touch-action:manipulation}
+.p9-q{fill:transparent}.p9-q.on{fill:rgba(37,99,235,.16)}
+.p9-g{stroke:#e2e8f0;stroke-width:1}.p9-ax{stroke:#334155;stroke-width:2}
+.p9-dot{fill:#2563eb;stroke:#fff;stroke-width:3}
+.p9-lab{font:600 12px ui-monospace,Consolas,monospace;fill:#1e293b;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.p9-sel{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.p9-stp{display:flex;align-items:center;gap:6px;border:1px solid var(--line,#d6dae3);border-radius:12px;padding:4px 6px}
+.p9-stp output{min-width:56px;text-align:center;font:600 15px ui-monospace,Consolas,monospace}
+.p4-step{width:44px;height:44px;border-radius:10px;border:1px solid var(--line,#d6dae3);background:var(--surface,#fff);font-size:20px;cursor:pointer;color:inherit}
+.p9-conds{display:grid;gap:6px;margin-bottom:10px}
+.p9-cd{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;font-size:14px}
+.p9-cd.T{background:#dcfce7;color:#166534}.p9-cd.F{background:#f1f5f9;color:#475569}
+.p9-code{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:8px 0;margin:10px 0;overflow-x:auto;font:14px/1.6 ui-monospace,Consolas,monospace}
+.p9-ln{display:flex;gap:10px;padding:0 12px;white-space:pre;border-left:3px solid transparent}
+.p9-ln i{color:#64748b;min-width:18px;text-align:right;font-style:normal}
+.p9-ln code{font:inherit;color:inherit;background:none;padding:0}
+.p9-ln.run{background:rgba(34,197,94,.14);border-left-color:#22c55e}
+.p9-ln.skip{opacity:.45}
+.p9-links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:14px}
+.p9-links .btn.sm{min-height:40px;display:inline-flex;align-items:center}
+.p9-play{margin:10px 0}
+.p9-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.p9-note{margin:8px 0;font-size:14px}
+.p9-run{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.p9-tip{padding:8px 12px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:8px;font-size:14px;margin:8px 0}
+@media(max-width:640px){
+  .p9-stage,.p9-planegrid,.p9-pair{grid-template-columns:1fr}
+  .p9-code{font-size:13px}
+  .p9-sw{min-width:80px}
+}
+@media(prefers-reduced-motion:reduce){.p9-lamp,.p9-sw{transition:none}}

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12-сабақ. for циклі және range() — Python</title>
+<meta name="description" content="Python-да for және range() арқылы қайталауды көр. Санауыш, қосынды және көбейтіндіні бір бөлімде салыстыр.">
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/py-work.css?v=20261106-queue">
+<link rel="stylesheet" href="../assets/py-lesson.css">
+<link rel="stylesheet" href="../assets/py-lesson12.css?v=20261112-tasks">
+<link rel="stylesheet" href="../assets/student.css?v=20261111">
+</head>
+<body class="student-lesson pl p12">
+<header class="topbar pl-top"><div class="topbar-in">
+  <a class="pl-back" href="index.html" aria-label="Python тақырыптары">←<span class="pl-bk"> Python</span></a>
+  <div class="pl-brand"><i>12</i><span>for және range()</span></div>
+  <nav class="pl-seg" role="tablist" aria-label="Сабақ бөлімдері">
+    <button id="tab-teo" type="button" role="tab" aria-controls="teo" data-tab="teo" class="on">Түсіндіру</button>
+    <button id="tab-task" type="button" role="tab" aria-controls="task" data-tab="task">Тапсырмалар</button>
+    <button id="tab-sum" type="button" role="tab" aria-controls="sum" data-tab="sum">Қорытынды</button>
+  </nav>
+</div></header>
+
+<main class="pl-wrap">
+  <section class="pl-pane" id="teo" role="tabpanel" aria-labelledby="tab-teo" data-pane="teo">
+    <div class="p12-hero">
+      <div>
+        <span class="p12-eyebrow">PYTHON · 12-САБАҚ</span>
+        <h1>for циклі және <span>range()</span></h1>
+        <p>Бір әрекетті бірнеше рет орындау үшін цикл жазамыз. Блок-схемамен әр қадамды бақылап, Python циклді қалай жүргізетінін көр.</p>
+        <a class="p12-start" href="#loop">Бірінші мысалды ашу <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="p12-hero-visual" aria-hidden="true">
+        <span class="p12-hero-label">range(1, 6)</span>
+        <div class="p12-hero-tiles"><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b class="stop">6</b></div>
+        <span class="p12-hero-note"><span>5 сан</span><span>6 кірмейді</span></span>
+      </div>
+    </div>
+
+    <div class="p12-study">
+    <nav class="p12-contents" aria-label="Түсіндіру тақырыптары">
+      <b>Сабақ мазмұны</b>
+      <a href="#loop" aria-current="location"><span>01</span> Цикл</a>
+      <a href="#range"><span>02</span> range()</a>
+      <a href="#collect"><span>03</span> Жинақтаушы қорап</a>
+      <a href="#mistakes"><span>04</span> Жиі қателер</a>
+    </nav>
+    <div class="p12-reading">
+    <section class="pl-card p12-section" id="loop" aria-labelledby="loop-title">
+      <div class="p12-section-head"><span class="p12-number">01</span><div><h2 id="loop-title">Цикл қалай қайталанады?</h2><p>Цикл — бір әрекетті бірнеше рет орындайтын құрылым.</p></div></div>
+
+      <div class="p12-compare">
+        <div><b>Циклсіз</b>
+          <pre>print("Сәлем")
+print("Сәлем")
+print("Сәлем")
+print("Сәлем")
+print("Сәлем")</pre>
+          <small>5 рет жазу үшін 5 жол керек. 100 рет керек болса, 100 жол жазасың.</small></div>
+        <div><b>Циклмен</b>
+          <pre>for i in range(5):
+    print("Сәлем")</pre>
+          <small>Қанша рет қайталанса да, жол саны өзгермейді: тек 5 саны ауысады.</small></div>
+      </div>
+
+      <div class="p12-anatomy" aria-label="for жолының бөліктері">
+        <code><span class="a-for">for</span> <span class="a-var">i</span> <span class="a-for">in</span> <span class="a-range">range(1, 6)</span><span class="a-colon">:</span><br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="a-body">print(i)</span></code>
+        <ul>
+          <li><span class="a-for">for</span> — «әр сан үшін» деген мағына, цикл осыдан басталады.</li>
+          <li><span class="a-var">i</span> — айнымалы. Әр қайталауда қатардағы келесі санды алады.</li>
+          <li><span class="a-range">range(1, 6)</span> — сандар қатары: 1, 2, 3, 4, 5.</li>
+          <li><span class="a-colon">:</span> — қос нүкте. Мұнан кейін цикл денесі басталады.</li>
+          <li><span class="a-body">4 бос орын</span> — цикл денесі. Тек осы жолдар қайталанады.</li>
+        </ul>
+      </div>
+
+      <div class="p12-problem"><b>Есептің шарты</b><p>1-ден 5-ке дейінгі бүтін сандарды <b>5-ті қоса</b>, әрқайсын жеке жолға шығар.</p><small>Күтілетін нәтиже: 1, 2, 3, 4, 5. Әр сан жаңа жолдан шығады.</small></div>
+      <p class="p12-how"><b>Қалай қарау керек.</b> Блок-схемада жанып тұрған блок — Python қазір орындап жатқан қадам. Сол қадамның коды да жанады. <b>«Қадам»</b> — бір әрекет, <b>«Келесі сан»</b> — келесі қайталаудың басына өту, <b>«Ойнату»</b> — өздігінен жүру.</p>
+      <div id="pMachine"></div>
+      <p class="p12-rule"><b>Есіңде болсын.</b> Python әр қайталау алдында сұрайды: «Қатарда сан қалды ма?». Иә болса, келесі санды <code>i</code> айнымалысына беріп, цикл денесін орындайды да, сұраққа қайта оралады. Жоқ болса, циклді тастап, одан кейінгі жолға өтеді.</p>
+    </section>
+
+    <section class="pl-card p12-section" id="range" aria-labelledby="range-title">
+      <div class="p12-section-head"><span class="p12-number">02</span><div><h2 id="range-title"><code>range()</code> қандай сандар береді?</h2><p>Цикл қай сандармен жүретінін range() айтады. Жазылуының үш түрі бар.</p></div></div>
+
+      <div class="p12-forms">
+        <div><code>range(5)</code><b>Тек шекара</b><p>0-ден бастап, қадам 1. Сандар: 0, 1, 2, 3, 4.</p></div>
+        <div><code>range(1, 6)</code><b>Бастау және шекара</b><p>1-ден бастап, қадам 1. Сандар: 1, 2, 3, 4, 5.</p></div>
+        <div><code>range(2, 10, 2)</code><b>Қадаммен</b><p>2-ден бастап, әр жолы +2. Сандар: 2, 4, 6, 8.</p></div>
+      </div>
+
+      <div id="pRange"></div>
+      <ul class="p12-rules">
+        <li><b>Шекара (stop) кірмейді.</b> Қадам 1 болып, бастау шекарадан кіші болса, санын шекарадан бастауды азайтып табасың. <code>range(1, 6)</code> бес сан береді.</li>
+        <li><b>Қадам оң</b> болса, сандар өседі. <b>Қадам теріс</b> болса, сандар кемиді, сонда бастау шекарадан үлкен болуы керек.</li>
+        <li><b>Қадамның бағыты сәйкес келмесе</b>, қатар бос болады. Мысалы, <code>range(2, 8, -1)</code> еш сан бермейді.</li>
+        <li><b>Қадам 0</b> бола алмайды, Python қате береді.</li>
+      </ul>
+    </section>
+
+    <section class="pl-card p12-section" id="collect" aria-labelledby="collect-title">
+      <div class="p12-section-head"><span class="p12-number">03</span><div><h2 id="collect-title">Жинақтаушы қорап</h2><p class="p12-collect-intro">Үш мысалдың бірін таңда. Айнымалының бастапқы мәніне және әр қадамда қалай өзгеретініне қара.</p></div></div>
+      <div class="p12-collect-tabs" role="tablist" aria-label="Жинақтау мысалдары">
+        <button type="button" class="btn" role="tab" id="collect-count" aria-controls="count" aria-selected="true">Санауыш</button>
+        <button type="button" class="btn" role="tab" id="collect-sum" aria-controls="sum-demo" aria-selected="false" tabindex="-1">Қосынды</button>
+        <button type="button" class="btn" role="tab" id="collect-product" aria-controls="product" aria-selected="false" tabindex="-1">Көбейтінді</button>
+      </div>
+      <div class="p12-collect-panel" id="count" role="tabpanel" aria-labelledby="collect-count">
+      <p>Санауыш циклдің неше рет қайталанғанын санайды.</p>
+      <div class="p12-problem"><b>Есептің шарты</b><p>1-ден <code>n</code>-ге дейінгі сандардың <b>неше екенін</b> тап. Нәтижені экранға шығар.</p><small id="pCountExpected">Мысал: n = 5 болса, санауыш 5.</small></div>
+      <div id="pCount"></div>
+      <p class="p12-rule"><b>Қалай жұмыс істейді.</b> Санауыш <code>k = 0</code>-ден басталады. Әр қайталауда <code>k = k + 1</code> орындалады: сан қандай болса да, санауышқа тек <code>1</code> қосылады. Сондықтан нәтиже сандардың мәніне емес, олардың санына тең.</p>
+      </div>
+
+      <div class="p12-collect-panel" id="sum-demo" role="tabpanel" aria-labelledby="collect-sum" hidden>
+      <p>Қосынды әр санның мәнін қосып жинайды.</p>
+      <div class="p12-problem"><b>Есептің шарты</b><p>1-ден <code>n</code>-ге дейінгі сандардың <b>қосындысын</b> тап. Нәтижені экранға шығар.</p><small id="pSumExpected">Мысал: n = 5 болса, қосынды 15.</small></div>
+      <div id="pSum"></div>
+      <p class="p12-rule"><b>Қалай жұмыс істейді.</b> Қосынды <code>s = 0</code>-ден басталады: қорап алғашында бос. Әр қайталауда <code>s = s + i</code> орындалады, яғни қорапқа сол кезеңдегі сан қосылады. Санауыштан айырмасы: <code>1</code> емес, <code>i</code> қосылады.</p>
+      </div>
+
+      <div class="p12-collect-panel" id="product" role="tabpanel" aria-labelledby="collect-product" hidden>
+      <p>Көбейтінді әр санды көбейтіп жинайды.</p>
+      <div class="p12-problem"><b>Есептің шарты</b><p>1-ден <code>n</code>-ге дейінгі сандардың <b>көбейтіндісін</b> тап. Нәтижені экранға шығар.</p><small id="pProdExpected">Мысал: n = 5 болса, көбейтінді 120.</small></div>
+      <div id="pProd"></div>
+      <p class="p12-rule"><b>Қалай жұмыс істейді.</b> Көбейтінді <code>p = 1</code>-ден басталады, <b>0-ден емес</b>: 0-ге көбейткен кез келген сан 0 болып қалар еді. Әр қайталауда <code>p = p * i</code> орындалады. Мысалы, 1 × 2 × 3 × 4 × 5 = 120.</p>
+      </div>
+    </section>
+
+    <section class="pl-card p12-section" id="mistakes" aria-labelledby="mistakes-title">
+      <div class="p12-section-head"><span class="p12-number">04</span><div><h2 id="mistakes-title">Жиі қателер</h2><p>Қате кодты көр, Python не істейтінін оқы, сосын түзет.</p></div></div>
+      <div id="pMistakes"></div>
+    </section>
+    <div class="pl-next"><button type="button" class="btn primary" data-go="task">Тапсырмаларға өту →</button></div>
+    </div>
+    </div>
+  </section>
+
+  <section class="pl-pane pl-tasks" id="task" role="tabpanel" aria-labelledby="tab-task" data-pane="task" hidden>
+  <div class="pl-card p12-section p12-overview">
+    <div class="p12-section-head"><div><h2>Тапсырмалар</h2><p>Әр тапсырманы оқытушы бастайды. Бастамай тұрып жіберуге болмайды. Уақыт бітсе, жауап қабылданбайды.</p></div></div>
+    <ol class="p12-task-map" aria-label="Тапсырмалардың уақыты мен балы">
+      <li><b>1 · Қарапайым есептер</b><span>15 минут · 20 балл</span></li>
+      <li><b>2 · Қосынды және көбейтінді</b><span>20 минут · 30 балл</span></li>
+      <li><b>3 · Цикл және шарт</b><span>15 минут · 30 балл</span></li>
+      <li><b>4 · Аралас тест</b><span>10 минут · 20 балл</span></li>
+    </ol>
+    <p class="p12-login-note">Тапсырма жіберу үшін жоғарыдағы «Сабаққа кіру» батырмасымен кір.</p>
+  </div>
+  <div id="pyTasks"></div>
+</section>
+
+  <section class="pl-pane" id="sum" role="tabpanel" aria-labelledby="tab-sum" data-pane="sum" hidden>
+    <div class="pl-card p12-section">
+      <span class="p12-eyebrow">ЕСТЕ САҚТА</span>
+      <h1 class="p12-pane-title">Бүгінгі үш ой</h1>
+      <div class="p12-recap">
+        <div><span>01</span><b>Цикл</b><p><code>for</code> әр санды кезегімен алып, шегініп тұрған жолдарды орындайды.</p></div>
+        <div><span>02</span><b>Диапазон</b><p><code>range(1, 6)</code> 1-ден 5-ке дейін береді. 6 — кірмейтін шекара.</p></div>
+        <div><span>03</span><b>Жинақтау</b><p><code>k += 1</code> санайды. <code>s += i</code> сандардың мәндерін қосады.</p></div>
+      </div>
+      <div class="stepbar">
+        <button type="button" class="btn" data-go="task">Тапсырмаларға қайту</button>
+      </div>
+      <div class="stepbar"><button type="button" class="btn primary" id="pySumBtn">📊 Нәтижемді көрсету</button></div>
+      <div id="pySum"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="pl-foot">© Бақытжанов Бекет Қайратұлы · <a href="index.html">Python</a></footer>
+<script src="../assets/lesson-core.js?v=20261111"></script>
+<script src="../assets/join.js?v=20261112"></script>
+<script src="../assets/code-editor.js"></script>
+<script src="../assets/py-trace.js?v=20261109"></script>
+<script src="../assets/py-work.js?v=20261112-p12"></script>
+<script src="../assets/py-demos12.js?v=20261112-work"></script>
+<script>
+window.Join.mount({ title:'Python, 12-сабақ: for циклі және range()' });
+window.PyWork.mount({ topic:'P12', tasks:document.getElementById('pyTasks'), summary:document.getElementById('pySum'), summaryBtn:document.getElementById('pySumBtn') });
+</script>
+</body>
+</html>
