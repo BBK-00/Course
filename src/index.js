@@ -6,6 +6,7 @@ import { drainHomeworkQueue } from './homework-queue.js';
 import { normalizeHomeworkReview } from './homework-review.js';
 import { SCHEMA } from './schema.js';
 import { progressApi, courseOfTopic, courseDate, inCourseYear } from './progress.js';
+import { pythonReport } from './python-report.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
 import { gradeSb3 } from './scratch.js';
@@ -474,6 +475,7 @@ async function teacher(path, method, b, env, ctx, url) {
   const DB = env.DB;
 
   if (path === 'progress' || path.startsWith('progress/')) return progressApi(path, method, b, env, url, json, err);
+  if (path === 'python-report' || path.startsWith('python-report/')) return pythonReport(path, method, b, env, url, json, err);
   if (path === 'roster' && method === 'GET') return json({ ok: true, groups: await roster(DB) });
   if (path === 'groups' && method === 'POST') {
     const name = String(b.name || '').trim().slice(0, 40);

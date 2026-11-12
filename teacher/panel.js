@@ -470,11 +470,11 @@ async function renderAnalysis(force=false){
  if(analysisBusy||!force&&Date.now()-analysisAt<12000)return;analysisBusy=true;analysisAt=Date.now();
  const j=await api('py_stats?session='+se.id);analysisBusy=false;
  if(!j.ok){if(!analysisData)root.replaceChildren(h('p',{class:'bad',text:'Талдауды жүктеу мүмкін болмады. Барысы бөліміндегі деректер сақталған.'}));return;}
- if(LIVE?.session?.id!==se.id){analysisAt=0;return;}analysisFor=se.id;analysisData=j;const sig=JSON.stringify(j);if(force||sig!==analysisSig){analysisSig=sig;paintAnalysis();}
+ if(LIVE?.session?.id!==se.id){analysisAt=0;return;}analysisFor=se.id;analysisData=j;const sig=JSON.stringify(j);if(force||sig!==analysisSig||analysisSelected==='python-report'){analysisSig=sig;paintAnalysis();}
 }
 function paintAnalysis(){
  const root=$('#s-analysis'),d=analysisData;if(!d)return;const scroll=root.querySelector('.analysis-scroll')?.scrollTop||0;
- const tabs=[['overview','Шолу'],...(d.ops?[['ops','Амалдар']]:[]),['items','Есептер'],['students','Студенттер']];
+ const tabs=[['overview','Шолу'],...(LIVE.session.topic==='P12'?[['python-report','Журнал және ЖИ']]:[]),...(d.ops?[['ops','Амалдар']]:[]),['items','Есептер'],['students','Студенттер']];
  if(!tabs.some(([v])=>v===analysisSelected))analysisSelected='overview';
  const toolbar=h('div',{class:'analysis-toolbar'},tabs.map(([v,t])=>btn(t,()=>{analysisSelected=v;analysisFocusOp='';analysisFocusItem=0;paintAnalysis();},'sm '+(analysisSelected===v?'primary':''))));
  toolbar.append(h('span',{class:'sp'}),h('span',{class:'sub',text:'Таңдалған сабақ · автоматты жаңарады'}));const content=h('div');root.replaceChildren(toolbar,content);
@@ -482,7 +482,10 @@ function paintAnalysis(){
  const td=(text,cls='')=>h('td',{class:cls,text:String(text??'—')});
  const ops=(d.ops||[]).filter(o=>o.answers).slice().sort((a,b)=>a.pct-b.pct);
  const peopleFor=op=>{analysisSelected='students';analysisFocusOp=op;analysisFocusItem=0;paintAnalysis();};
- if(analysisSelected==='overview'){
+ if(analysisSelected==='python-report'){
+   const session=LIVE.session, students=allStudents();
+   import('./python-report-panel.js?v=1').then(({mountPythonReport})=>{if(content.isConnected&&LIVE?.session?.id===session.id)mountPythonReport(content,{session,students,api,h});}).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
+ }else if(analysisSelected==='overview'){
    window.TeacherAnalysis.render(content,d,{h,btn,people:id=>{analysisFocusItem=id;analysisFocusOp='';analysisSelected='students';paintAnalysis();},showItems:()=>{analysisSelected='items';paintAnalysis();}});
  }else if(analysisSelected==='ops'){
    content.append(h('div',{class:'card'},[h('h2',{text:'Қай амалды түсінбеді?'}),h('p',{class:'sub',text:'Дұрыс жауап саны және үлесі. «Студенттер» батырмасы осы амалда қиналғандарды көрсетеді.'}),table(['Амал','Дұрыс жауап','Жиі шатастыру','Студенттер'],(d.ops||[]).map(o=>h('tr',{},[h('td',{class:'l'},[h('b',{class:'analysis-op',text:o.sym}),h('span',{text:' '+o.name})]),td(o.answers?o.correct+'/'+o.answers+' · '+o.pct+'%':'Әлі жауап жоқ'),td(o.mis.map(m=>m.text+' ('+m.n+')').join('; ')||'—','analysis-desc l'),h('td',{},o.weak.length?btn(o.weak.length+' студент',()=>peopleFor(o.op),'sm'):'—')])))]));
