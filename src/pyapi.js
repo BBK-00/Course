@@ -7,7 +7,7 @@ import { drainHomeworkQueue } from './homework-queue.js';
 import { REVIEW_SCHEMA, REVIEW_INSTRUCTIONS, validHomeworkReview } from './homework-review.js';
 import { OPS4 } from './py4.js';
 import { P12_CONCEPTS, P12_MINUTES } from './py12.js';
-import { isPy, isWin, pyTasks, NEW_LESSONS, reviseMin, CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT, lessonOf, publicLesson, gradeCodeItems, gradeQuizItem, itemScore, taskPayload, skillSummary, stripCode, SKILLS } from './py.js';
+import { isPy, isWin, pyTasks, NEW_LESSONS, REV, reviseMin, CHEST, chestPts, checkRiddle, RIDDLE_OF_HINT, lessonOf, publicLesson, gradeCodeItems, gradeQuizItem, itemScore, taskPayload, skillSummary, stripCode, SKILLS } from './py.js';
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const err = (code, status = 400, extra) => json({ ok: false, error: code, ...(extra || {}) }, status);
@@ -146,7 +146,8 @@ async function totals(env, DB, p, ses, att) {
 const revisionOpen = (wins,t,n,per) => { const r = wins?.[per ? 10 + n : 0]; return !!(r && t<=r.until+45); };
 function itemState(item, list, revision = false) {
   const sc = itemScore(item, (list || []).map(a => ({ n: a.n, frac: a.frac })), revision), last = lastOf(list), d = last ? last.detail : {};
-  return { ...sc, max: item.max, kind: item.kind, code: last ? last.code || '' : '', choice: last && item.kind === 'quiz' ? d.choice : undefined, ...(item.typed && last ? { ans: item.ans, why: item.why } : {}), cases: last ? publicCases(d.cases) : [], diag: last ? d.diag || [] : [], syntax: !!(last && d.syntax), passed: last ? last.detail.passed : 0, total: last ? last.detail.total : item.kind === 'quiz' ? 1 : 0 };
+  const late = !!(list && list[0] && list[0].detail && list[0].detail.late);
+  return { ...sc, ...(late ? { late: true, canRevise: false } : {}), max: item.max, kind: item.kind, code: last ? last.code || '' : '', choice: last && item.kind === 'quiz' ? d.choice : undefined, ...(item.typed && last ? { ans: item.ans, why: item.why } : {}), cases: last ? publicCases(d.cases) : [], diag: last ? d.diag || [] : [], syntax: !!(last && d.syntax), passed: last ? last.detail.passed : 0, total: last ? last.detail.total : item.kind === 'quiz' ? 1 : 0 };
 }
 
 export async function pyStudent(path, method, b, request, env, ctx) {
@@ -216,8 +217,8 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     for (const x of items) {
       const f = findItem(x.id); if (!f) return err('bad_item');
       if (f.task.pair && !pair) return err('no_pair', 409);
-      const item = f.it, list = by[item.id] || [], sc = itemScore(item, list.map(a => ({ n: a.n, frac: a.frac })), revisionOpen(wins,t0,f.task.n,per));
-      if (wins) { const pz = phT(f.task.n); if (list.length && !sc.canRevise) {if(items.length===1)return err(sc.full?'full':'no_tries',409);continue;} const rvo = revisionOpen(wins,t0,f.task.n,per); if (list.length ? !rvo : (!per && rvo) || pz !== 'work') { if (items.length === 1) return err('time_over', 403); continue; } }
+      const item = f.it, list = by[item.id] || [], sc = itemScore(item, list.map(a => ({ n: a.n, frac: a.frac })), revisionOpen(wins,t0,f.task.n,per)); if (per && list[0]?.detail?.late) { sc.canRevise = false; sc.full = false; }
+      if (wins) { const pz = phT(f.task.n); if (list.length && !sc.canRevise) {if(items.length===1)return err(sc.full?'full':'no_tries',409);continue;} const rvo = revisionOpen(wins,t0,f.task.n,per); if (list.length ? !rvo : per ? !(pz === 'work' || rvo) : (rvo || pz !== 'work')) { if (items.length === 1) return err('time_over', 403); continue; } }
       if (list.length) {
         if (!sc.canRevise) { if (items.length === 1) return err(sc.full ? 'full' : 'no_tries', 409); continue; }
         if (t0 - lastOf(list).at < 8) return err('wait', 429);
@@ -225,11 +226,11 @@ export async function pyStudent(path, method, b, request, env, ctx) {
       if (item.kind === 'quiz') {
         const okChoice = item.typed ? String(x.choice === undefined || x.choice === null ? '' : x.choice).trim().length >= 1 && String(x.choice).length <= 20 : item.opts.some(o => o.i === Number(x.choice));
         if (!okChoice) { if (items.length === 1) return err('bad_request'); continue; }
-        jobs.push({ x, f, item, list, quiz: true });
+        jobs.push({ x, f, item, list, quiz: true, late: per && !list.length && phT(f.task.n) !== 'work' });
       } else {
         const code = String(x.code || '').slice(0, 6000);
         if (code.trim().length < 3) { if (items.length === 1) return err('bad_request'); continue; }
-        jobs.push({ x, f, item, list, code });
+        jobs.push({ x, f, item, list, code, late: per && !list.length && phT(f.task.n) !== 'work' });
       }
     }
     if (!jobs.length) return err('nothing', 409);
@@ -242,11 +243,11 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     for (const j of jobs) {
       const n = j.list.length + 1, item = j.item;
       if (j.quiz) {
-        const g = gradeQuizItem(item, j.x.choice);
-        if (!(await record(item, n, g, { choice: item.typed ? String(j.x.choice).trim().slice(0, 20) : Number(j.x.choice) }))) return err('already', 409);
+        const g0 = gradeQuizItem(item, j.x.choice), g = j.late ? { ...g0, frac: g0.frac * REV.quiz } : g0;
+        if (!(await record(item, n, g, { choice: item.typed ? String(j.x.choice).trim().slice(0, 20) : Number(j.x.choice), ...(j.late ? { late: true } : {}) }))) return err('already', 409);
         out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0,item.task,per)), explain: g.frac ? '' : item.why });
       } else {
-        const g = j.g, code = j.code;
+        const g = j.late ? { ...j.g, frac: j.g.frac * REV.code } : j.g, code = j.code;
         const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(stripCode(code).replace(/\s+/g, ''))));
         const hash = [...h.slice(0, 10)].map(y => y.toString(16).padStart(2, '0')).join('');
         let dup = '';
@@ -254,7 +255,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
           const o = await all(DB.prepare('SELECT a.id, s.full_name FROM py_attempts a JOIN students s ON s.id=a.student_id WHERE a.session_id=? AND a.item=? AND a.hash=? AND a.student_id!=? AND a.student_id!=? LIMIT 1').bind(p.ses, item.id, hash, p.st, partnerId || 0));
           if (o.length) dup = o[0].full_name;
         }
-        if (!(await record(item, n, g, { code, hash, dup }))) return err('already', 409);
+        if (!(await record(item, n, g, { code, hash, dup, ...(j.late ? { late: true } : {}) }))) return err('already', 409);
         out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0,item.task,per)) });
       }
       touched.add(j.f.task.n);

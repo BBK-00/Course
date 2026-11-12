@@ -43,7 +43,8 @@ function resultBox(it, s, extra){
   const box = el('div', { class:'py-res', role:'status' });
   if (!s || !s.done) return box;
   const left = s.canRevise && (isP4() ? revisionActive(it.task) : phase() !== 'over');
-  box.append(el('div', { class:'py-score' }, [el('b', { text:(it.kind === 'quiz' ? (s.best >= 1 ? 'Дұрыс' : 'Қате') : s.passed + ' / ' + s.total + ' тест өтті') }), el('span', { text:' · ' + s.pts + ' / ' + it.max + ' балл' })]));
+  box.append(el('div', { class:'py-score' }, [el('b', { text:(it.kind === 'quiz' ? ((s.late ? s.passed >= 1 : s.best >= 1) ? 'Дұрыс' : 'Қате') : s.passed + ' / ' + s.total + ' тест өтті') }), el('span', { text:' · ' + s.pts + ' / ' + it.max + ' балл' })]));
+  if (s.late) box.append(el('p', { class:'py-note', text:'Кеш жіберілді: қатемен жұмыс уақытында жіберілген есепке баллдың ' + (it.kind === 'quiz' ? '50' : '70') + '%-ы беріледі.' }));
   if (s.syntax) box.append(el('p', { class:'py-syn', text:'Бағдарлама іске қосылмады: синтаксис қатесі бар.' }));
   if ((s.cases || []).length && s.best < 1){
     const bad = s.cases.filter(c => !c.ok);
@@ -66,15 +67,47 @@ function resultBox(it, s, extra){
 
 /* ---------- Консоль: онлайн компилятор сияқты. input() сұрауы шығыстың өзінде, жауап сол жерде жазылады ----------
    Бағдарлама жауап жазылған сайын басынан қайта орындалады (енгізулер тізімімен): сервер кіріс жетпейтін жерде тоқтап, келесі мәнді сұрайды. */
+/* Консоль: Python браузердің өзінде орындалады (Pyodide, assets/py-console-worker.js), сондықтан нәтиже бірден шығады.
+   Ортаны жүктей алмаса (желі жоқ, CDN жабық), код бұрынғыдай сервер арқылы орындалады. */
+let localPy = null, localId = 0, localOff = false;
+function localWorker(){
+  if (localOff || localPy) return localPy;
+  try {
+    const w = new Worker('/assets/py-console-worker.js?v=1', { type:'module' });
+    const st = { w, ready:false, wait:new Map() };
+    st.loadTimer = setTimeout(() => { if (!st.ready) dropLocal(true); }, 45000);
+    w.onmessage = ({ data }) => {
+      if (data.ready){ st.ready = true; clearTimeout(st.loadTimer); return; }
+      if (data.failed && data.id === undefined){ dropLocal(true); return; }
+      const q = st.wait.get(data.id); if (!q) return;
+      if (data.started){ q.timer = setTimeout(() => { st.wait.delete(data.id); dropLocal(false); q.resolve({ out:q.partial || '', err:'Бағдарлама 6 секундта аяқталмады. Шексіз цикл бар ма? Цикл шартын тексер.' }); }, 6000); return; }
+      clearTimeout(q.timer); st.wait.delete(data.id);
+      if (data.failed) q.reject(new Error('local')); else q.resolve(data);
+    };
+    w.onerror = e => { e.preventDefault(); dropLocal(true); };
+    localPy = st;
+  } catch (e) { localOff = true; }
+  return localPy;
+}
+function dropLocal(off){
+  const st = localPy; localPy = null; if (off) localOff = true;
+  if (!st) return;
+  clearTimeout(st.loadTimer); st.w.terminate();
+  st.wait.forEach(q => { clearTimeout(q.timer); q.reject(new Error('local')); }); st.wait.clear();
+}
+function runLocal(code, inputs){
+  const st = localWorker(); if (!st) return Promise.reject(new Error('local'));
+  return new Promise((resolve, reject) => { const id = ++localId; st.wait.set(id, { resolve, reject }); st.w.postMessage({ id, code, inputs }); });
+}
 function consoleBox(){
   const box = el('div', { class:'py-con', 'aria-label':'Консоль' }), body = el('div', { class:'py-con-body', 'aria-live':'polite' });
   const txt = el('span', { class:'py-con-out' }), errT = el('div', { class:'py-con-err' }), status = el('div', { class:'py-con-st' });
   const inp = el('input', { type:'text', class:'py-con-in', maxlength:'100', autocomplete:'off', autocapitalize:'off', spellcheck:'false', 'aria-label':'Бағдарламаға енгізу', hidden:true });
   body.append(txt, inp); box.append(el('div', { class:'py-con-head' }, [el('i'), el('i'), el('i'), el('span', { text:'Консоль' })]), body, errT, status);
-  let inputs = [], code = '', runBtn = null, token = 0;
+  let inputs = [], code = '', runBtn = null, token = 0; localWorker();
   async function exec(){
-    const my = ++token; status.textContent = 'Орындалып жатыр…'; inp.disabled = true; if (runBtn) runBtn.disabled = true;
-    let j; try { j = await J().api('run', { code, language:'python', console:true, inputs }); } catch (e) { j = { ok:false, error:'net' }; }
+    const my = ++token; status.textContent = localPy && localPy.ready ? 'Орындалып жатыр…' : 'Python ортасы жүктелуде, бірінші рет бірнеше секунд кетеді…'; inp.disabled = true; if (runBtn) runBtn.disabled = true;
+    let j; try { const r0 = await runLocal(code, inputs); j = { ok:true, run:{ stdout:r0.out || '', stderr:r0.err || '', need:!!r0.need } }; } catch (e) { try { j = await J().api('run', { code, language:'python', console:true, inputs }); } catch (e2) { j = { ok:false, error:'net' }; } }
     if (my !== token) return;
     if (runBtn) runBtn.disabled = false;
     if (!j.ok){ status.textContent = ERR[j.error] || 'Орындау мүмкін болмады. Қайта көр.'; inp.hidden = true; return; }
@@ -486,12 +519,19 @@ function paintHw(){
 }
 
 /* 6-тапсырма: бастапқы тапсырмалардағы қателерді жеке ортада түзету. */
-let revisionCards={},revisionHost=null;
+let revisionCards={},revisionHost=null,inlineRev={},taskSecs={};
+function inlineList(n){
+  if(inlineRev[n])return inlineRev[n].list;
+  const clock=el('span',{class:'py-tchip'}),list=el('div',{class:'py-revision-list'});
+  const box=el('div',{class:'py-revision py-revision-inline'},[el('h4',{},['🔁 Қатемен жұмыс',clock]),
+    el('p',{class:'py-note',text:'Қате жіберген және әлі жібермеген есептерді осы жерде орында. Түзетілген жауапқа жоғалтқан баллдың 70%-ы (тестте 50%-ы) қайтады. Уақытында жіберілмеген есепке ең көбі 70% (тестте 50%) беріледі.'}),list]);
+  taskSecs[n].append(box);inlineRev[n]={box,clock,list};return list;
+}
 function paintRevision(){
   if(!isP4()||!D)return;
   const win=perRev()?[1,2,3,4].map(k=>D.wins?.[10+k]).filter(Boolean).sort((a,b)=>b.until-a.until)[0]:D.wins?.[0];
-  if(!win){if(revisionHost)revisionHost.hidden=true;return;}
-  if(!revisionHost){
+  if(!win){if(revisionHost)revisionHost.hidden=true;Object.values(inlineRev).forEach(x=>{x.box.hidden=true;});return;}
+  if(!revisionHost&&!perRev()){
     revisionHost=el('section',{class:'tsk py-revision',id:'pyRevision','aria-label':'6-тапсырма: қатемен жұмыс'},[
       el('h3',{},[el('span',{class:'num',text:'6'}),'Қатемен жұмыс',el('span',{class:'py-tchip','data-revision-clock':'1'})]),
       el('p',{class:'muted',text:'Қате жіберген есептеріңді осы жерде түзетіп, әрқайсысын қайта жібер. Түзетілген балл бастапқы тапсырмаға қосылады.'}),
@@ -499,18 +539,19 @@ function paintRevision(){
       el('div',{class:'py-revision-list'})]);
     hosts.tasks.append(revisionHost);
   }
-  revisionHost.hidden=false;
-  const live=revisionActive(),clock=revisionHost.querySelector('[data-revision-clock]');
+  if(revisionHost)revisionHost.hidden=false;
+  const live=revisionActive(),clock=perRev()?{}:revisionHost.querySelector('[data-revision-clock]');
   const nextEnd=perRev()?Math.min(...[1,2,3,4].filter(k=>revisionActive(k)).map(k=>D.wins[10+k].until),Infinity):win.until;
-  clock.className='py-tchip '+(live?'work':'closed');clock.textContent=live?'⏱ '+mmss(nextEnd-nowS()):'Уақыт аяқталды';
-  const list=revisionHost.querySelector('.py-revision-list');
-  const wrong=Object.values(items).filter(o=>o.state?.done&&o.state.f1<1&&(!perRev()||revWin(o.it.task)));
-  if(!wrong.length){list.textContent='Қате жауаптар жоқ. Жарайсың!';return;}
-  if(!Object.keys(revisionCards).length)list.replaceChildren();
+  if(!perRev()){clock.className='py-tchip '+(live?'work':'closed');clock.textContent=live?'⏱ '+mmss(nextEnd-nowS()):'Уақыт аяқталды';}
+  else [1,2,3,4].forEach(n=>{const x=inlineRev[n];if(!x)return;const w=revWin(n);x.box.hidden=!w;if(!w)return;const on=revisionActive(n);x.clock.className='py-tchip '+(on?'work':'closed');x.clock.textContent=on?'⏱ '+mmss(w.until-nowS()):'Уақыт аяқталды';});
+  const list=perRev()?null:revisionHost.querySelector('.py-revision-list');
+  const wrong=Object.values(items).filter(o=>perRev()?(revWin(o.it.task)&&(!o.state?.done||o.state.f1<1)):(o.state?.done&&o.state.f1<1));
+  if(!wrong.length){if(list)list.textContent='Қате жауаптар жоқ. Жарайсың!';else Object.values(inlineRev).forEach(x=>{x.box.hidden=true;});return;}
+  if(list&&!Object.keys(revisionCards).length)list.replaceChildren();
   wrong.forEach(o=>{
     const it=o.it,s=o.state;let r=revisionCards[it.id];
     if(!r){
-      list.querySelector('.py-revision-empty')?.remove();
+      list?.querySelector('.py-revision-empty')?.remove();
       const task=D.tasks.find(t=>t.n===it.task),index=task.items.findIndex(i=>i.id===it.id)+1;
       const card=el('article',{class:'py-item py-revision-item','data-revision-item':String(it.id)});
       card.append(el('h4',{text:it.task+'-тапсырма · '+index+'-есеп · '+(it.title||it.q||'Есеп')}));
@@ -538,10 +579,12 @@ function paintRevision(){
         it.opts.forEach(op=>{const b=el('button',{type:'button',class:'btn',text:op.t});b.onclick=()=>{r.choice=op.i;save('r'+it.id,String(op.i));r.buttons.forEach(x=>x.b.classList.toggle('sel',x.i===op.i));};r.buttons.push({b,i:op.i});card.append(b);});
         card.append(el('div',{class:'stepbar'},send));send.onclick=()=>{if(r.choice===null){msg.textContent='Жауапты таңда.';return;}submit(it,{choice:r.choice},msg,send);};
       }
-      card.append(msg,res);list.append(card);
+      card.append(msg,res);(list||inlineList(it.task)).append(card);
     }
-    const liveI=perRev()?revisionActive(it.task):live,enabled=liveI&&s.canRevise&&!busy[it.id];r.send.disabled=!enabled;
-    r.send.textContent=s.best>=1?'✓ Түзетілді':!s.canRevise?'Әрекет саны аяқталды':'Түзетіп жіберу ('+s.revLeft+' әрекет)';
+    const liveI=perRev()?revisionActive(it.task):live,can=s.done?s.canRevise:true,enabled=liveI&&can&&!busy[it.id];r.send.disabled=!enabled;
+    r.send.textContent=!s.done?'Жіберу (баллдың '+(it.kind==='quiz'?'50':'70')+'%-ы)':s.late?'Кеш жіберілді':s.best>=1?'✓ Түзетілді':!s.canRevise?'Әрекет саны аяқталды':'Түзетіп жіберу ('+s.revLeft+' әрекет)';
+    if(!r.hint){r.hint=el('p',{class:'py-note'});r.card.insertBefore(r.hint,r.msg);}
+    r.hint.hidden=liveI||!can;r.hint.textContent=revWin(it.task)?'Қатемен жұмыс уақыты аяқталды, бұл есепті енді жіберуге болмайды.':'';
     if(r.ed)r.ed.setDisabled(!enabled);if(r.input)r.input.disabled=!enabled;
     r.buttons.forEach(x=>{x.b.disabled=!enabled;x.b.classList.toggle('sel',x.i===(s.best>=1?s.choice:r.choice));});
     r.card.classList.toggle('fixed',s.best>=1);
@@ -552,13 +595,14 @@ function paintRevision(){
 
 /* ---------- Құру ---------- */
 function build(){
-  hosts.tasks.innerHTML = ''; items = {}; ansBars = {}; quizBars = {}; taskBars={};revisionCards={};revisionHost=null;chestUi = null; hintUi = [];
+  hosts.tasks.innerHTML = ''; items = {}; ansBars = {}; quizBars = {}; taskBars={};revisionCards={};inlineRev={};taskSecs={};revisionHost=null;chestUi = null; hintUi = [];
   D.tasks.forEach(t => t.items.forEach(it => { items[it.id] = { it, state:D.state[it.id] }; }));
   barEl = el('div', { class:'py-bar', role:'status' }, [el('div', { class:'py-bar-t' }), el('div', { class:'py-bar-s' }), el('div', { class:'py-bar-p' })]);
   hosts.tasks.append(barEl);
   const info = { 1:'Берілген есептерге Python кодын жаз. Әр есеп жеке тексеріледі.', 2:'Күрделірек есептер. Кірістірілген шарттарды қолдан.', 3:'Кодта қате бар. Қатені тауып түзет.', 4:'5 сұрақ. Бір жауап таңда.' };
   D.tasks.forEach(t => {
     const sec = el('div', { class:'tsk' + (t.n === 2 && !isP4() ? ' main' : '') + (t.locked && isP4() ? ' locked' : '') }, [el('h3', {}, [el('span', { class:'num', text:String(t.n) }), t.title, el('span', { class:'pt', text:(t.items.length ? t.items.reduce((a, i) => a + i.max, 0) : (D.scores && D.scores[t.n] ? D.scores[t.n].max : '')) + ' балл' }), isP4() ? el('span', { class:'py-tchip', 'data-tn':String(t.n) }) : null]), el('p', { class:'muted', text:t.locked && isP4() ? 'Оқытушы бастағанда тапсырма осы жерде ашылады. Бет өзі жаңарады.' : (t.info || info[t.n]) })]);
+    taskSecs[t.n] = sec;
     if (t.locked && isP4()) { hosts.tasks.append(sec); return; }
     if (t.pair) pairSection(sec, t);
     else if (t.items.every(item => item.typed)) sec.append(ansCard(t));

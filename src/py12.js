@@ -77,50 +77,91 @@ const conditions = [
     'Жұп сан табылғанда k-ға 1, s-ке i қос. Екеуін де цикл аяқталған соң шығар.', true)
 ];
 
+/* Тест: 10 сұрақ, әрқайсысы 2 балл. 6 оңай, 2 орташа, 2 тұзақ сұрақ (қателестіреді).
+   Әр студентке 6 нұсқаның бірі беріледі: сандар мен код өзгереді, ал жауап нұсқаларының реті мен сұрақтардың реті де алмасады. */
+const seq = (a, b) => nums(a, b).join(', ');
+const pickV = (list, v) => list[(v - 1) % list.length];
+const mix = (list, seed) => {
+  const a = list.slice();
+  let s = seed >>> 0;
+  const next = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
 function question(id, diff, title, q, code, options, correct, why, skill) {
-  const max = 2;
-  return { id, kind: 'quiz', max, diff, title, q, code, opts: options.map((t, i) => ({ i, t })), correct, why, op: skill, skills: [skill] };
+  return { id, kind: 'quiz', max: 2, diff, title, q, code, opts: options.map((t, i) => ({ i, t })), correct, why, op: skill, skills: [skill] };
 }
 function written(id, diff, title, q, code, answer, why, skill) {
   return { ...question(id, diff, title, q, code, [], null, why, skill), typed: true, ans: answer, accepted: [answer], answerFormat: 'numbers' };
 }
-export const P12_QUIZ = [
-  question(41, 'Оңай', 'range(stop)', 'range(5) қандай сандарды береді?', '', ['1, 2, 3, 4, 5', '0, 1, 2, 3, 4', '0, 1, 2, 3, 4, 5', 'Тек 5'], 1,
-    'Бір аргумент болса, санау 0-ден басталады. 5 шекарасы кірмейді.', 'loop_range'),
-  question(42, 'Оңай', 'Қос нүкте', 'Кодта қандай синтаксис қатесі бар?', 'for i in range(3)\n    print(i)',
-    ['print(i) жолы тым ішке жазылған', 'for жолында қос нүкте жоқ', 'range() ішінде 3 санын жазуға болмайды', 'Қате жоқ'], 1,
-    'for тақырыбының соңына қос нүкте (:) қойылады.', 'loop_indent'),
-  written(43, 'Оңай', 'Өсу реті', 'Экранға шыққан сандарды ретімен жаз. Арасын бос орынмен немесе үтірмен бөл.', 'for i in range(2, 5):\n    print(i)', '2 3 4',
-    '2-ден басталады. 5 кірмейтіндіктен, соңғы сан 4 болады.', 'loop_range'),
-  question(44, 'Оңай', 'Көбейтіндінің басы', 'Көбейтінді жинайтын p айнымалысына цикл алдында қандай мән береміз?', '',
-    ['0', '1', '−1', '10'], 1, 'Көбейтінді 1-ден басталады. 0-ге көбейткенде нәтиже 0 болады.', 'loop_total'),
-  question(45, 'Орташа', 'Қадам бағыты', 'Экранға не шығады?', 'for i in range(2, 8, -1):\n    print(i)',
-    ['2, 3, 4, 5, 6, 7', '8, 7, 6, 5, 4, 3', 'Ештеңе шықпайды', 'Қадам −1 болғандықтан қате шығады'], 2,
-    'Теріс қадамда бастау шекарадан үлкен болуы керек. 2 < 8, сондықтан диапазон бос.', 'loop_step'),
-  written(46, 'Орташа', 'Кері қадам', 'Экранға шыққан сандарды ретімен жаз. Арасын бос орынмен немесе үтірмен бөл.', 'for i in range(10, 0, -2):\n    print(i)', '10 8 6 4 2',
-    'Әр қайталауда 2-ге кемиді. 0 шекарасы кірмейді.', 'loop_step'),
-  question(47, 'Орташа', 'Қосынды неге жиналмады?', '1, 2, 3 сандарының қосындысы 6 болу керек. Кодта қандай логикалық қате бар?',
-    's = 0\nfor i in range(1, 4):\n    s = 0\n    s = s + i\nprint(s)',
-    ['print(s) циклден кейін тұрғаны қате', 's әр қайталауда қайтадан нөлге теңестіріледі', 'range(1, 4) 3-ті қамтымайды', 's-ке i орнына әрқашан 1 қосу керек'], 1,
-    's = 0 цикл алдында бір рет тұрады. Цикл ішінде қайта нөлдесек, бұрынғы қосынды жоғалады.', 'loop_total'),
-  written(48, 'Орташа', 'Шартпен қосу', 'Экранға қандай сан шығады?', 's = 0\nfor i in range(1, 6):\n    if i % 2 == 0:\n        s = s + i\nprint(s)', '6',
-    'Шарттан 2 және 4 өтеді. Соңғы қосынды 2 + 4 = 6.', 'loop_filter'),
-  written(49, 'Қиын', 'Санауыш пен қосынды', 'Экранға шыққан екі санды ретімен жаз. Арасын бос орынмен немесе үтірмен бөл.',
-    'k = 0\ns = 0\nfor i in range(1, 10, 2):\n    if i > 3:\n        k = k + 1\n        s = s + i\nprint(k, s)', '3 21',
-    'Шартқа 5, 7, 9 сай келеді. Үш сан бар, қосындысы 21.', 'loop_filter'),
-  question(50, 'Қиын', 'Аралық нәтижелер', 'Экранға шыққан жолдар қандай ретпен келеді? Нұсқаларда жолдар үтірмен бөлінген.',
-    's = 0\nfor i in range(5, 0, -1):\n    if i % 2 == 0:\n        s = s + i\n    print(s)',
-    ['6', '4, 6', '0, 4, 4, 6, 6', '5, 9, 12, 14, 15'], 2,
-    'print(s) for ішінде, if-тен тыс тұр. Сондықтан әр қайталауда s шығады. s тек 4 және 2 келгенде өзгереді.', 'loop_indent')
-];
 
-const tasks = [
+export function quizFor(variant = 1) {
+  const v = Math.max(1, parseInt(variant, 10) || 1);
+  const stopN = pickV([5, 4, 6, 3, 7, 8], v);
+  const colonCode = pickV([
+    'for i in range(3)\n    print(i)', 'for k in range(4)\n    print(k * 2)', 'for i in range(2, 6)\n    print(i)',
+    'for n in range(5)\n    print("Сәлем")', 'for i in range(1, 4)\n    print(i + 1)', 'for x in range(6)\n    print(x)'], v);
+  const [a, b] = pickV([[2, 5], [1, 4], [3, 7], [4, 8], [0, 3], [5, 9]], v);
+  const [initName, initRight, initWhy] = pickV([
+    ['көбейтінді жинайтын p', 1, 'Көбейтінді 1-ден басталады. 0-ге көбейткенде нәтиже 0 болады.'],
+    ['санауыш k', 0, 'Санауыш 0-ден басталады, әр жағдайда оған 1 қосылады.'],
+    ['қосынды жинайтын s', 0, 'Қосынды 0-ден басталады, әр санды қосып барамыз.']], v);
+  const times = pickV([4, 6, 5, 7, 3, 8], v);
+  const from = pickV([10, 8, 9, 12, 6, 7], v);
+  const resetN = pickV([4, 5, 6, 4, 5, 6], v);
+  const [sumN, sumM] = pickV([[6, 2], [7, 3], [9, 2], [10, 3], [8, 2], [11, 3]], v);
+  const sumAns = nums(1, sumN - 1).filter(i => i % sumM === 0).reduce((x, y) => x + y, 0);
+  const trapK = pickV([3, 4, 3, 5, 4, 3], v);
+  const top = pickV([5, 6, 4, 7, 5, 6], v);
+  let run = 0; const shown = [], evens = [];
+  for (let i = top; i >= 1; i--) { if (i % 2 === 0) { run += i; evens.push(run); } shown.push(run); }
+
+  const items = {
+    41: question(41, 'Оңай', 'range(stop)', 'range(' + stopN + ') қандай сандарды береді?', '',
+      [seq(1, stopN), seq(0, stopN - 1), seq(0, stopN), 'Тек ' + stopN], 1,
+      'Бір аргумент болса, санау 0-ден басталады. ' + stopN + ' шекарасы кірмейді.', 'loop_range'),
+    42: question(42, 'Оңай', 'Қос нүкте', 'Кодта қандай синтаксис қатесі бар?', colonCode,
+      ['print жолы тым ішке жазылған', 'for жолында қос нүкте жоқ', 'range() ішінде сан жазуға болмайды', 'Қате жоқ'], 1,
+      'for тақырыбының соңына қос нүкте (:) қойылады.', 'loop_indent'),
+    43: written(43, 'Оңай', 'Өсу реті', 'Экранға шыққан сандарды ретімен жаз. Арасын бос орынмен немесе үтірмен бөл.',
+      'for i in range(' + a + ', ' + b + '):\n    print(i)', nums(a, b - 1).join(' '),
+      a + '-ден басталады. ' + b + ' кірмейтіндіктен, соңғы сан ' + (b - 1) + ' болады.', 'loop_range'),
+    44: question(44, 'Оңай', 'Бастапқы мән', 'Цикл алдында ' + initName + ' айнымалысына қандай мән береміз?', '',
+      ['0', '1', '−1', '10'], initRight, initWhy, 'loop_total'),
+    45: question(45, 'Оңай', 'Қайталау саны', 'Бағдарлама «Сәлем» сөзін неше рет шығарады?', 'for i in range(' + times + '):\n    print("Сәлем")',
+      [String(times - 1), String(times), String(times + 1), 'Шексіз рет'], 1,
+      'range(' + times + ') ' + times + ' мән береді, сондықтан цикл денесі ' + times + ' рет орындалады.', 'loop_range'),
+    46: question(46, 'Оңай', 'Кері санау қадамы', from + '-нан 1-ге дейін кері санау үшін range(' + from + ', 0, ?) ішіндегі қадам қандай болу керек?', '',
+      ['1', '−1', '0', String(from)], 1, 'Сандар кемуі үшін қадам теріс болады. Бір-бірден кемісе, қадам −1.', 'loop_step'),
+    47: question(47, 'Орташа', 'Қосынды неге жиналмады?', '1-ден ' + (resetN - 1) + '-ге дейінгі сандардың қосындысы ' + (resetN * (resetN - 1) / 2) + ' болу керек, бірақ экранға ' + (resetN - 1) + ' шығады. Қандай логикалық қате бар?',
+      's = 0\nfor i in range(1, ' + resetN + '):\n    s = 0\n    s = s + i\nprint(s)',
+      ['print(s) циклден кейін тұрғаны қате', 's әр қайталауда қайтадан нөлге теңестіріледі', 'range(1, ' + resetN + ') соңғы санды қамтымайды', 's-ке i орнына әрқашан 1 қосу керек'], 1,
+      's = 0 цикл алдында бір рет тұрады. Цикл ішінде қайта нөлдесек, бұрынғы қосынды жоғалады.', 'loop_total'),
+    48: written(48, 'Орташа', 'Шартпен қосу', 'Экранға қандай сан шығады?',
+      's = 0\nfor i in range(1, ' + sumN + '):\n    if i % ' + sumM + ' == 0:\n        s = s + i\nprint(s)', String(sumAns),
+      'Шартқа ' + nums(1, sumN - 1).filter(i => i % sumM === 0).join(', ') + ' сандары сай келеді. Қосындысы ' + sumAns + '.', 'loop_filter'),
+    49: question(49, 'Тұзақ', 'Тырнақшадағы i', 'Экранға не шығады?', 'for i in range(' + trapK + '):\n    print("i")',
+      [seq(0, trapK - 1), Array(trapK).fill('i').join(', '), 'Python қате береді', 'Ештеңе шықпайды'], 1,
+      'Тырнақшадағы "i" — айнымалы емес, i әрпі. Сондықтан әр қайталауда i әрпі шығады.', 'loop_range'),
+    50: question(50, 'Тұзақ', 'Аралық нәтижелер', 'Экранға шыққан жолдар қандай ретпен келеді? Нұсқаларда жолдар үтірмен бөлінген.',
+      's = 0\nfor i in range(' + top + ', 0, -1):\n    if i % 2 == 0:\n        s = s + i\n    print(s)',
+      [String(run), evens.join(', '), shown.join(', '), nums(1, top).reverse().join(', ')], 2,
+      'print(s) for ішінде, if-тен тыс тұр. Сондықтан әр қайталауда s шығады. s тек жұп i келгенде өзгереді.', 'loop_indent')
+  };
+  const easy = [41, 42, 43, 44, 45, 46], hard = [47, 48, 49, 50];
+  const order = v === 1 ? [...easy, ...hard] : [...mix(easy, 100 + v), ...mix(hard, 200 + v)];
+  return order.map(id => items[id]);
+}
+export const P12_QUIZ = quizFor(1);
+
+const tasksFor = variant => [
+
   { n: 1, title: 'Қарапайым есептер', info: '5 есеп. Әрқайсын for және range() арқылы орында. Нәтижені жеке жолдарға шығар.', items: basics },
   { n: 2, title: 'Математикалық есептер', info: '3 есеп. Қосынды мен көбейтіндіні циклмен есепте.', items: math },
   { n: 3, title: 'Цикл және шарт', info: '2 есеп. Цикл ішінде if қолданып, шартқа сай сандарды іріктеу.', items: conditions },
-  { n: 4, title: 'Аралас тест', info: '10 сұрақ. Әр дұрыс жауап 2 балл. Қате жауап 0 балл.', items: P12_QUIZ }
+  { n: 4, title: 'Аралас тест', info: '10 сұрақ. Әр дұрыс жауап 2 балл. Қате жауап 0 балл.', items: quizFor(variant) }
 ];
 
-export function buildP12() {
-  return tasks.map(task => ({ ...task, items: task.items.map(item => ({ ...item, task: task.n })) }));
+export function buildP12(variant = 1) {
+  return tasksFor(variant).map(task => ({ ...task, items: task.items.map(item => ({ ...item, task: task.n })) }));
 }

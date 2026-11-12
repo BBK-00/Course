@@ -11,7 +11,7 @@ assert.deepEqual(tasks.map(task => task.items.length), [5, 3, 2, 10]);
 assert.equal(Object.values(P12_MINUTES).reduce((sum, min) => sum + min), 60);
 assert.deepEqual(Object.values(P12_MAX), [20, 30, 30, 20]);
 assert.deepEqual(tasks.map(task => task.items.reduce((sum, item) => sum + item.max, 0)), Object.values(P12_MAX));
-assert.equal(quiz.filter(item => item.typed).length, 4);
+assert.equal(quiz.filter(item => item.typed).length, 2);
 assert(quiz.every(item => item.max === 2));
 
 const win = process.platform === 'win32';
@@ -27,7 +27,7 @@ for (const item of quiz.filter(item => item.typed)) {
   assert.equal(gradeQuizItem(item, stdout).frac, 1);
   assert.equal(gradeQuizItem(item, stdout.trim().split(/\s+/).join(', ')).frac, 1);
 }
-assert.equal(gradeQuizItem(quiz[5], '2 4 6 8 10').frac, 0);
+assert.equal(gradeQuizItem(quiz.find(item => item.typed), 'abc').frac, 0);
 const firstCase = tasks[0].items[0].cases[0];
 assert.equal(checkCase(firstCase, { out: [...firstCase.exp].reverse().join('\n') }), false);
 assert.equal(checkCase(firstCase, { out: [...firstCase.exp, '21'].join('\n') }), false);
@@ -108,6 +108,30 @@ try {
   assert.equal((await w2('submit', { item: it21.id, code: it21.ref })).ok, false, 'task 2 revision is still closed');
   assert.equal((await w2('submit', { item: it11.id, code: it11.ref })).ok, true);
   assert.equal((await w2('data')).state[it11.id].pts, 2.8);
+  // Late submission: an unsent problem can be sent inside that task's revision window for 70% of its points, once.
+  const it31 = tasks[2].items[0];
+  await teach('pywin', { task: 3, action: 'start' });
+  DB.sqlite.prepare('UPDATE py_wins SET until_at=0 WHERE session_id=? AND task=3').run(session.id);
+  assert.equal((await w2('submit', { item: it31.id, code: it31.ref })).ok, false, 'no late submission before the revision window opens');
+  assert.equal((await teach('pywin', { task: 13, action: 'start' })).ok, true);
+  assert.equal((await w2('submit', { item: it31.id, code: it31.ref })).ok, true, 'late submission in the revision window');
+  const late = (await w2('data')).state[it31.id];
+  assert.equal(late.pts, 8.4);
+  assert.equal(late.late, true);
+  assert.equal(late.canRevise, false);
+  DB.sqlite.prepare('UPDATE py_attempts SET at=at-60 WHERE session_id=?').run(session.id);
+  assert.equal((await w2('submit', { item: it31.id, code: it31.ref })).ok, false, 'a late problem is not revised again');
+  // The second student has variant 2: different quiz content and order, graded against their own key.
+  const v2 = buildP12(2)[3].items;
+  const publicQuiz = (await w2('data')).tasks[3];
+  await teach('pywin', { task: 4, action: 'start' });
+  const shown2 = (await w2('data')).tasks[3].items;
+  assert.deepEqual(shown2.map(i => i.id), v2.map(i => i.id), 'student 2 sees the variant 2 order');
+  assert.notDeepEqual(shown2.map(i => i.id), quiz.map(i => i.id));
+  const answers2 = Object.fromEntries(v2.map(item => [item.id, item.typed ? item.ans.replace(/ /g, ', ') : item.correct]));
+  const sent2 = await w2('submit', { quiz: answers2 });
+  assert.equal(sent2.ok, true, JSON.stringify(sent2));
+  assert.equal(sent2.scores[4].pts, 20);
 } finally {
   globalThis.fetch = fetch0;
 }
@@ -141,3 +165,39 @@ console.log('Lesson 12: timers, stage gating, 12 Python submissions, mixed quiz,
   assert(slip.diag.length >= 1);
 }
 console.log('Lesson 12: partial credit and line analysis passed.');
+
+// Test: 6 easy, 2 medium, 2 trap questions; 6 variants with different numbers and order; every key verified by real Python.
+{
+  const orders = new Set();
+  for (let v = 1; v <= 6; v++) {
+    const q = buildP12(v)[3].items;
+    assert.equal(q.length, 10);
+    assert.deepEqual(['Оңай', 'Орташа', 'Тұзақ'].map(d => q.filter(i => i.diff === d).length), [6, 2, 2]);
+    assert.deepEqual(q.map(i => i.id).sort(), [41, 42, 43, 44, 45, 46, 47, 48, 49, 50]);
+    assert(q.every(i => i.max === 2));
+    orders.add(q.map(i => i.id).join());
+    for (const item of q) {
+      if (item.typed) assert.equal(gradeQuizItem(item, python(item.code)).frac, 1, 'typed ' + item.id + ' v' + v);
+      else {
+        assert.equal(new Set(item.opts.map(o => o.t)).size, item.opts.length, 'distinct options ' + item.id + ' v' + v);
+        assert(item.correct >= 0 && item.correct < item.opts.length);
+        if ([49, 50].includes(item.id) || (item.id === 45)) {
+          const shown = python(item.code).trim().split(/\r?\n/);
+          if (item.id === 45) assert.equal(String(shown.length), item.opts[item.correct].t);
+          else assert.equal(shown.join(', '), item.opts[item.correct].t, 'output ' + item.id + ' v' + v);
+        }
+      }
+    }
+  }
+  assert(orders.size >= 4, 'question order differs between variants');
+  const texts = new Set([1, 2, 3, 4, 5, 6].map(v => JSON.stringify(buildP12(v)[3].items.map(i => i.code + i.q))));
+  assert.equal(texts.size, 6);
+}
+console.log('Lesson 12: quiz variants, difficulty mix and answer keys passed.');
+
+// Students are not told which questions are traps.
+{
+  const shown = JSON.stringify(preview.tasks[3].items);
+  assert(!shown.includes('Тұзақ'));
+}
+console.log('Lesson 12: trap labels stay hidden from students.');

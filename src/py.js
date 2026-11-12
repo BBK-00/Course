@@ -200,7 +200,7 @@ export function lessonP7(variant) {
   return T;
 }
 export function lessonOf(topic, variant, pv, ses) {
-  if (String(topic) === 'P12') return buildP12();
+  if (String(topic) === 'P12') return buildP12(variant);
   if (NEW_LESSONS[String(topic)]) { const c = cfgOf({ ...(ses || {}), topic: String(topic) }); return scaleTasks(NEW_LESSONS[String(topic)].build(variant, { rng, shuffle }), c.pts, NEW_LESSONS[String(topic)].def).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind !== 'quiz') it.cases.forEach(c2 => { c2.in = c2.in.map(String); }); }); return t; }); }
 
   if (String(topic) === 'P4') return buildP4(variant, { rng, shuffle }).map(t => { t.items.forEach(it => { it.task = t.n; if (it.kind === 'code') it.cases.forEach(c => { c.in = c.in.map(String); }); }); return t; });
@@ -212,8 +212,8 @@ export const allItemIds = () => lessonP7(1).flatMap(t => t.items.map(i => i.id))
 /* Студентке жіберілетін көрініс: тест жағдайлары мен дұрыс жауап жасырылады */
 export function publicLesson(variant, seedBase, topic = 'P7', pv, ses) {
   return lessonOf(topic, variant, pv, ses).map(t => ({ n: t.n, title: t.title, info: t.info || '', pair: !!t.pair, items: t.items.map(it => {
-    if (it.typed) return { id: it.id, task: it.task, kind: 'quiz', typed: true, max: it.max, title: it.title, q: it.q, code: it.code || '', diff: it.diff || '', opts: [] };
-    if (it.kind === 'quiz') return { id: it.id, task: it.task, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
+    if (it.typed) return { id: it.id, task: it.task, kind: 'quiz', typed: true, max: it.max, title: it.title, q: it.q, code: it.code || '', diff: it.diff === 'Тұзақ' ? 'Орташа' : it.diff || '', opts: [] };
+    if (it.kind === 'quiz') return { id: it.id, task: it.task, kind: 'quiz', max: it.max, title: it.title, tag: it.tag || '', q: it.q, code: it.code || '', diff: it.diff === 'Тұзақ' ? 'Орташа' : it.diff || '', opts: shuffle(it.opts, seedBase * 31 + it.id).map(o => ({ i: o.i, t: o.t })) };
     return { id: it.id, kind: it.kind, task: it.task, max: it.max, title: it.title, tag: it.tag || '', text: it.text, starter: it.starter || '', sample: it.sample || null, nCases: it.cases.length, fig: it.fig || '', formula: it.formula || '' };
   }) }));
 }
