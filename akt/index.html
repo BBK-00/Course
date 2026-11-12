@@ -7,21 +7,28 @@
 <meta name="description" content="Ақпараттық-коммуникациялық технологиялар пәнінің 36 тақырыбы.">
 <link rel="stylesheet" href="../assets/site.css">
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/assets/learner.css?v=1">
 </head>
-<body class="student-portal student-catalog">
-<header class="site-head">
-  <div class="wrap head-in"><a class="logo" href="../index.html"><span class="logo-mark">ББ</span><span>Оқу кеңістігі</span></a><nav class="head-nav"><a href="../index.html">← Барлық пәндер</a></nav></div>
-</header>
-<main>
-  <section class="hero-site"><div class="wrap hero-grid">
+<body class="student-portal student-catalog learner learner-catalog" data-learner-page="course" data-learner-course="akt">
+<a class="skip-link" href="#learner-main">Мазмұнға өту</a>
+<div class="learner-layout">
+  <aside class="learner-sidebar" data-learner-nav aria-label="Негізгі мәзір"></aside>
+  <div class="learner-workspace">
+    <header class="learner-top" data-learner-top></header>
+    <main class="learner-catalog-main" id="learner-main">
+  <section class="hero-site"><div class="wrap hero-grid" data-course-mark="▦">
     <div>
-      <p class="eyebrow">Пән</p>
       <h1>Ақпараттық-коммуникациялық технологиялар</h1>
       <p class="lead">Компьютер құрылғысын, электрондық кестелер мен мультимедиа құралдарын үйрен.</p>
       <div class="stats">
         <div class="stat"><b>36</b><span>тақырып</span></div>
         <div class="stat"><b>3</b><span>ашық</span></div>
         <div class="stat"><b>33</b><span>әзірленуде</span></div>
+      </div>
+      <div class="learner-catalog-actions">
+        <button type="button" class="lr-btn lr-lime course-save" data-save-course="akt" aria-pressed="false">+ Менің курстарыма қосу</button>
+        <a href="/#subjects" class="lr-btn lr-secondary">Барлық курстар</a>
       </div>
     </div>
   </div></section>
@@ -181,7 +188,10 @@
     </ol>
   </div>
 </main>
-<footer class="site-foot"><div class="wrap">© Бақытжанов Бекет Қайратұлы</div></footer>
+    <footer class="learner-foot">© Бақытжанов Бекет Қайратұлы</footer>
+  </div>
+</div>
 <script src="../assets/studio-topics.js?v=20261111"></script>
+<script type="module" src="/assets/learner.js?v=1"></script>
 </body>
 </html>

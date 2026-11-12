@@ -1,5 +1,11 @@
 /* Кестелер бірінші сұраныста өзі жасалады (IF NOT EXISTS), қолмен миграция қажет емес. */
 export const SCHEMA = [
+  "CREATE TABLE IF NOT EXISTS learner_accounts (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS learner_sessions (token_hash TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES learner_accounts(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS idx_learner_sessions_expiry ON learner_sessions(expires_at)",
+  "CREATE TABLE IF NOT EXISTS learner_courses (account_id TEXT NOT NULL REFERENCES learner_accounts(id) ON DELETE CASCADE, course TEXT NOT NULL, enrolled_at INTEGER NOT NULL, PRIMARY KEY(account_id,course))",
+  "CREATE TABLE IF NOT EXISTS learner_attempts (scope TEXT PRIMARY KEY, window INTEGER NOT NULL, attempts INTEGER NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS idx_learner_attempts_window ON learner_attempts(window)",
   "CREATE TABLE IF NOT EXISTS groups ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE )",
   "CREATE TABLE IF NOT EXISTS progress_courses (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE RESTRICT, course TEXT NOT NULL, subject TEXT NOT NULL, year INTEGER NOT NULL, threshold INTEGER NOT NULL, sheet TEXT NOT NULL, UNIQUE(group_id, course, subject, year))",
   "CREATE TABLE IF NOT EXISTS progress_imports (id INTEGER PRIMARY KEY AUTOINCREMENT, course_id INTEGER NOT NULL REFERENCES progress_courses(id) ON DELETE RESTRICT, created_at INTEGER NOT NULL, entries TEXT NOT NULL)",

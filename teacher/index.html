@@ -11,21 +11,30 @@
 <link rel="stylesheet" href="dashboard.css?v=20261112-tasks">
 <link rel="stylesheet" href="progress.css?v=2">
 <link rel="stylesheet" href="python-report.css?v=3">
+<link rel="stylesheet" href="portal-dashboard.css?v=1">
 </head>
 <body class="teacher-dashboard">
-<main id="login" class="login">
-  <a class="login-brand" href="../"><span class="logo-mark">ББ</span> Интерактивті сабақтар</a>
-  <h1>Қош келдіңіз!</h1><p>Сабақтарыңыз бен студенттеріңіздің нәтижелері бір жерде.</p>
-  <form id="fLogin"><label for="pw">Құпиясөз</label><input class="field" id="pw" type="password" autocomplete="current-password" required>
-    <div class="err" id="eLogin" role="alert"></div><button class="btn primary login-submit" id="bLogin" type="submit">Кіру</button>
-  </form>
-  <p><a href="progress-demo.html">Үлгерім демосын ашу</a></p>
+<main id="login" class="login teacher-login">
+  <section class="teacher-login-art" aria-labelledby="teacher-welcome">
+    <a class="login-brand" href="/"><span class="logo-mark">ББ</span> Оқу кеңістігі</a>
+    <div><h1 id="teacher-welcome">Оқытушының<br>жұмыс кеңістігі</h1><p>Сабақты бастаңыз, топтың нәтижесін қарап, келесі жұмысты жоспарлаңыз.</p></div>
+  </section>
+  <section class="teacher-login-form" aria-labelledby="teacher-login-title">
+    <div>
+      <h2 id="teacher-login-title">Оқытушы панеліне кіру</h2>
+      <form id="fLogin"><label for="pw">Құпиясөз</label><input class="field" id="pw" type="password" autocomplete="current-password" required>
+        <div class="err" id="eLogin" role="alert"></div><button class="btn primary login-submit" id="bLogin" type="submit">Кіру <span aria-hidden="true">↗</span></button>
+      </form>
+      <a class="teacher-return" href="/#subjects">← Курстарға қайту</a>
+    </div>
+  </section>
 </main>
 <div id="app" hidden>
   <aside class="dash-sidebar" id="sidebar" aria-label="Негізгі мәзір">
     <a href="../" class="dash-brand"><span class="logo-mark">ББ</span><span class="nav-label">Оқытушы панелі</span></a>
     <button class="sidebar-collapse icon-btn" id="collapseSidebar" type="button" aria-label="Мәзірді жинау" aria-expanded="true">«</button>
     <nav id="mainNav">
+      <span class="teacher-nav-label">Басқару</span>
       <button class="dash-nav on" type="button" data-route="live"><span data-icon="monitor"></span><span class="nav-label">Сабақ</span></button>
       <button class="dash-nav" type="button" data-route="homework"><span data-icon="file"></span><span class="nav-label">Үй жұмысы</span><span id="hwBadge" class="nav-count" hidden></span></button>
       <button class="dash-nav" type="button" data-route="journal"><span data-icon="book"></span><span class="nav-label">Журнал</span></button>
@@ -33,6 +42,7 @@
       <button class="dash-nav" type="button" data-route="roster"><span data-icon="users"></span><span class="nav-label">Топтар</span></button>
       <button class="dash-nav" type="button" data-route="archive"><span data-icon="archive"></span><span class="nav-label">Архив</span></button>
       <a class="dash-nav" href="studio.html" style="text-decoration:none"><span data-icon="file"></span><span class="nav-label">Курс студиясы</span></a>
+      <a class="dash-nav teacher-site-link" href="/#subjects"><span data-icon="external"></span><span class="nav-label">Курстар сайты</span></a>
     </nav>
     <div class="sidebar-bottom"><span class="teacher-avatar">БҚ</span><span class="nav-label"><b>Оқытушы</b><small>Сабақтарды басқару</small></span><button id="bOut" class="icon-btn" type="button" title="Шығу" aria-label="Шығу"><span data-icon="logout"></span></button></div>
   </aside>

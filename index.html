@@ -1,66 +1,91 @@
 <!doctype html>
 <html lang="kk">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Оқу кеңістігі — Бақытжанов Бекет Қайратұлы</title>
-<meta name="description" content="Python, Scratch, Сандық әдістер және АКТ бойынша интерактивті сабақтар.">
-<link rel="stylesheet" href="assets/lesson.css">
-<link rel="stylesheet" href="assets/site.css">
-<link rel="stylesheet" href="assets/student.css?v=20261111">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Оқу кеңістігі — курстар мен интерактивті сабақтар</title>
+  <meta name="description" content="Python, Scratch, Сандық әдістер және АКТ бойынша ашық курстар, жаттығулар және тікелей сабақтар.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/lesson.css">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/student.css?v=20261111">
+  <link rel="stylesheet" href="/assets/learner.css?v=1">
 </head>
-<body class="student-portal">
-<a class="skip-link" href="#subjects">Пәндерге өту</a>
-<header class="site-head">
-  <div class="wrap head-in">
-    <a class="logo" href="/" aria-current="page"><span class="logo-mark" aria-hidden="true">ББ</span><span>Оқу кеңістігі</span></a>
-    <nav class="head-nav" aria-label="Негізгі навигация"><a href="#subjects">Пәндер</a></nav>
+<body class="learner" data-learner-page="home">
+  <a class="skip-link" href="#learner-main">Мазмұнға өту</a>
+  <div class="learner-layout">
+    <aside class="learner-sidebar" data-learner-nav aria-label="Негізгі мәзір"></aside>
+    <div class="learner-workspace">
+      <header class="learner-top" data-learner-top></header>
+      <main class="learner-home" id="learner-main">
+        <div class="learner-main-column">
+          <section class="learner-hero" aria-labelledby="home-title">
+            <div class="learner-hero-copy">
+              <h1 id="home-title">Бүгін не<br>үйренеміз?</h1>
+              <p>Курсты ашып, мысалды орында. Біліміңді интерактивті тапсырмамен тексер.</p>
+              <div class="learner-hero-actions">
+                <a class="lr-btn lr-lime" href="#subjects" data-course-view="all">Курстарды қарау <span aria-hidden="true">↘</span></a>
+                <button class="lr-btn learner-mobile-join" type="button" data-live-shortcut>Сабақ коды <span aria-hidden="true">↗</span></button>
+              </div>
+            </div>
+          </section>
+          <section class="course-library" id="subjects" aria-labelledby="subjects-title">
+            <div class="course-library-head">
+              <div><h2 id="subjects-title">Курстар</h2><p id="courseCount" role="status">4 курс</p></div>
+              <div class="course-library-tools">
+                <div class="lr-segment" role="group" aria-label="Курстар сүзгісі">
+                  <button type="button" data-course-view="all" aria-pressed="true">Барлығы</button>
+                  <button type="button" data-course-view="saved" aria-pressed="false">Менің курстарым</button>
+                </div>
+                <label class="lr-search"><span aria-hidden="true">⌕</span><input type="search" id="courseSearch" placeholder="Курсты іздеу" aria-label="Курсты іздеу"></label>
+              </div>
+            </div>
+            <div class="course-grid" id="courseGrid">
+              <article class="course-tile" data-course="python" data-search="python питон программалау цикл шарт код">
+                <div class="course-art course-art-python" aria-hidden="true"><span class="art-code">&lt;/&gt;</span><span class="art-label">PY</span></div>
+                <div class="course-tile-body"><h3><a href="/python/">Python</a></h3><p>Код жазу, шарттар және циклдер.</p>
+                  <div class="course-tile-actions"><a href="/python/" class="course-open" aria-label="Python курсын ашу">Курсты ашу <span aria-hidden="true">↗</span></a><button type="button" class="lr-save" data-save-course="python" aria-label="Python курсын сақтау" aria-pressed="false"></button></div></div>
+              </article>
+              <article class="course-tile" data-course="scratch" data-search="scratch скретч ойын анимация блок">
+                <div class="course-art course-art-scratch" aria-hidden="true"><span class="art-block"><i></i><i></i><i></i></span><span class="art-label">SB</span></div>
+                <div class="course-tile-body"><h3><a href="/scratch/">Scratch</a></h3><p>Блоктармен ойын және анимация жасау.</p>
+                  <div class="course-tile-actions"><a href="/scratch/" class="course-open" aria-label="Scratch курсын ашу">Курсты ашу <span aria-hidden="true">↗</span></a><button type="button" class="lr-save" data-save-course="scratch" aria-label="Scratch курсын сақтау" aria-pressed="false"></button></div></div>
+              </article>
+              <article class="course-tile" data-course="sandyq-adister" data-search="сандық әдістер математика гаусс теңдеу жуықтау">
+                <div class="course-art course-art-math" aria-hidden="true"><span class="art-sum">∑</span><span class="art-label">NM</span></div>
+                <div class="course-tile-body"><h3><a href="/sandyq-adister/">Сандық әдістер</a></h3><p>Теңдеулер жүйесі және жуықтау әдістері.</p>
+                  <div class="course-tile-actions"><a href="/sandyq-adister/" class="course-open" aria-label="Сандық әдістер курсын ашу">Курсты ашу <span aria-hidden="true">↗</span></a><button type="button" class="lr-save" data-save-course="sandyq-adister" aria-label="Сандық әдістер курсын сақтау" aria-pressed="false"></button></div></div>
+              </article>
+              <article class="course-tile" data-course="akt" data-search="акт ақпараттық коммуникациялық технология excel компьютер кесте">
+                <div class="course-art course-art-akt" aria-hidden="true"><span class="art-window"><i></i><i></i><i></i><i></i></span><span class="art-label">ICT</span></div>
+                <div class="course-tile-body"><h3><a href="/akt/">АКТ</a></h3><p>Компьютер, электрондық кесте және мультимедиа.</p>
+                  <div class="course-tile-actions"><a href="/akt/" class="course-open" aria-label="АКТ курсын ашу">Курсты ашу <span aria-hidden="true">↗</span></a><button type="button" class="lr-save" data-save-course="akt" aria-label="АКТ курсын сақтау" aria-pressed="false"></button></div></div>
+              </article>
+            </div>
+            <div class="course-empty" id="courseEmpty" hidden></div>
+          </section>
+        </div>
+        <aside class="learner-rail" aria-label="Сабақ және жеке оқу">
+          <section class="learner-card student-live" aria-labelledby="live-title">
+            <h2 id="live-title"><span class="lr-live-dot" aria-hidden="true"></span> Ағымдағы сабақ</h2>
+            <strong id="liveName" role="status">Сабақ күйі тексерілуде…</strong>
+            <p id="liveHint">Ашық сабақ осы жерде көрсетіледі.</p>
+            <button type="button" class="lr-btn lr-primary" id="homeJoin">Сабаққа кодпен кіру <span aria-hidden="true">↗</span></button>
+            <a class="lr-text-link" id="liveLink" hidden>Сабақ материалын ашу →</a>
+          </section>
+          <section class="learner-card learner-study" aria-labelledby="study-title">
+            <h2 id="study-title">Менің оқуым</h2>
+            <div id="learnerStudy"><p>Сақталған курстар жеке кабинетте көрінеді.</p></div>
+            <div id="learnerRecent" class="learner-recent" hidden></div>
+          </section>
+        </aside>
+      </main>
+      <footer class="learner-foot">© Бақытжанов Бекет Қайратұлы</footer>
+    </div>
   </div>
-</header>
-<main class="wrap">
-  <section class="student-hero" aria-labelledby="home-title">
-    <div class="student-hero-copy">
-      <p class="eyebrow">Интерактивті сабақтар</p>
-      <h1 id="home-title">Бүгін не үйренеміз?</h1>
-      <p>Тақырыпты таңда, мысалды іске қосып көр және біліміңді тапсырмамен тексер.</p>
-      <div class="student-hero-actions">
-        <button type="button" class="btn primary" id="homeJoin">Сабаққа кодпен кіру <span aria-hidden="true">↗</span></button>
-        <a class="btn" href="#subjects">Пәндерді қарау <span aria-hidden="true">↓</span></a>
-      </div>
-    </div>
-    <div class="student-live" aria-labelledby="live-title">
-      <span class="student-live-label" id="live-title"><i aria-hidden="true"></i> Ағымдағы сабақ</span>
-      <strong id="liveName" role="status">Сабақ күйі тексерілуде…</strong>
-      <p id="liveHint">Ашық сабақ осы жерде көрсетіледі.</p>
-      <a class="student-live-link" id="liveLink" hidden>Сабақ материалын ашу →</a>
-    </div>
-  </section>
-
-  <section id="subjects" aria-labelledby="subjects-title">
-    <div class="student-section-head"><div><p class="eyebrow">Сабақтар жинағы</p><h2 id="subjects-title">Пәндер</h2></div><span>4 пән</span></div>
-    <div class="grid student-subjects">
-      <a class="subject subject-python" href="python/">
-        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/></svg></span>
-        <h3>Python</h3><p>Амалдар, шарттар, циклдер және код жазу.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
-      </a>
-      <a class="subject subject-scratch" href="scratch/">
-        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v4h3v5H4V7h3zm-3 9v6h4v3h8v-3h4v-6M9 8h.01M15 8h.01"/></svg></span>
-        <h3>Scratch</h3><p>Блоктармен ойын мен анимация құрастыр.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
-      </a>
-      <a class="subject subject-math" href="sandyq-adister/">
-        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 3v17h17M7 15l4-5 4 2 5-7"/><circle cx="11" cy="10" r="1"/><circle cx="15" cy="12" r="1"/></svg></span>
-        <h3>Сандық әдістер</h3><p>Теңдеулер жүйесі және функцияларды жуықтау.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
-      </a>
-      <a class="subject subject-akt" href="akt/">
-        <span class="subject-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span>
-        <h3>АКТ</h3><p>Компьютер, электрондық кесте және мультимедиа.</p><span class="go">Сабақтарды ашу <span aria-hidden="true">↗</span></span>
-      </a>
-    </div>
-  </section>
-</main>
-<footer class="site-foot"><div class="wrap">© Бақытжанов Бекет Қайратұлы</div></footer>
-<script src="assets/lesson-core.js?v=20261111"></script>
-<script src="assets/join.js?v=20261112"></script>
-<script src="assets/student-home.js?v=20261112"></script>
+  <script src="/assets/lesson-core.js?v=20261111"></script>
+  <script src="/assets/join.js?v=20261112"></script>
+  <script src="/assets/student-home.js?v=20261112"></script>
+  <script type="module" src="/assets/learner.js?v=1"></script>
 </body>
 </html>

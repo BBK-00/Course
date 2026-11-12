@@ -7,6 +7,7 @@ import { normalizeHomeworkReview } from './homework-review.js';
 import { SCHEMA } from './schema.js';
 import { progressApi, courseOfTopic, courseDate, inCourseYear } from './progress.js';
 import { pythonReport } from './python-report.js';
+import { accountApi, cleanAccounts } from './accounts.js';
 import { runCode, LANGS } from './runner.js';
 import { PLAN, PLANS } from './plan.js';
 import { gradeSb3 } from './scratch.js';
@@ -51,7 +52,12 @@ const visibleSession = (DB, id = 0) => id
   : DB.prepare("SELECT * FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id) ORDER BY (status='open') DESC, id DESC LIMIT 1").first();
 
 export default {
-  async scheduled(event,env,ctx){await ensureSchema(env.DB);await ensureData(env.DB,true);await drainHomeworkQueue(env,{budgetMs:50000});},
+  async scheduled(event,env,ctx){
+    await ensureSchema(env.DB);
+    if (new Date(event?.scheduledTime ?? Date.now()).getUTCMinutes() === 0) await cleanAccounts(env.DB);
+    await ensureData(env.DB,true);
+    await drainHomeworkQueue(env,{budgetMs:50000});
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pythonLive = request.method === 'GET' && url.pathname.match(/^\/live\/python\/(P\d+)$/);
@@ -74,7 +80,15 @@ export default {
     if (/^\/(c|media)(\/|$)/.test(url.pathname) || url.pathname === '/api/pub/lessons') { try { await ensureSchema(env.DB); const r = await studioPublic(request, env, url); if (r) return r; } catch (e) { return new Response('server', { status: 500 }); } }
     if (request.method === 'GET' && /^\/(python|scratch|sandyq-adister|akt)\/[\w-]+$/.test(url.pathname)) { try { await ensureSchema(env.DB); const r = await servePage(request, env, url); if (r) return r; } catch (e) {} }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    try { await ensureSchema(env.DB); await ensureData(env.DB); return await route(request, env, ctx, url); }
+    try {
+      await ensureSchema(env.DB);
+      if (url.pathname === '/api/account' || url.pathname.startsWith('/api/account/')) {
+        try { return await accountApi(request, env.DB, url); }
+        catch { return err('server', 500); }
+      }
+      await ensureData(env.DB);
+      return await route(request, env, ctx, url);
+    }
     catch (e) {
       if (e.message === 'no_password') return err('no_password', 500);
       return err('server', 500, { message: String(e.message || e) });

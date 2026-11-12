@@ -119,6 +119,10 @@ html { scroll-padding-top: 76px; }
 
 /* Lesson shell, shared by static lessons and published studio lessons. */
 body.student-lesson, body.student-lesson.pl { background: var(--bg); color: var(--text); font-size: 16px; }
+.student-lesson {
+  --bg:#f2f3f8; --line:#e0e2ef; --primary:#4041cf; --primary-2:#3031a8;
+  --primary-soft:#ececff; --student-ink:#24264c; --student-width:calc(100vw - clamp(28px,4vw,72px));
+}
 .student-lesson .topbar, .student-lesson .topbar.pl-top { background: #fffffff5; border-color: var(--line); }
 .student-lesson .topbar-in, .student-lesson .pl-top .topbar-in { width: min(calc(100% - 28px), var(--student-width)); }
 .student-lesson .pl-wrap, .student-lesson .wrap { width: min(calc(100% - 28px), var(--student-width)); }
