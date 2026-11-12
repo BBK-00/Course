@@ -50,13 +50,20 @@ export async function teacherJournal(DB, groups, groupId = 0) {
   const statement = DB.prepare(`SELECT s.* FROM sessions s WHERE NOT EXISTS (SELECT 1 FROM session_trash t WHERE t.session_id=s.id)${sessionFilter} ORDER BY s.id`);
   const sessions = await rowsOf(groupId ? statement.bind(groupId) : statement);
   const marks = lessonMarks(sessions, await gradeRecords(DB, sessions.map(s => s.id)));
+  const sessionGroups = new Map(sessions.map(session => [session.id, session.group_id]));
   const byStudent = new Map();
-  const visible = new Set(groups.flatMap(g => g.students.map(s => s.id)));
+  const visible = new Map(groups.flatMap(group => group.students.map(student => [student.id, group.id])));
+  const groupTopics = new Map(groups.map(group => [group.id, new Map()]));
   const topics = new Set();
   const later = (a, b) => a.date > b.date || (a.date === b.date && a.session > b.session);
   for (const mark of marks) {
     if (!visible.has(mark.student)) continue;
     topics.add(mark.topic);
+    const group = visible.get(mark.student);
+    if (sessionGroups.get(mark.session) === group) {
+      const lessons = groupTopics.get(group), last = lessons.get(mark.topic);
+      if (!last || later(mark, last)) lessons.set(mark.topic, mark);
+    }
     if (!byStudent.has(mark.student)) byStudent.set(mark.student, { best: {}, recent: {} });
     const { best, recent } = byStudent.get(mark.student);
     const before = best[mark.topic];
@@ -68,6 +75,15 @@ export async function teacherJournal(DB, groups, groupId = 0) {
     const data = byStudent.get(student.id);
     student.scores = data?.best || {};
     student.recent = data?.recent || {};
+    for (const [topic, lesson] of groupTopics.get(group.id)) {
+      if (student.scores[topic]) continue;
+      const missing = {
+        student: student.id, session: lesson.session, topic, date: lesson.date, total: null,
+        present: false, attendance: 0, complete: false, finalized: false, sent: 0, taskCount: lesson.taskCount, edited: false
+      };
+      student.scores[topic] = missing;
+      student.recent[topic] = missing;
+    }
   }
   return {
     topics: [...topics].sort(),

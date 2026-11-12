@@ -135,7 +135,9 @@ test('teacher routes preserve old marks, scope new sessions to a course and repo
   assert.equal(journal.find(s => s.id === student).recent.P12.finalized, false);
   assert.equal(journal.find(s => s.id === secondStudent).scores.P12.total, 0);
   assert.equal(journal.find(s => s.id === secondStudent).scores.P12.finalized, true);
-  assert.equal(journal.find(s => s.id === thirdStudent).scores.P12, undefined);
+  const missing = journal.find(s => s.id === thirdStudent).scores.P12;
+  assert.equal(missing.total, null);
+  assert.equal(missing.attendance, 0);
   const site = 'progress/report?id=' + id + '&source=site';
   assert.equal((await call(site)).report.assessed, 2);
   const report = await call('python-report?session=' + legacy);

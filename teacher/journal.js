@@ -82,7 +82,7 @@ window.createTeacherJournal = function ({ h, btn, api, subjects, topicInfo, open
       );
       const byName = (a, b) => a.group.name.localeCompare(b.group.name, 'kk') || a.student.name.localeCompare(b.student.name, 'kk');
       rows.sort(state.sort === 'avg' ? (a, b) => (b.avg ?? -1) - (a.avg ?? -1) || byName(a, b) : byName);
-      const marks = rows.flatMap(row => row.marks.filter(Boolean));
+      const marks = rows.flatMap(row => row.marks.filter(mark => mark?.total != null));
       const final = marks.filter(mark => mark.finalized);
       metrics.replaceChildren(...[
         ['Студенттер', rows.length], ['Қорытынды бағалар', final.length],
@@ -96,7 +96,7 @@ window.createTeacherJournal = function ({ h, btn, api, subjects, topicInfo, open
       exportRows = [
         ['Студент', 'Топ', ...topics.map(titleOf), 'Орташа қорытынды'],
         ...rows.map(({ student, group, marks, avg }) => [
-          student.name, group.name, ...marks.map(mark => mark ? mark.finalized ? mark.total : mark.total + ' (аралық)' : ''),
+          student.name, group.name, ...marks.map(mark => mark?.total != null ? mark.finalized ? mark.total : mark.total + ' (аралық)' : ''),
           avg === null ? '' : Math.round(avg * 10) / 10
         ])
       ].map(row => row.map(spreadsheetValue));
@@ -106,7 +106,7 @@ window.createTeacherJournal = function ({ h, btn, api, subjects, topicInfo, open
         return;
       }
       const cell = (mark, student) => {
-        if (!mark) return h('td', { class: 'journal-blank', text: '—', 'aria-label': 'Баға жоқ' });
+        if (mark?.total == null) return h('td', { class: 'journal-blank', text: '—', 'aria-label': 'Баға жоқ', title: mark ? 'Қатысым тіркелмеген' : false });
         const detail = mark.finalized ? mark.edited ? 'Оқытушы қойған' : '' : 'Аралық · ' + mark.sent + '/' + mark.taskCount;
         return h('td', {}, h('button', {
           type: 'button', class: 'journal-mark ' + (mark.finalized ? scoreClass(mark.total) : 'interim'),
