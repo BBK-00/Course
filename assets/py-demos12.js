@@ -552,9 +552,14 @@
   function mountTabs() {
     const tabs = [...document.querySelectorAll('.pl-seg [data-tab]')];
     const panes = [...document.querySelectorAll('.pl-pane')];
+    const seen = {};   /* әр бөлімнің айналдыру орны: қайтып келгенде сол жерде тұрады */
+    let current = panes.find(pane => !pane.hidden)?.id;
     function go(id, updateHash) {
       if (id.startsWith('pp-')) id = 'task';
       if (!panes.some(pane => pane.id === id)) id = 'teo';
+      if (current && current !== id) seen[current] = window.scrollY;
+      const changed = current !== id;
+      current = id;
       pauseAll.forEach(pause => pause());
       panes.forEach(pane => { pane.hidden = pane.id !== id; });
       tabs.forEach(tab => {
@@ -565,7 +570,7 @@
       });
       if (updateHash) {
         history.replaceState(null, '', '#' + id);
-        window.scrollTo(0, 0);
+        if (changed) window.scrollTo(0, seen[id] || 0);
       }
     }
     tabs.forEach((tab, index) => {

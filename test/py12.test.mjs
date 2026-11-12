@@ -66,7 +66,7 @@ for (const item of preview.tasks.flatMap(task => task.items)) {
 const locked = await work('data');
 assert(locked.tasks.every(task => task.locked && task.items.length === 0));
 assert.deepEqual(locked.hw, { off: true });
-for (const task of [0, 5]) assert.equal((await teach('pywin', { task })).ok, false);
+assert.equal((await teach('pywin', { task: 5 })).ok, false);
 const correctQuiz = Object.fromEntries(quiz.map(item => [item.id, item.typed ? item.ans.replace(/ /g, ', ') : item.correct]));
 assert.equal((await work('submit', { quiz: correctQuiz })).ok, false);
 
@@ -89,9 +89,31 @@ try {
     assert.equal(result.results.length, task.items.length);
     DB.sqlite.prepare('UPDATE py_wins SET until_at=0 WHERE session_id=? AND task=?').run(session.id, task.n);
   }
+  // Per-task revision: the task 1 revision window must not reopen task 2.
+  const { groups: grp } = await teach('students', { group_id: group.id, names: 'Second Student' });
+  const second = grp.find(g => g.id === group.id).students.find(x => x.name === 'Second Student');
+  const { token: t2 } = await call('join', { code: session.code, student_id: second.id, device: 'lesson-12-qa-2' });
+  const w2 = (path, body) => call('py/' + path, body, t2);
+  const age = () => DB.sqlite.prepare('UPDATE py_attempts SET at=at-60 WHERE session_id=?').run(session.id);
+  for (const task of [1, 2]) await teach('pywin', { task, action: 'start' });
+  const it11 = tasks[0].items[0], it21 = tasks[1].items[0];
+  assert.equal((await w2('submit', { item: it11.id, code: 'print(1)' })).ok, true);
+  assert.equal((await w2('submit', { item: it21.id, code: 'print(1)' })).ok, true);
+  age();
+  assert.equal((await w2('submit', { item: it11.id, code: it11.ref })).ok, false, 'no revision before the teacher opens it');
+  for (const task of [1, 2]) DB.sqlite.prepare('UPDATE py_wins SET until_at=0 WHERE session_id=? AND task=?').run(session.id, task);
+  assert.equal((await teach('pywin', { task: 11, action: 'start' })).ok, true);
+  const revising = await w2('data');
+  assert.equal(revising.wins[11].until > revising.wins[11].from, true);
+  assert.equal((await w2('submit', { item: it21.id, code: it21.ref })).ok, false, 'task 2 revision is still closed');
+  assert.equal((await w2('submit', { item: it11.id, code: it11.ref })).ok, true);
+  assert.equal((await w2('data')).state[it11.id].pts, 2.8);
 } finally {
   globalThis.fetch = fetch0;
 }
+assert.equal((await teach('pywin', { task: 0, action: 'start' })).wins[0].until > 0, true);
+const guestPreview = await call('py/sample/P12', undefined, teacher);
+assert.equal(guestPreview.ok, true);
 const result = await work('data');
 assert.equal(result.total, 100);
 assert.equal(result.complete, true);

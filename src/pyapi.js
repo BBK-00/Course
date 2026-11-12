@@ -27,18 +27,19 @@ export async function pyWins(DB, sesId) {
   return Object.fromEntries(rows.map(r => [r.task, { from: r.start_at, until: r.until_at }]));
 }
 /* wait — әлі басталмаған, work — ашық, closed — жабылды (қатемен жұмыс әлі жоқ), revise — тек қателерді түзету, over — бәрі аяқталды */
-export function p4Phase(wins, n, t) {
+export function p4Phase(wins, n, t, per) {
   const w = wins[n]; if (!w) return 'wait';
   if (t <= w.until + 45) return 'work';
-  const r = wins[0]; if (!r) return 'closed';
+  const r = wins[per ? 10 + n : 0]; if (!r) return 'closed';
   return t <= r.until + 45 ? 'revise' : 'over';
 }
 export async function pyWinAdmin(b, DB, ses) {
   const n = Number(b.task), act = String(b.action || 'start'), t = now();
-  const fallback = ses.topic === 'P12' ? P12_MINUTES[n] || 10 : 5;
+  const fallback = ses.topic === 'P12' ? (n === 0 || n > 10 ? 10 : P12_MINUTES[n] || 10) : 5;
   const min = Math.max(1, Math.min(n === 5 ? 4320 : 120, Number(b.minutes) || fallback));
-  if (!(n >= 0 && n <= 5)) return err('bad_request');
-  if (ses.topic === 'P12' && !P12_MINUTES[n]) return err('bad_request');
+  const perRev = ses.topic === 'P12' && n >= 11 && n <= 14;
+  if (!(n >= 0 && n <= 5) && !perRev) return err('bad_request');
+  if (ses.topic === 'P12' && n !== 0 && !perRev && !P12_MINUTES[n]) return err('bad_request');
   if (act === 'start') await DB.prepare('INSERT INTO py_wins (session_id, task, start_at, until_at) VALUES (?,?,?,?) ON CONFLICT(session_id, task) DO UPDATE SET start_at=excluded.start_at, until_at=excluded.until_at').bind(ses.id, n, t, t + min * 60).run();
   else if (act === 'stop') await DB.prepare('UPDATE py_wins SET until_at=? WHERE session_id=? AND task=?').bind(t, ses.id, n).run();
   else if (act === 'extend') await DB.prepare('UPDATE py_wins SET until_at=MAX(until_at, ?) + ? WHERE session_id=? AND task=?').bind(t, min * 60, ses.id, n).run();
@@ -141,7 +142,8 @@ async function totals(env, DB, p, ses, att) {
   return { total: c.final, scores: Object.fromEntries(Object.entries(c.tasks).map(([n, t]) => [n, { sent: t.sent, pts: t.pts, max: t.max }])), complete: c.complete };
 }
 
-const revisionOpen = (wins,t) => !!(wins?.[0] && t<=wins[0].until+45);
+/* 12-сабақта қатемен жұмыс әр тапсырмаға жеке: py_wins.task = 10 + тапсырма нөмірі. Басқа сабақтарда бір ортақ терезе (task 0). */
+const revisionOpen = (wins,t,n,per) => { const r = wins?.[per ? 10 + n : 0]; return !!(r && t<=r.until+45); };
 function itemState(item, list, revision = false) {
   const sc = itemScore(item, (list || []).map(a => ({ n: a.n, frac: a.frac })), revision), last = lastOf(list), d = last ? last.detail : {};
   return { ...sc, max: item.max, kind: item.kind, code: last ? last.code || '' : '', choice: last && item.kind === 'quiz' ? d.choice : undefined, ...(item.typed && last ? { ans: item.ans, why: item.why } : {}), cases: last ? publicCases(d.cases) : [], diag: last ? d.diag || [] : [], syntax: !!(last && d.syntax), passed: last ? last.detail.passed : 0, total: last ? last.detail.total : item.kind === 'quiz' ? 1 : 0 };
@@ -154,7 +156,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     if (!isWin(topic)) return err('not_found', 404);
     if (topic === 'P12') {
       const token = await verify(env, bearer(request));
-      if (token?.r !== 't') return err('auth', 401);
+      if (token?.r !== 't' && token?.r !== 'g') return err('auth', 401);
     }
     const spec = NEW_LESSONS[topic]?.def.hw;
     const hw = spec ? { title: spec.title, lead: spec.lead, items: spec.items, how: spec.how } : undefined;
@@ -163,6 +165,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
   const c = await context(env, request); if (c.e) return c.e;
   const { p, ses, att, DB, pair } = c, t0 = now(), phase = phaseOf(ses, t0);
   let pv; if (pair) { const a0 = await DB.prepare('SELECT variant FROM attendance WHERE session_id=? AND student_id=?').bind(p.ses, pair.a_id).first(); pv = a0 ? a0.variant : att.variant; }
+  const per = ses.topic === 'P12';
   const lesson = lessonOf(ses.topic, att.variant, pv, ses), partnerId = pair ? (pair.a_id === p.st ? pair.b_id : pair.a_id) : 0, task2 = lesson.find(t => t.pair);
   const findItem = id => { for (const t of lesson) for (const it of t.items) if (it.id === id) return { it, task: t }; return null; };
 
@@ -170,8 +173,8 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     if (phase === 'wait' && !isWin(ses.topic)) return json({ ok: true, ready: false, phase, now: t0 });
     const wins = isWin(ses.topic) ? await pyWins(DB, p.ses) : null;
     const by = await attemptsOf(DB, p.ses, p.st), state = {};
-    lesson.forEach(t => t.items.forEach(it => { state[it.id] = itemState(it, by[it.id], revisionOpen(wins,t0)); }));
-    const pub = publicLesson(att.variant, seedOf(p), ses.topic, pv, ses).map(t => t.pair && !pair ? { ...t, items: [], locked: true } : t).map(t => wins && p4Phase(wins, t.n, t0) === 'wait' ? { ...t, items: [], locked: true } : t);
+    lesson.forEach(t => t.items.forEach(it => { state[it.id] = itemState(it, by[it.id], revisionOpen(wins,t0,t.n,per)); }));
+    const pub = publicLesson(att.variant, seedOf(p), ses.topic, pv, ses).map(t => t.pair && !pair ? { ...t, items: [], locked: true } : t).map(t => wins && p4Phase(wins, t.n, t0, per) === 'wait' ? { ...t, items: [], locked: true } : t);
     const hw = wins ? (pyTasks(ses.topic, ses).includes(5) ? await hwInfo(DB, p, wins, t0, ses.topic) : { off: true }) : undefined;
     if(hw&&hw.status&&['queued','checking'].includes(hw.status))ctx?.waitUntil(drainHomeworkQueue(env));
     return json({ ok: true, ready: true, phase, now: t0, wins: wins || undefined, hw, work_until: ses.work_until, revise_until: ses.work_until + reviseMin(ses.topic) * 60, tasks: pub, pair: task2 ? await pairView(DB, pair, p.st, task2, by) : undefined, state, ...(await totals(env, DB, p, ses, att)) });
@@ -185,7 +188,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
   }
 
   if (path === 'py/submit' && method === 'POST') {
-    const wins = isWin(ses.topic) ? await pyWins(DB, p.ses) : null, phT = n => (wins ? p4Phase(wins, n, t0) : phase);
+    const wins = isWin(ses.topic) ? await pyWins(DB, p.ses) : null, phT = n => (wins ? p4Phase(wins, n, t0, per) : phase);
     if (!wins && phase === 'wait') return err('not_started', 403);
     if (!wins && phase === 'over') return err('time_over', 403);
     const busy = await DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE student_id=? AND at>?').bind(p.st, t0 - 60).first();
@@ -213,8 +216,8 @@ export async function pyStudent(path, method, b, request, env, ctx) {
     for (const x of items) {
       const f = findItem(x.id); if (!f) return err('bad_item');
       if (f.task.pair && !pair) return err('no_pair', 409);
-      const item = f.it, list = by[item.id] || [], sc = itemScore(item, list.map(a => ({ n: a.n, frac: a.frac })), revisionOpen(wins,t0));
-      if (wins) { const pz = phT(f.task.n); if (list.length && !sc.canRevise) {if(items.length===1)return err(sc.full?'full':'no_tries',409);continue;} if (list.length ? !revisionOpen(wins,t0) : revisionOpen(wins,t0)||pz !== 'work') { if (items.length === 1) return err('time_over', 403); continue; } }
+      const item = f.it, list = by[item.id] || [], sc = itemScore(item, list.map(a => ({ n: a.n, frac: a.frac })), revisionOpen(wins,t0,f.task.n,per));
+      if (wins) { const pz = phT(f.task.n); if (list.length && !sc.canRevise) {if(items.length===1)return err(sc.full?'full':'no_tries',409);continue;} const rvo = revisionOpen(wins,t0,f.task.n,per); if (list.length ? !rvo : (!per && rvo) || pz !== 'work') { if (items.length === 1) return err('time_over', 403); continue; } }
       if (list.length) {
         if (!sc.canRevise) { if (items.length === 1) return err(sc.full ? 'full' : 'no_tries', 409); continue; }
         if (t0 - lastOf(list).at < 8) return err('wait', 429);
@@ -241,7 +244,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
       if (j.quiz) {
         const g = gradeQuizItem(item, j.x.choice);
         if (!(await record(item, n, g, { choice: item.typed ? String(j.x.choice).trim().slice(0, 20) : Number(j.x.choice) }))) return err('already', 409);
-        out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0)), explain: g.frac ? '' : item.why });
+        out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0,item.task,per)), explain: g.frac ? '' : item.why });
       } else {
         const g = j.g, code = j.code;
         const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(stripCode(code).replace(/\s+/g, ''))));
@@ -252,7 +255,7 @@ export async function pyStudent(path, method, b, request, env, ctx) {
           if (o.length) dup = o[0].full_name;
         }
         if (!(await record(item, n, g, { code, hash, dup }))) return err('already', 409);
-        out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0)) });
+        out.push({ item: item.id, ...itemState(item, by[item.id], revisionOpen(wins,t0,item.task,per)) });
       }
       touched.add(j.f.task.n);
     }
