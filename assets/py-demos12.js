@@ -7,7 +7,7 @@
   const { el } = window.L;
   const trace = window.PyTrace;
   const pauseAll = new Set();
-  const words = new Set(['for', 'in', 'range', 'print']);
+  const words = new Set(['for', 'in', 'range', 'print', 'if']);
   const label = text => el('span', { class: 'p12-label', text });
   const button = (text, action, primary = false) =>
     el('button', { type: 'button', class: 'btn' + (primary ? ' primary' : ''), text, onclick: action });
@@ -24,7 +24,7 @@
     const body = el('div', { class: 'p12-code', role: 'group', 'aria-label': title });
     function setCode(source) {
       body.replaceChildren(...source.map((line, index) => {
-        const tokens = line.split(/("[^"]*"|\b(?:for|in|range|print)\b|\b\d+\b)/g);
+        const tokens = line.split(/("[^"]*"|\b(?:for|in|range|print|if)\b|\b\d+\b)/g);
         const code = el('code', {}, tokens.map(token => {
           if (words.has(token)) return el('span', { class: 'p12-keyword', text: token });
           if (/^\d+$/.test(token)) return el('span', { class: 'p12-literal', text: token });
@@ -605,8 +605,91 @@
     contents.forEach(link => observer.observe(document.getElementById(link.hash.slice(1))));
   }
 
+  /* ---------- 04: цикл ішіндегі if ---------- */
+  const CONDS = [
+    { code: 'i % 3 == 0', name: '3-ке бөлінеді', test: i => i % 3 === 0,
+      why: (i, ok) => i + ' % 3 = ' + (i % 3) + (ok ? '. Қалдық 0, шарт ақиқат.' : '. Қалдық 0 емес, шарт жалған.') },
+    { code: 'i % 2 != 0', name: 'тақ сан', test: i => i % 2 !== 0,
+      why: (i, ok) => i + ' % 2 = ' + (i % 2) + (ok ? '. Қалдық 0 емес, сан тақ, шарт ақиқат.' : '. Қалдық 0, сан жұп, шарт жалған.') },
+    { code: 'i > 6', name: '6-дан үлкен', test: i => i > 6,
+      why: (i, ok) => i + ' > 6' + (ok ? ' дұрыс, шарт ақиқат.' : ' дұрыс емес, шарт жалған.') }
+  ];
+
+  function condDemo(host) {
+    let cond = 0, mode = 'print', pos = 0;
+    const end = el('input', { type: 'range', min: 6, max: 15, value: 10, 'aria-label': 'n — соңғы сан' });
+    const endValue = el('output', { text: '10' });
+    const condTabs = el('div', { class: 'p12-presets', role: 'group', 'aria-label': 'Шарт' });
+    const modeTabs = el('div', { class: 'p12-presets', role: 'group', 'aria-label': 'Не істейміз' });
+    const panel = codePanel('Python коды', []);
+    const numbers = el('div', { class: 'p12-tape p12-cond-tape', role: 'list', 'aria-label': 'Тексерілетін сандар' });
+    const vars = el('div', { class: 'p12-vars', 'aria-label': 'Айнымалылар' });
+    const output = el('pre', { class: 'p12-terminal' });
+    const status = el('p', { class: 'p12-status', role: 'status' });
+    const stepBtn = button('Келесі сан ›', () => { if (pos < size()) { pos += 1; paint(); } }, true);
+    const allBtn = button('Барлығын көрсет', () => { pos = size(); paint(); });
+    const resetBtn = button('Бастан', () => { pos = 0; paint(); });
+    const size = () => end.valueAsNumber;
+
+    function source() {
+      const n = size(), c = CONDS[cond].code;
+      return mode === 'print'
+        ? ['for i in range(1, ' + (n + 1) + '):', '    if ' + c + ':', '        print(i)']
+        : ['k = 0', 's = 0', 'for i in range(1, ' + (n + 1) + '):', '    if ' + c + ':', '        k = k + 1', '        s = s + i', 'print(k)', 'print(s)'];
+    }
+    function paint() {
+      const n = size(), C = CONDS[cond], done = [];
+      endValue.textContent = n;
+      for (let i = 1; i <= pos; i++) done.push(i);
+      const passed = done.filter(C.test);
+      const lines = source(), ifLine = mode === 'print' ? 1 : 3;
+      panel.setCode(lines);
+      numbers.replaceChildren(...Array.from({ length: n }, (_, k) => {
+        const i = k + 1, seen = i <= pos, active = i === pos;
+        const tile = el('span', { class: 'p12-tile' + (seen ? (C.test(i) ? ' visited' : ' skipped') : '') + (active ? ' active' : ''), role: 'listitem', text: i });
+        if (active) tile.setAttribute('aria-current', 'step');
+        return tile;
+      }));
+      if (pos === 0) {
+        panel.mark([]);
+        status.textContent = 'Python саннан санға өтеді. Әр санды if шарты (' + C.code + ') арқылы тексереді. «Келесі сан» батырмасын бас.';
+      } else {
+        const i = pos, ok = C.test(i);
+        panel.mark(ok ? [ifLine, ifLine + 1] : [ifLine]);
+        status.textContent = 'i = ' + i + '. ' + C.why(i, ok) + (ok
+          ? (mode === 'print' ? ' Сондықтан print(' + i + ') орындалады.' : ' Сондықтан k-ға 1, s-ке ' + i + ' қосылады.')
+          : ' Сондықтан if денесі өткізіліп жіберіледі.');
+        if (pos === n) status.textContent += ' Сандар біткен соң цикл аяқталады.' + (mode === 'count' ? ' Содан кейін print нәтижені шығарады.' : '');
+      }
+      const k = passed.length, s = passed.reduce((a, b) => a + b, 0);
+      if (mode === 'print') {
+        vars.replaceChildren(el('span', { class: 'p12-var' }, [el('b', { text: 'i' }), ' = ', pos || '—']));
+        output.textContent = passed.length ? passed.join('\n') : 'Экран әзірге бос';
+        output.classList.toggle('p12-terminal-empty', !passed.length);
+      } else {
+        vars.replaceChildren(el('span', { class: 'p12-var' }, [el('b', { text: 'i' }), ' = ', pos || '—']), el('span', { class: 'p12-var' }, [el('b', { text: 'k' }), ' = ', k]), el('span', { class: 'p12-var' }, [el('b', { text: 's' }), ' = ', s]));
+        output.textContent = pos === n ? k + '\n' + s : 'Экран әзірге бос: print цикл біткен соң орындалады';
+        output.classList.toggle('p12-terminal-empty', pos !== n);
+      }
+      stepBtn.disabled = pos >= n; allBtn.disabled = pos >= n;
+      [...condTabs.children].forEach((tab, index) => tab.setAttribute('aria-pressed', String(index === cond)));
+      [...modeTabs.children].forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.mode === mode)));
+    }
+    CONDS.forEach((item, index) => condTabs.append(button('if ' + item.code, () => { cond = index; pos = 0; paint(); })));
+    [['print', 'Сандарды шығару'], ['count', 'Санау және қосу']].forEach(([id, text]) => {
+      const tab = button(text, () => { mode = id; pos = 0; paint(); }); tab.dataset.mode = id; modeTabs.append(tab);
+    });
+    end.addEventListener('input', () => { pos = 0; paint(); });
+    host.append(label('Шарт'), condTabs, label('Не істейміз'), modeTabs,
+      el('label', { class: 'p12-slider' }, [el('b', { text: 'n · соңғы сан' }), end, endValue]),
+      el('div', { class: 'p12-split' }, [panel.root, el('div', { class: 'p12-stage' }, [label('Тексерілетін сандар'), numbers, label('Айнымалылар'), vars, label('Экран'), output])]),
+      el('div', { class: 'p12-dock' }, [status, el('div', { class: 'p12-controls' }, [stepBtn, allBtn, resetBtn])]));
+    paint();
+  }
+
   loopDemo(document.getElementById('pMachine'));
   rangeDemo(document.getElementById('pRange'));
+  condDemo(document.getElementById('pCond'));
   mistakesDemo(document.getElementById('pMistakes'));
   mountTabs();
   mountCollectorTabs();

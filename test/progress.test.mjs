@@ -38,6 +38,22 @@ test('same-day grades, marks, totals and insufficient history', () => {
   assert.equal(report.belowThreshold, 1);
 });
 
+test('forecast backtesting uses earlier graded days and excludes inactive students from group errors', () => {
+  const students = [{ id: 1, active: 1 }, { id: 2, active: 1 }, { id: 3, active: 0 }];
+  const entries = [[40, 50, 60, 70, 90], [88, 0, 66], [90, 90, 90, 0]].flatMap((scores, i) =>
+    scores.map((score, d) => ({ student: i + 1, date: '2026-10-0' + (d + 1), column: 0, score }))
+  ).reverse();
+  const report = summarizeProgress(students, entries, 70);
+  assert.equal(report.profiles[0].forecast, 73.3);
+  assert.deepEqual(report.profiles[0].backtest, { count: 2, mae: 25, lastMae: 15 });
+  assert.deepEqual(report.profiles[1].backtest, { count: 0, mae: null, lastMae: null });
+  assert.equal(report.profiles[1].forecast, 51.3);
+  assert.deepEqual(report.profiles[2].backtest, { count: 1, mae: 90, lastMae: 90 });
+  assert.deepEqual(report.backtest, { count: 2, mae: 25, lastMae: 15 });
+  assert.equal(report.forecastCount, 2);
+  assert.equal(report.belowThreshold, 1);
+});
+
 test('Google access resolves the exact tab and reads only formatted values', async t => {
   const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   const env = { GOOGLE_SHEETS_SERVICE_ACCOUNT: JSON.stringify({

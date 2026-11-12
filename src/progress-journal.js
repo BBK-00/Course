@@ -1,3 +1,5 @@
+export { summarizeProgress } from '../assets/progress-metrics.js';
+
 const clean = value => String(value ?? '').trim();
 const nameKey = value => clean(value).normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
 
@@ -75,48 +77,4 @@ export function parseJournal(rows, students, year) {
     }
   }
   return { entries, issues, matched: matched.size, lessons: lessons.length };
-}
-
-const round = value => Math.round(value * 10) / 10;
-const mean = values => values.length ? round(values.reduce((total, v) => total + v, 0) / values.length) : null;
-
-export function summarizeProgress(students, entries, threshold) {
-  const byStudent = new Map();
-  for (const entry of entries) {
-    if (!byStudent.has(entry.student)) byStudent.set(entry.student, []);
-    byStudent.get(entry.student).push(entry);
-  }
-  const profiles = students.map(student => {
-    const history = (byStudent.get(student.id) || []).sort((a, b) => a.date.localeCompare(b.date) || a.column - b.column);
-    const scores = history.filter(e => e.score !== null);
-    const days = new Map();
-    for (const { date, score } of scores) {
-      if (!days.has(date)) days.set(date, []);
-      days.get(date).push(score);
-    }
-    const daily = [...days].map(([date, values]) => ({ date, score: mean(values) }));
-    const last = daily.slice(-2);
-    const previous = daily.slice(-4, -2);
-    const drop = last.length === 2 && previous.length === 2
-      ? round(mean(previous.map(d => d.score)) - mean(last.map(d => d.score))) : null;
-    const reason = last.length === 2 && last.every(d => d.score < threshold) ? 'low' : drop >= 10 ? 'drop' : '';
-    return {
-      ...student, history, daily, average: mean(scores.map(e => e.score)), count: scores.length, reason, drop,
-      forecast: daily.length >= 3 ? mean(daily.slice(-3).map(d => d.score)) : null
-    };
-  });
-  const active = profiles.filter(p => p.active);
-  const scored = active.filter(p => p.count);
-  const forecasts = active.flatMap(p => p.forecast === null ? [] : [p.forecast]);
-  const groupDays = new Map();
-  for (const profile of active) for (const day of profile.daily) {
-    if (!groupDays.has(day.date)) groupDays.set(day.date, []);
-    groupDays.get(day.date).push(day.score);
-  }
-  return {
-    profiles, total: active.length, assessed: scored.length, average: mean(scored.map(p => p.average)),
-    attention: active.filter(p => p.reason).length, forecast: mean(forecasts),
-    forecastCount: forecasts.length, belowThreshold: forecasts.filter(score => score < threshold).length,
-    daily: [...groupDays].sort(([a], [b]) => a.localeCompare(b)).map(([date, values]) => ({ date, score: mean(values), count: values.length }))
-  };
 }

@@ -455,3 +455,8 @@ body.pl.p12 {
 .p12-login-note { margin: 12px 0 0; color: var(--p12-muted); font-size: 13.5px; }
 @media (max-width: 760px) { .p12-task-map { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 420px) { .p12-task-map { grid-template-columns: 1fr; } }
+
+/* 04: цикл ішіндегі if */
+.p12-tile.skipped { background: #f1f4f7; color: #97a5b3; border-color: #dbe3ea; text-decoration: line-through; }
+.p12-cond-tape { min-height: 44px; }
+.p12-presets + .p12-label, .p12-label + .p12-presets { margin-top: 4px; }

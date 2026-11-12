@@ -173,11 +173,12 @@ export async function progressApi(path, method, body, env, url, json, err) {
     const window = { days: days.length, first: days[0]?.score, latest: days.at(-1)?.score };
     const facts = profile ? {
       scored: profile.count, average: profile.average, last: profile.daily.slice(-4).map(d => d.score),
-      reason: profile.reason, drop: profile.drop, forecast: profile.forecast, window
+      reason: profile.reason, drop: profile.drop, forecast: profile.forecast, backtest: profile.backtest, window
     } : {
       total: report.total, assessed: report.assessed, average: report.average,
       attention: report.attention, forecast: report.forecast, forecastCount: report.forecastCount,
-      belowThreshold: report.belowThreshold, recent: report.daily.slice(-4).map(d => ({ score: d.score, count: d.count })), window
+      belowThreshold: report.belowThreshold, backtest: report.backtest,
+      recent: report.daily.slice(-4).map(d => ({ score: d.score, count: d.count })), window
     };
     if (facts.average === null) return err('no_scores');
     try {

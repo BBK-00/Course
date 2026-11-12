@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="../assets/lesson.css">
 <link rel="stylesheet" href="../assets/py-work.css?v=20261106-queue">
 <link rel="stylesheet" href="../assets/py-lesson.css">
-<link rel="stylesheet" href="../assets/py-lesson12.css?v=20261112-tasks">
+<link rel="stylesheet" href="../assets/py-lesson12.css?v=20261112-cond">
 <link rel="stylesheet" href="../assets/student.css?v=20261111">
 </head>
 <body class="student-lesson pl p12">
@@ -44,7 +44,8 @@
       <a href="#loop" aria-current="location"><span>01</span> Цикл</a>
       <a href="#range"><span>02</span> range()</a>
       <a href="#collect"><span>03</span> Жинақтаушы қорап</a>
-      <a href="#mistakes"><span>04</span> Жиі қателер</a>
+      <a href="#cond"><span>04</span> Цикл ішіндегі if</a>
+      <a href="#mistakes"><span>05</span> Жиі қателер</a>
     </nav>
     <div class="p12-reading">
     <section class="pl-card p12-section" id="loop" aria-labelledby="loop-title">
@@ -128,8 +129,37 @@ print("Сәлем")</pre>
       </div>
     </section>
 
+    <section class="pl-card p12-section" id="cond" aria-labelledby="cond-title">
+      <div class="p12-section-head"><span class="p12-number">04</span><div><h2 id="cond-title">Цикл ішіндегі <code>if</code></h2><p>Цикл әр санды береді, ал <code>if</code> сол санды тексереді. Шарт ақиқат болғанда ғана <code>if</code> денесі орындалады.</p></div></div>
+
+      <div class="p12-compare">
+        <div><b>if-сіз</b>
+          <pre>for i in range(1, 11):
+    print(i)</pre>
+          <small>Экранға 1-ден 10-ға дейінгі <b>барлық</b> сан шығады.</small></div>
+        <div><b>if-пен</b>
+          <pre>for i in range(1, 11):
+    if i % 3 == 0:
+        print(i)</pre>
+          <small>Тек шартқа сай сандар шығады: 3, 6, 9. Қалғандары өткізіліп кетеді.</small></div>
+      </div>
+
+      <div class="p12-anatomy" aria-label="Цикл ішіндегі if бөліктері">
+        <code><span class="a-for">for</span> <span class="a-var">i</span> <span class="a-for">in</span> <span class="a-range">range(1, 11)</span><span class="a-colon">:</span><br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="a-for">if</span> <span class="a-var">i % 3 == 0</span><span class="a-colon">:</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="a-body">print(i)</span></code>
+        <ul>
+          <li><span class="a-for">for</span> — әр қайталауда келесі санды <code>i</code> айнымалысына береді.</li>
+          <li><span class="a-var">i % 3 == 0</span> — шарт. <code>%</code> бөлгендегі қалдықты табады. Қалдық 0 болса, сан 3-ке қалдықсыз бөлінеді.</li>
+          <li><span class="a-body">8 бос орын</span> — <code>if</code> денесі. Ол тек шарт ақиқат болғанда орындалады. Екінші шегініс осыны көрсетеді.</li>
+        </ul>
+      </div>
+
+      <div class="p12-problem"><b>Есептің шарты</b><p>Мысалда сандарды <b>өзің таңда</b>: шартты, соңғы санды және не істейтінін ауыстыр. Әр сан үшін Python шартты қалай тексеретінін қадаммен қара.</p><small>Бұл жерде әр түрлі шарт көрсетіледі. Тапсырмада басқа шарттар мен сандар болады, сондықтан ойланып, өзгертіп жазу керек.</small></div>
+      <div id="pCond"></div>
+      <p class="p12-rule"><b>Есіңде болсын.</b> Санауыш пен қосынды <code>if</code> ішінде өзгереді: тек шартқа сай сан есепке қосылады. Ал <code>k = 0</code> және <code>s = 0</code> циклден <b>бұрын</b>, ал нәтижені шығаратын <code>print</code> циклден <b>кейін</b> (шегіністерсіз) жазылады.</p>
+    </section>
+
     <section class="pl-card p12-section" id="mistakes" aria-labelledby="mistakes-title">
-      <div class="p12-section-head"><span class="p12-number">04</span><div><h2 id="mistakes-title">Жиі қателер</h2><p>Қате кодты көр, Python не істейтінін оқы, сосын түзет.</p></div></div>
+      <div class="p12-section-head"><span class="p12-number">05</span><div><h2 id="mistakes-title">Жиі қателер</h2><p>Қате кодты көр, Python не істейтінін оқы, сосын түзет.</p></div></div>
       <div id="pMistakes"></div>
     </section>
     <div class="pl-next"><button type="button" class="btn primary" data-go="task">Тапсырмаларға өту →</button></div>
@@ -176,7 +206,7 @@ print("Сәлем")</pre>
 <script src="../assets/code-editor.js"></script>
 <script src="../assets/py-trace.js?v=20261109"></script>
 <script src="../assets/py-work.js?v=20261112-p12d"></script>
-<script src="../assets/py-demos12.js?v=20261112-tabs"></script>
+<script src="../assets/py-demos12.js?v=20261112-cond"></script>
 <script>
 window.Join.mount({ title:'Python, 12-сабақ: for циклі және range()' });
 window.PyWork.mount({ topic:'P12', tasks:document.getElementById('pyTasks'), summary:document.getElementById('pySum'), summaryBtn:document.getElementById('pySumBtn') });
