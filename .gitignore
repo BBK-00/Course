@@ -8,3 +8,8 @@ node_modules/
 .dev-site/
 backups/
 tools/ustazai/
+
+# Уақытша / жеке файлдар (оқушы деректері болуы мүмкін)
+tmp/
+output/
+.review_scratch/

@@ -171,7 +171,7 @@ export default function TugOfWarGame({ questions, onBack }: TugOfWarGameProps) {
   );
 
   return (
-    <div className="fixed inset-0 bg-[#FDFCF8] overflow-hidden font-sans select-none">
+    <div className="fixed inset-0 bg-workspace overflow-hidden font-sans select-none">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -259,7 +259,7 @@ export default function TugOfWarGame({ questions, onBack }: TugOfWarGameProps) {
             <Keypad side="left" player={p1} />
 
             <div className="flex-1 w-full max-w-2xl h-full flex flex-col items-center justify-center relative">
-              <div className="w-full h-80 bg-zinc-900 rounded-[3rem] border-8 border-brand-text overflow-hidden shadow-2xl relative">
+              <div className="w-full h-80 bg-zinc-900 rounded-3xl border-8 border-brand-text overflow-hidden shadow-2xl relative">
                 {/* Track Lines */}
                 <div className="absolute inset-0 opacity-10"
                      style={{ backgroundImage: 'linear-gradient(90deg, #fff 2px, transparent 2px)', backgroundSize: '10% 100%' }} />

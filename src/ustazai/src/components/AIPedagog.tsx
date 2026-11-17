@@ -237,13 +237,12 @@ import {
   AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
 } from "docx";
 import { cn } from '../lib/utils';
-import { AccountError } from '../services/account';
 
 interface AIPedagogProps {
   onBack: () => void;
   lang: Language;
-  initialTool: ToolType;
-  onAuthRequired: () => void;
+  selectedTool: ToolType;
+  onToolChange: (tool: ToolType) => void;
 }
 
 type ToolType = 'lessonPlan' | 'presentation' | 'quizGames';
@@ -514,8 +513,7 @@ const T_EXTRA = {
   }
 };
 
-export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }: AIPedagogProps) {
-  const [selectedTool, setSelectedTool] = useState<ToolType | null>(initialTool);
+export default function AIPedagog({ onBack, lang, selectedTool, onToolChange }: AIPedagogProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [topic, setTopic] = useState('');
   const [slideCount, setSlideCount] = useState("8");
@@ -561,7 +559,6 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
       setStatus('ready');
     } catch (err) {
       setError(err instanceof Error ? err.message : "Техникалық қате орын алды. Интернет байланысын немесе тақырыпты тексеріңіз.");
-      if (err instanceof AccountError && err.code === 'auth') onAuthRequired();
       setStatus('idle');
     }
   };
@@ -598,7 +595,7 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
 
   if (status === 'generating') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px] space-y-8">
+      <div className="flex flex-col items-center justify-center min-h-[360px] p-4 space-y-6" role="status">
         <div className="relative">
           <motion.div
             animate={{ rotate: 360 }}
@@ -626,12 +623,13 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
             <Download size={18} /> {tx.dlBtn}
           </button>
         </div>
-        <div className="card-modern p-10 bg-white shadow-xl space-y-8">
+        {error && <p className="ustaz-form-error" role="alert">{error}</p>}
+        <div className="card-modern p-4 sm:p-7 space-y-6">
           <div className="text-center border-b pb-6">
             <h2 className="text-2xl font-black text-brand-primary mb-2 uppercase tracking-wide">Сабақ жоспары дайын</h2>
             <p className="text-zinc-500 font-medium">{form.title}</p>
           </div>
-          <div className="grid grid-cols-2 gap-8 text-sm">
+          <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <div className="space-y-4">
               <p><strong>Тақырып:</strong> {form.title}</p>
               <p><strong>Пән:</strong> {form.module_}</p>
@@ -699,7 +697,8 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
             <Download size={18} /> PPTX Жүктеу
           </button>
         </div>
-        <div className="card-modern p-10 bg-white shadow-xl space-y-8">
+        {error && <p className="ustaz-form-error" role="alert">{error}</p>}
+        <div className="card-modern p-4 sm:p-7 space-y-6">
           <div className="flex items-center gap-4 border-b pb-6">
             <div className={`p-4 rounded-2xl bg-brand-bg text-brand-primary`}>
               <Presentation size={32} />
@@ -775,36 +774,38 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
   const inputCls = "w-full rounded-xl border border-zinc-200 bg-brand-bg/50 px-4 py-3 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium";
 
   return (
-    <div className="space-y-12 max-w-5xl mx-auto px-4 mt-8 pb-20">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="btn-secondary px-4 py-2 text-sm">← Артқа</button>
-        <div className="badge-modern bg-brand-primary text-white px-6 py-2">AI Педагог</div>
+    <div className="ustaz-ai">
+      <div className="ustaz-ai-toolbar">
+        <button onClick={onBack} type="button" className="ustaz-button ustaz-button-secondary"><ArrowLeft size={16} aria-hidden="true" />{lang === 'kz' ? 'Құралдар' : lang === 'ru' ? 'Инструменты' : 'Tools'}</button>
+        <div className="ustaz-ai-switch">
+          {([['lessonPlan', FileText], ['presentation', Presentation], ['quizGames', Gamepad2]] as const).map(([id, Icon]) =>
+            <button type="button" key={id} aria-pressed={selectedTool === id} onClick={() => { onToolChange(id); setError(''); }}>
+              <Icon size={16} aria-hidden="true" />{t.games[id].title}
+            </button>
+          )}
+        </div>
       </div>
 
-      {!selectedTool ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ToolCard title={t.games.lessonPlan.title} desc={t.games.lessonPlan.desc} icon={<FileText />} onClick={() => setSelectedTool('lessonPlan')} />
-          <ToolCard title={t.games.presentation.title} desc={t.games.presentation.desc} icon={<Presentation />} onClick={() => setSelectedTool('presentation')} />
-          <ToolCard title={t.games.quizGames.title} desc={t.games.quizGames.desc} icon={<Gamepad2 />} onClick={() => setSelectedTool('quizGames')} />
-        </div>
-      ) : selectedTool === 'presentation' ? (
-        <div className="card-modern p-8 md:p-10 space-y-8 bg-white border border-zinc-100 shadow-2xl max-w-2xl mx-auto">
-          <div className="text-center space-y-2">
-            <h3 className="text-3xl font-black text-brand-text">Презентация жасау</h3>
+      {selectedTool === 'presentation' ? (
+        <div className="ustaz-ai-panel">
+          <div className="space-y-2">
+            <h1>Презентация жасау</h1>
             <p className="text-brand-muted font-medium">Кәсіби PowerPoint слайдтарын дайындау</p>
           </div>
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest pl-1">Сабақ тақырыбы *</label>
-                <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Мысалы: Абай Құнанбаев" className={inputCls} />
+                <label htmlFor="ustaz-presentation-topic">Сабақ тақырыбы</label>
+                <input id="ustaz-presentation-topic" type="text" maxLength={300} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Мысалы: Абай Құнанбаев" className={inputCls} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest pl-1">Слайд саны</label>
-                <div className="flex gap-2">
+                <p className="ustaz-field-label" id="ustaz-slide-count">Слайд саны</p>
+                <div className="flex gap-2" role="group" aria-labelledby="ustaz-slide-count">
                   {["6", "8", "10", "12"].map(count => (
                     <button
                       key={count}
+                      type="button"
+                      aria-pressed={slideCount === count}
                       onClick={() => setSlideCount(count)}
                       className={cn(
                         "flex-1 py-2 px-1 rounded-xl text-xs font-bold border transition-all",
@@ -821,11 +822,13 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest pl-1">Дизайн стилі</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <p className="ustaz-field-label" id="ustaz-slide-theme">Дизайн стилі</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" role="group" aria-labelledby="ustaz-slide-theme">
                 {(Object.entries(THEMES) as [ThemeKey, typeof THEMES[ThemeKey]][]).map(([key, t]) => (
                   <button
                     key={key}
+                    type="button"
+                    aria-pressed={presentationTheme === key}
                     onClick={() => setPresentationTheme(key)}
                     className={cn(
                       "p-3 rounded-xl border-2 transition-all text-left space-y-2",
@@ -848,8 +851,10 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-brand-muted uppercase tracking-widest pl-1">Қосымша нұсқаулар</label>
+              <label htmlFor="ustaz-presentation-extra">Қосымша нұсқаулар</label>
               <textarea
+                id="ustaz-presentation-extra"
+                maxLength={1800}
                 value={extraInfo}
                 onChange={(e) => setExtraInfo(e.target.value)}
                 placeholder="Мәліметтер, деректер немесе ерекше талаптар..."
@@ -857,16 +862,16 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
               />
             </div>
           </div>
-          <div className="flex gap-4">
-            <button onClick={() => setSelectedTool(null)} className="flex-1 btn-secondary py-4">Болдырмау</button>
+          <div className="ustaz-flow-actions">
+            <button onClick={onBack} className="btn-secondary">Болдырмау</button>
             <button onClick={handleGenerate} disabled={!topic.trim()} className="flex-[2] btn-primary py-4"><BrainCircuit className="w-5 h-5" />Презентация жасау</button>
           </div>
-          {error && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold flex items-center gap-2"><Info size={14} /> {error}</div>}
+          {error && <p className="ustaz-form-error" role="alert">{error}</p>}
         </div>
       ) : selectedTool === 'lessonPlan' ? (
-        <div className="card-modern p-8 md:p-10 space-y-8 bg-white border border-zinc-100 shadow-2xl max-w-2xl mx-auto">
-          <div className="text-center space-y-2">
-            <h3 className="text-3xl font-black text-brand-text">{tx.lessonHeading}</h3>
+        <div className="ustaz-ai-panel">
+          <div className="space-y-2">
+            <h1>{tx.lessonHeading}</h1>
             <p className="text-brand-muted font-medium">{tx.lessonSub}</p>
           </div>
           <div className="space-y-4">
@@ -888,7 +893,7 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
                 <input value={form.groups} onChange={(e) => setForm({...form, groups: e.target.value})} placeholder={tx.pGroups} className={inputCls} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-brand-muted uppercase tracking-widest mb-1.5">{tx.fDate}</label>
                 <input type="date" value={form.date} onChange={(e) => setForm({...form, date: e.target.value})} className={inputCls} />
@@ -908,41 +913,29 @@ export default function AIPedagog({ onBack, lang, initialTool, onAuthRequired }:
               </div>
             </div>
           </div>
-          <div className="flex gap-4 pt-4">
-            <button onClick={() => setSelectedTool(null)} className="flex-1 btn-secondary py-4">{tx.cancel}</button>
+          <div className="ustaz-flow-actions">
+            <button onClick={onBack} className="btn-secondary">{tx.cancel}</button>
             <button onClick={handleGenerate} disabled={!form.title.trim()} className="flex-[2] btn-primary py-4"><BrainCircuit className="w-5 h-5" />{tx.generate}</button>
           </div>
-          {error && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold flex items-center gap-2"><Info size={14} /> {error}</div>}
+          {error && <p className="ustaz-form-error" role="alert">{error}</p>}
         </div>
       ) : (
-        <div className="card-modern p-8 md:p-12 space-y-8 bg-white border border-zinc-100 shadow-xl max-w-2xl mx-auto">
-          <div className="space-y-2 text-center">
-            <h3 className="text-3xl font-black text-brand-text">{t.games[selectedTool].title}</h3>
+        <div className="ustaz-ai-panel">
+          <div className="space-y-2">
+            <h1>{t.games[selectedTool].title}</h1>
             <p className="text-brand-muted font-medium">{t.games[selectedTool].desc}</p>
           </div>
           <div className="space-y-4">
-            <label className="text-sm font-black uppercase tracking-widest text-brand-text">Сабақ тақырыбы</label>
-            <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Мысалы: Фотосинтез процесі" className="w-full px-6 py-4 bg-brand-bg/50 border border-zinc-100 rounded-2xl text-lg font-medium focus:ring-4 focus:ring-brand-primary/10 outline-none transition-all" />
+            <label htmlFor="ustaz-quiz-topic">Сабақ тақырыбы</label>
+            <input id="ustaz-quiz-topic" type="text" maxLength={300} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Мысалы: Фотосинтез процесі" className={inputCls} />
           </div>
-          <div className="flex gap-4">
-            <button onClick={() => setSelectedTool(null)} className="flex-1 btn-secondary py-4">Болдырмау</button>
+          <div className="ustaz-flow-actions">
+            <button onClick={onBack} className="btn-secondary">Болдырмау</button>
             <button onClick={handleGenerate} disabled={!topic.trim()} className="flex-[2] btn-primary py-4"><BrainCircuit className="w-6 h-6" />Жүктеу / Дайындау</button>
           </div>
-          {error && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold flex items-center gap-2"><Info size={16} /> {error}</div>}
+          {error && <p className="ustaz-form-error" role="alert">{error}</p>}
         </div>
       )}
     </div>
-  );
-}
-
-function ToolCard({ title, desc, icon, onClick }: { title: string, desc: string, icon: React.ReactNode, onClick: () => void }) {
-  return (
-    <motion.button whileHover={{ y: -8 }} onClick={onClick} className="card-modern p-8 text-left space-y-6 hover:shadow-2xl transition-all group border border-zinc-100 bg-white">
-      <div className="w-16 h-16 rounded-2xl bg-brand-bg flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform">{React.cloneElement(icon as React.ReactElement<any>, { size: 32 })}</div>
-      <div className="space-y-2">
-        <h4 className="text-xl font-black text-brand-text group-hover:text-brand-primary transition-colors">{title}</h4>
-        <p className="text-zinc-500 font-medium text-sm leading-relaxed">{desc}</p>
-      </div>
-    </motion.button>
   );
 }

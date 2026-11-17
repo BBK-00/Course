@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="python-report.css?v=3">
 <link rel="stylesheet" href="portal-dashboard.css?v=1">
 <link rel="stylesheet" href="workspace.css?v=1">
+<link rel="stylesheet" href="classes.css?v=3">
 </head>
 <body class="teacher-dashboard">
 <main id="login" class="login teacher-login">
@@ -38,12 +39,11 @@
       <span class="teacher-nav-label">Оқыту</span>
       <button class="dash-nav on" type="button" data-route="live"><span data-icon="monitor"></span><span class="nav-label">Сабақ</span></button>
       <button class="dash-nav" type="button" data-route="homework"><span data-icon="file"></span><span class="nav-label">Үй жұмысы</span><span id="hwBadge" class="nav-count" hidden></span></button>
-      <span class="teacher-nav-label">Бағалар</span>
-      <button class="dash-nav" type="button" data-route="journal"><span data-icon="book"></span><span class="nav-label">Журнал</span></button>
-      <button class="dash-nav" type="button" data-route="progress"><span data-icon="chart"></span><span class="nav-label">Үлгерім</span></button>
-      <button class="dash-nav" type="button" data-route="archive"><span data-icon="archive"></span><span class="nav-label">Архив</span></button>
-      <span class="teacher-nav-label">Материалдар</span>
+      <span class="teacher-nav-label">Топтар және бағалар</span>
       <button class="dash-nav" type="button" data-route="roster"><span data-icon="users"></span><span class="nav-label">Топтар</span></button>
+      <button class="dash-nav" type="button" data-route="journal"><span data-icon="book"></span><span class="nav-label">Журнал</span></button>
+      <button class="dash-nav" type="button" data-route="archive"><span data-icon="archive"></span><span class="nav-label">Сабақ архиві</span></button>
+      <span class="teacher-nav-label">Материалдар</span>
       <a class="dash-nav" href="/teacher/studio"><span data-icon="code"></span><span class="nav-label">Курс студиясы</span></a>
       <a class="dash-nav" href="/tools/"><span data-icon="external"></span><span class="nav-label">Көмекші құралдар</span></a>
       <a class="dash-nav teacher-site-link" href="/#subjects"><span data-icon="external"></span><span class="nav-label">Курстар сайты</span></a>
@@ -69,7 +69,7 @@
 <div id="toast" class="dash-toast" role="status" hidden></div>
 <script src="lesson-catalog.js?v=20261110-p12-2"></script>
 <script src="archive.js?v=2"></script>
-<script src="journal.js?v=2"></script>
+<script src="classes.js?v=3"></script>
 <script src="analysis.js?v=20261112"></script>
 <script src="progress.js?v=4"></script>
 <script src="panel.js?v=4"></script>

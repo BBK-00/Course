@@ -1,3 +1,5 @@
+@import url("./learner-auth.css?v=1");
+
 :root {
   --lr-canvas:#f2f3f8; --lr-paper:#fff; --lr-ink:#171930; --lr-muted:#5d607a;
   --lr-border:#e0e2ef; --lr-blue:#4041cf; --lr-blue-dark:#3031a8; --lr-lime:#e4fa94;
@@ -147,16 +149,6 @@ body.learner {margin:0;min-height:100vh;background:var(--lr-canvas);color:var(--
 .lr-profile-name {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .learner-profile-panel {position:absolute;top:calc(100% + 8px);right:0;width: min(250px,86vw);padding:13px;background:#fff;border:1px solid var(--lr-border);box-shadow:0 12px 27px #21234a22;border-radius:12px;display:grid;gap:8px;overflow-wrap:anywhere}
 .learner-profile-panel small {color:var(--lr-muted)}
-.learner-dialog {width:min(430px,calc(100% - 24px));padding:clamp(16px,4vw,24px);border:1px solid var(--lr-border);border-radius:16px;color:var(--lr-ink);background:#fff;box-shadow:0 20px 70px #1c214b40;max-height:calc(100dvh - 24px);overflow:auto}
-.learner-dialog::backdrop {background:#171a41a8}
-.learner-dialog-head {display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:15px}
-.learner-dialog h2 {margin:0 0 4px;font-size:22px;line-height:1.2;letter-spacing:-.028em}
-.learner-dialog-head p,.learner-dialog-note {margin:0;color:var(--lr-muted);font-size:12px}
-.learner-dialog form {display:grid;gap:9px}
-.learner-dialog label {display:grid;gap:4px;font-size:13px;font-weight:700}
-.learner-dialog input {font:inherit;min-height:42px;padding:7px 9px;width:100%;border:1px solid #ccd0e4;border-radius:8px;color:var(--lr-ink);background:#fbfbfe}
-.learner-dialog-switch {display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;font-size:13px;color:var(--lr-muted)}
-.learner-error {margin:0;color:#9e2432;background:#fff0f1;padding:6px 8px;border-radius:6px;font-size:13px}
 .learner-snackbar {position:fixed;z-index:80;right:16px;bottom:16px;max-width:calc(100vw - 32px);border-radius:9px;padding:10px 13px;background:#20244b;color:#fff;font-size:13px;box-shadow:0 5px 18px #20244b33}
 
 @media(min-width:1500px) {

@@ -75,7 +75,7 @@ export default function RandomPicker({ onBack, lang }: RandomPickerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#FDFCF8] overflow-y-auto font-sans select-none pb-20">
+    <div className="fixed inset-0 bg-workspace overflow-y-auto font-sans select-none pb-20">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none fixed"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -172,7 +172,7 @@ export default function RandomPicker({ onBack, lang }: RandomPickerProps) {
                 >
                   <div className="space-y-2">
                     <p className="font-black uppercase tracking-widest text-brand-primary">{t.winner}:</p>
-                    <div className="text-6xl md:text-8xl font-black tracking-tighter bg-brand-bg px-12 py-8 rounded-[3rem] border-4 border-brand-primary shadow-xl shadow-brand-primary/10">
+                    <div className="text-6xl md:text-8xl font-black tracking-tighter bg-brand-bg px-12 py-8 rounded-3xl border-4 border-brand-primary shadow-xl shadow-brand-primary/10">
                       {winner}
                     </div>
                   </div>

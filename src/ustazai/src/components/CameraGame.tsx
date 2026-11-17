@@ -249,7 +249,7 @@ export default function CameraGame({ questions, onBack }: CameraGameProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#FDFCF8] text-[#1A1A1A] p-4 md:p-8 overflow-hidden font-sans">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-workspace text-[#1A1A1A] p-4 md:p-8 overflow-hidden font-sans">
       <div className="w-full max-w-5xl space-y-8">
         {/* Header */}
         <div className="flex justify-between items-center">

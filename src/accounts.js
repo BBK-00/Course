@@ -1,5 +1,6 @@
 import { safeEqual } from './auth.js';
 import { ustazaiTask, runUstazaiTask } from './ustazai-ai.js';
+import { studentJournal } from './classes.js';
 
 const cookieName = 'bbk_learner';
 const sessionSeconds = 60 * 60 * 24 * 30;
@@ -32,7 +33,7 @@ async function tokenHash(request) {
 async function viewer(DB, account) {
   if (!account) return { ok: true, account: null, courses: [] };
   const result = await DB.prepare('SELECT course FROM learner_courses WHERE account_id=? ORDER BY enrolled_at, course').bind(account.id).all();
-  return { ok: true, account: { name: account.name, email: account.email }, courses: result.results.map(row => row.course) };
+  return { ok: true, account: { name: account.name, email: account.email, ...(account.student_id ? { student: true } : {}) }, courses: result.results.map(row => row.course) };
 }
 
 async function limit(DB, scope, now, count) {
@@ -43,11 +44,36 @@ async function limit(DB, scope, now, count) {
   return row.attempts <= count;
 }
 
+/* Оқытушы берген студент аккаунттары: логин (email емес) + пароль. */
+export async function setStudentAccount(DB, student, login, password, now = Math.floor(Date.now() / 1000)) {
+  const salt = random(24), derived = await passwordHash(password, salt);
+  const existing = await DB.prepare('SELECT id FROM learner_accounts WHERE student_id=?').bind(student.id).first();
+  if (existing) {
+    const taken = await DB.prepare('SELECT id FROM learner_accounts WHERE email=? AND id<>?').bind(login, existing.id).first();
+    if (taken) return false;
+    await DB.batch([
+      DB.prepare('UPDATE learner_accounts SET email=?, name=?, salt=?, password_hash=? WHERE id=?').bind(login, student.full_name, salt, derived, existing.id),
+      DB.prepare('DELETE FROM learner_sessions WHERE account_id=?').bind(existing.id)
+    ]);
+    return true;
+  }
+  const insert = await DB.prepare('INSERT INTO learner_accounts(id,email,name,salt,password_hash,created_at,student_id) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING')
+    .bind(crypto.randomUUID(), login, student.full_name, salt, derived, now, student.id).run();
+  return insert.meta.changes > 0;
+}
+
+export function removeStudentAccount(DB, studentId) {
+  return DB.prepare('DELETE FROM learner_accounts WHERE student_id=?').bind(studentId).run();
+}
+
 async function credentials(request, DB, url, path, body, now) {
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const password = typeof body.password === 'string' ? body.password : '';
   const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || password.length > 128) return failure('fields');
+  const validId = path === 'login'
+    ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /^[a-z0-9._-]{3,40}$/.test(email)
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (email.length > 254 || !validId || password.length < (path === 'login' ? 1 : 8) || password.length > 128) return failure('fields');
   if (path === 'register' && (name.length < 2 || name.length > 80)) return failure('fields');
 
   const ip = request.headers.get('CF-Connecting-IP') || 'local';
@@ -100,13 +126,15 @@ export async function accountApi(request, DB, url, env) {
       return json({ ok: true, account: null, courses: [] }, 200, cookie(url, '', 0));
     }
     if (path === 'ustazai') {
+      // Тіркелу міндетті емес: аккаунты жоқ қолданушы IP бойынша шектеледі, барлық сұрауға жалпы шек бар.
       const account = await findAccount(DB, hash, now);
-      if (!account) return failure('auth', 401);
       const task = ustazaiTask(body);
       if (!task) return failure('fields');
       const ip = request.headers.get('CF-Connecting-IP') || 'local';
-      if (!await limit(DB, await sha256('ustazai:account:' + account.id), now, 8) ||
-          !await limit(DB, await sha256('ustazai:ip:' + ip), now, 60)) return failure('wait', 429);
+      const own = account ? await limit(DB, await sha256('ustazai:account:' + account.id), now, 8)
+        : await limit(DB, await sha256('ustazai:anon:' + ip), now, 20);
+      if (!own || !await limit(DB, await sha256('ustazai:ip:' + ip), now, 60) ||
+          !await limit(DB, await sha256('ustazai:all'), now, 600)) return failure('wait', 429);
       try {
         return json({ ok: true, data: await runUstazaiTask(env, task) });
       } catch (error) {
@@ -121,13 +149,19 @@ export async function accountApi(request, DB, url, env) {
     else await DB.prepare('DELETE FROM learner_courses WHERE account_id=? AND course=?').bind(account.id, body.course).run();
     return json(await viewer(DB, account));
   }
+  if (path === 'journal') {
+    const account = await findAccount(DB, await tokenHash(request), now);
+    if (!account) return failure('auth', 401);
+    if (!account.student_id) return json({ ok: true, journal: null });
+    return json({ ok: true, journal: await studentJournal(DB, account.student_id) });
+  }
   if (path) return failure('not_found', 404);
   return json(await viewer(DB, await findAccount(DB, await tokenHash(request), now)));
 }
 
 function findAccount(DB, hash, now) {
   if (!hash) return null;
-  return DB.prepare(`SELECT a.id,a.name,a.email FROM learner_sessions s JOIN learner_accounts a ON a.id=s.account_id
+  return DB.prepare(`SELECT a.id,a.name,a.email,a.student_id FROM learner_sessions s JOIN learner_accounts a ON a.id=s.account_id
     WHERE s.token_hash=? AND s.expires_at>?`).bind(hash, now).first();
 }
 

@@ -7,6 +7,7 @@ import { normalizeHomeworkReview } from './homework-review.js';
 import { SCHEMA } from './schema.js';
 import { progressApi, courseOfTopic, courseDate, inCourseYear } from './progress.js';
 import { pythonReport } from './python-report.js';
+import { classesApi } from './classes.js';
 import { teacherJournal } from './grade-history.js';
 import { accountApi, cleanAccounts } from './accounts.js';
 import { runCode, LANGS } from './runner.js';
@@ -24,8 +25,11 @@ import { isPy, pyTasks, lessonOf, isWin, cfgOf, NEW_LESSONS, consoleHarness, NEE
 
 let ready = false;
 async function ensureSchema(DB) { if (ready) return; await DB.batch(SCHEMA.map(q => DB.prepare(q))); try { await DB.prepare('ALTER TABLE lessons ADD COLUMN topic_num INTEGER').run(); } catch (e) {} try { await DB.prepare('ALTER TABLE sessions ADD COLUMN group_id INTEGER').run(); } catch (e) {} try { await DB.prepare('ALTER TABLE sessions ADD COLUMN cfg TEXT').run(); } catch (e) {} try { await DB.prepare('ALTER TABLE sessions ADD COLUMN course_group_id INTEGER REFERENCES progress_courses(id)').run(); } catch (e) {}
-  try { await DB.prepare('ALTER TABLE sessions ADD COLUMN work_stopped_at INTEGER').run(); }
-  catch (e) { if (!String(e.message).includes('duplicate column name')) throw e; }
+  for (const q of ['ALTER TABLE sessions ADD COLUMN work_stopped_at INTEGER', 'ALTER TABLE learner_accounts ADD COLUMN student_id INTEGER', 'ALTER TABLE progress_imports ADD COLUMN meta TEXT']) {
+    try { await DB.prepare(q).run(); }
+    catch (e) { if (!String(e.message).includes('duplicate column name')) throw e; }
+  }
+  await DB.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_learner_student ON learner_accounts(student_id) WHERE student_id IS NOT NULL').run();
   ready = true;
 }
 
@@ -490,6 +494,7 @@ async function teacher(path, method, b, env, ctx, url) {
   const DB = env.DB;
 
   if (path === 'progress' || path.startsWith('progress/')) return progressApi(path, method, b, env, url, json, err);
+  if (path === 'classes' || path.startsWith('classes/')) return classesApi(path, method, b, env, url, json, err);
   if (path === 'python-report' || path.startsWith('python-report/')) return pythonReport(path, method, b, env, url, json, err);
   if (path === 'roster' && method === 'GET') return json({ ok: true, groups: await roster(DB) });
   if (path === 'groups' && method === 'POST') {

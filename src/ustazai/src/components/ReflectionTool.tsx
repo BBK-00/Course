@@ -63,7 +63,7 @@ export default function ReflectionTool({ onBack, lang }: ReflectionToolProps) {
 
   if (view === 'selection') {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 space-y-12">
+      <div className="min-h-screen bg-workspace flex flex-col items-center justify-center p-6 space-y-12">
         <div className="text-center space-y-4">
           <h2 className="text-5xl font-black text-brand-text tracking-tight">{t.selectTitle}</h2>
           <p className="text-brand-muted text-lg font-medium">{t.selectSub}</p>
@@ -105,7 +105,7 @@ export default function ReflectionTool({ onBack, lang }: ReflectionToolProps) {
   return (
     <div className={cn(
       "min-h-screen flex flex-col relative overflow-hidden font-sans",
-      view === 'tree' ? "bg-[#F0FDF4]" : "bg-[#F8FAFC]"
+      view === 'tree' ? "bg-brand-bg" : "bg-workspace"
     )}>
       {/* Background Decoration */}
       {view === 'tree' ? (

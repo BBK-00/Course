@@ -283,7 +283,7 @@ export default function LetterBuilderGame({ questions, onBack }: LetterBuilderGa
   };
 
   return (
-    <div className="fixed inset-0 bg-[#FDFCF8] overflow-hidden font-sans select-none touch-none">
+    <div className="fixed inset-0 bg-workspace overflow-hidden font-sans select-none touch-none">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />

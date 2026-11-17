@@ -48,7 +48,7 @@ export default function GroupSplitter({ onBack, lang }: GroupSplitterProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#FDFCF8] overflow-y-auto font-sans select-none pb-20">
+    <div className="fixed inset-0 bg-workspace overflow-y-auto font-sans select-none pb-20">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none fixed"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />

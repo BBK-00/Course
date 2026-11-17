@@ -6,8 +6,8 @@ import { readGoogleJournal, sheetSource } from './progress-google.js';
 import { parseJournal, readJournalPaste, summarizeProgress } from './progress-journal.js';
 
 const rowsOf = async statement => (await statement.all()).results || [];
-const courseAliases = { python: 'py', scratch: 'sb', 'sandyq-adister': 'sm' };
-const staticCourses = { py: 'Python', sb: 'Scratch', sm: 'Сандық әдістер', akt: 'АКТ' };
+export const courseAliases = { python: 'py', scratch: 'sb', 'sandyq-adister': 'sm' };
+export const staticCourses = { py: 'Python', sb: 'Scratch', sm: 'Сандық әдістер', akt: 'АКТ' };
 const sheetErrors = new Set(['sheet_access', 'sheet_auth', 'sheet_tab', 'sheet_unavailable']);
 const journalErrors = new Set(['journal_format', 'journal_header', 'journal_dates']);
 
@@ -47,7 +47,7 @@ async function rosterFor(DB, course) {
   return rowsOf(DB.prepare('SELECT id, full_name AS name, active FROM students WHERE group_id=? ORDER BY full_name').bind(course.group_id));
 }
 
-async function siteGrades(DB, course) {
+export async function siteGrades(DB, course) {
   const [{ n: courseCount }, available] = await Promise.all([
     DB.prepare('SELECT COUNT(*) AS n FROM progress_courses WHERE group_id=? AND course=? AND year=?')
       .bind(course.group_id, course.course, course.year).first(),

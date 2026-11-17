@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "test": "node scripts/run-tests.mjs",
     "build:ustazai": "npm ci --prefix src/ustazai --no-audit --no-fund && npm run build --prefix src/ustazai"
   },
   "devDependencies": { "wrangler": "^4.0.0" }

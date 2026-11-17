@@ -15,7 +15,6 @@ test('UstazAI uses the learner session, validates input and limits Gemini reques
     body: JSON.stringify(body)
   }), env, {});
   const payload = { kind: 'quiz', lang: 'kz', topic: 'Python циклі' };
-  assert.equal((await request('ustazai', payload)).status, 401);
   const registered = await request('register', { name: 'Тексеру', email: 'ustazai@example.test', password: 'fixture-pass-42' });
   assert.equal(registered.status, 201);
   cookie = registered.headers.get('Set-Cookie').split(';')[0];
@@ -47,6 +46,11 @@ test('UstazAI uses the learner session, validates input and limits Gemini reques
   for (let n = 0; n < 7; n++) assert.deepEqual(await (await request('ustazai', payload)).json(), { ok: true, data: quiz });
   assert.equal((await request('ustazai', payload)).status, 429);
   assert.equal(sent, 8);
+  // Аккаунтсыз да жұмыс істейді, бірақ IP бойынша 20 сұраумен шектеледі.
+  cookie = '';
+  const anonymous = () => request('ustazai', payload, { 'CF-Connecting-IP': '203.0.113.9' });
+  for (let n = 0; n < 20; n++) assert.equal((await anonymous()).status, 200);
+  assert.equal((await anonymous()).status, 429);
   assert(ustazaiTask({ kind: 'lesson', topic: 'Цикл', duration: 45 }));
   assert(ustazaiTask({ kind: 'questions', material: 'Цикл мысалы' }));
 });

@@ -40,3 +40,9 @@
   .pt-lesson-tabs { flex-basis: 100%; margin: 0; }
   .pt-lesson-tabs [role=tab] { flex: 1; justify-content: center; min-height: 32px; padding: 3px 6px; }
 }
+
+/* Қорытынды қойындысы */
+.pt-summary { display: grid; gap: 16px; align-content: start; padding-top: 28px }
+.pt-summary .pt-ideas { margin: 0 }
+.pt-summary-score { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid #dce0ef; border-radius: 14px; background: #f7f7fd }
+.pt-summary-score p { margin: 0; font-size: 1.05rem; font-weight: 700 }

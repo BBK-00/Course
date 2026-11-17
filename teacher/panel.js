@@ -376,17 +376,9 @@ function setRoster(j){
   rosterRevision++;applyRoster(j.groups);renderRoster();loadLive(true);
 }
 /* ---------- Журнал және үлгерім ---------- */
-let journalPanel, pythonReportRevision = 0;
+let pythonReportRevision = 0;
 
-function loadJournal(){
-  if(!journalPanel)journalPanel=window.createTeacherJournal({
-    h,btn,api,subjects:SUBJ,topicInfo:tinfo,open:openDetail,download,csv,notify:toast,
-    onFilter:filters=>updateWorkspace('journal',filters),
-    progress:filters=>goTab('progress',{filters:{...filters,source:'site'}}),
-    archive:filters=>goTab('archive',{filters})
-  });
-  return journalPanel.render($('#s-journal'),workspaceFilters.journal);
-}
+function loadJournal(){return classes().renderJournal($('#s-journal'),workspaceFilters.journal?.course);}
 function loadProgress(){
   return window.TeacherProgress({
     root:$('#s-progress'),h,api,selection:workspaceFilters.progress,
@@ -394,15 +386,16 @@ function loadProgress(){
     onUpdate:()=>{pythonReportRevision++;},
     openArchive:filters=>goTab('archive',{filters}),
     openJournal:filters=>goTab('journal',{filters}),
-    async startLesson(course){
-      if(!SUBJ.some(s=>s.id===course.course))await loadDataLessons();
-      if(!SUBJ.some(s=>s.id===course.course&&s.topics.some(t=>!t.hidden))){
-        toast('Бұл курстың тапсырмасы бар жарияланған сабағын таңдаңыз.',true);return;
-      }
-      if(!startGroups().some(g=>g.id===course.group_id))await loadRoster();
-      newLesson({s:course.course,g:String(course.group_id),courseLink:course});
-    }
+    startLesson:startCourseLesson
   });
+}
+async function startCourseLesson(course){
+  if(!SUBJ.some(s=>s.id===course.course))await loadDataLessons();
+  if(!SUBJ.some(s=>s.id===course.course&&s.topics.some(t=>!t.hidden))){
+    toast('Бұл курстың тапсырмасы бар жарияланған сабағын таңдаңыз.',true);return;
+  }
+  if(!startGroups().some(g=>g.id===course.group_id))await loadRoster();
+  newLesson({s:course.course,g:String(course.group_id),courseLink:course});
 }
 const schoolDay=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Qyzylorda',year:'numeric',month:'2-digit',day:'2-digit'});
 function openCourseProgress(session,course,source='site'){
@@ -472,7 +465,7 @@ document.querySelectorAll('[data-icon]').forEach(e=>e.replaceWith(icon(e.dataset
 function btn(text,fn,cls=''){return h('button',{type:'button',class:'btn '+cls,text,on:{click:fn}});}
 function toast(msg,error=false){const e=$('#toast');e.textContent=msg;e.className='dash-toast'+(error?' error':'');e.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.hidden=true,6500);}
 function syncStatus(ok){const e=$('#syncStatus');e.classList.toggle('offline',!ok);e.querySelector('span').textContent=ok?'Соңғы жаңарту: '+new Date().toLocaleTimeString('kk-KZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'Байланыс үзілді. Соңғы деректер көрсетіліп тұр.';}
-const ERR_UI={course_mismatch:'Таңдалған пән, топ немесе оқу жылы курс байланысына сәйкес келмейді.',group_has_history:'Бұл топ курс журналымен байланысқан. Бағалар тарихы сақталады.',network:'Байланыс үзілді. Өзгеріс сақталмады. Қайта көріңіз.',auth:'Кіру уақыты аяқталды. Қайта кіріңіз.',no_session:'Ашық сабақ жоқ.',no_group:'Бұл топ табылмады. Топтар тізімін жаңартып, қайта таңдаңыз.',bad_topic:'Бұл тақырып қолжетімсіз. Басқа тақырыпты таңдаңыз.',started:'Бұл жұмысты студент бастап қойған.',bad_request:'Енгізілген мәліметті тексеріңіз.',not_found:'Мәлімет табылмады.',session_open:'Жүріп жатқан сабақты өшіруге болмайды. Алдымен сабақты аяқтаңыз.',session_trashed:'Алдымен сабақты «Өшірілгендер» бөлімінен қалпына келтіріңіз.'};
+const ERR_UI={plan_file:'Файлды оқу мүмкін болмады. .docx не .xlsx файлын жүктеңіз.',plan_type:'Тек Word (.docx) және Excel (.xlsx) файлдары жарайды.',plan_empty:'Файлдан тақырып табылмады.',plan_topics:'Тақырып тізімін тексеріңіз: нөмірлері қайталанбауы, атаулары толық болуы керек.',group_needs_subject:'Топ пәнмен бірге сақталады: топ атауын, курсты және пәнді толтырыңыз.',group_exists:'Мұндай атаумен топ бар.',course_has_data:'Бұл пәннің журналы немесе сабақтары бар, өшіруге болмайды.',course_fields:'Курсты, пәнді және оқу жылын тексеріңіз.',password_short:'Пароль кемінде 6 таңба болуы керек.',login_taken:'Бұл логин бос емес.',login_format:'Логин: 3–40 таңба, латын әріптері, сандар, нүкте не сызықша.',sheet_access:'Кестеге қол жеткізілмеді. Кестені сілтемесі бар адамға көруге ашыңыз.',sheet_link:'Google Sheets сілтемесі дұрыс емес.',sheet_unavailable:'Google Sheets қазір жауап бермейді. Кейінірек көріңіз.',journal_header:'Журнал үлгісі танылмады.',journal_dates:'Сабақ күндері табылмады.',journal_format:'Журнал пішімі дұрыс емес не тым үлкен.',journal_empty:'Кестеде баға табылмады.',journal_changed:'Журнал бөтен жерден өзгерген. Бетті жаңартып, қайта көріңіз.',cell_value:'Балл 0–100 болуы керек, не «ж» / «с».',cell_readonly:'Сайттағы сабақтың бағасын сабақ бетінен өзгертіңіз.',course_mismatch:'Таңдалған пән, топ немесе оқу жылы курс байланысына сәйкес келмейді.',group_has_history:'Бұл топ курс журналымен байланысқан. Бағалар тарихы сақталады.',network:'Байланыс үзілді. Өзгеріс сақталмады. Қайта көріңіз.',auth:'Кіру уақыты аяқталды. Қайта кіріңіз.',no_session:'Ашық сабақ жоқ.',no_group:'Бұл топ табылмады. Топтар тізімін жаңартып, қайта таңдаңыз.',bad_topic:'Бұл тақырып қолжетімсіз. Басқа тақырыпты таңдаңыз.',started:'Бұл жұмысты студент бастап қойған.',bad_request:'Енгізілген мәліметті тексеріңіз.',not_found:'Мәлімет табылмады.',session_open:'Жүріп жатқан сабақты өшіруге болмайды. Алдымен сабақты аяқтаңыз.',session_trashed:'Алдымен сабақты «Өшірілгендер» бөлімінен қалпына келтіріңіз.'};
 const originalApi=api;
 api=async function(path,body,method){const j=await originalApi(path,body,method);if(!j.ok && (body || method==='DELETE' || method==='PATCH'))toast(ERR_UI[j.error]||'Әрекет орындалмады. Мәліметтерді тексеріп, қайта көріңіз.',true);return j;};
 function sessionQuery(){return LIVE&&LIVE.session?'?session='+LIVE.session.id:'';}
@@ -573,8 +566,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){mobileClose();close
 let headingShape='';
 function renderHeading(){
   const se=LIVE?.session,ti=tinfo(se?.topic);
-  const titles={progress:'Үлгерім',homework:'Үй жұмысы',journal:'Бағалар журналы',roster:'Топтар мен студенттер',archive:'Сабақтар архиві'};
-  const subtitles={progress:'Топтың динамикасы, жеке қолдау және келесі сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Сабақ бағаларын шолып, студенттің жұмысын ашыңыз.',roster:'Топтар мен студенттер тізімі',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
+  const titles={progress:'Үлгерім',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Сабақтар архиві'};
+  const subtitles={progress:'Топтың динамикасы, жеке қолдау және келесі сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Күндер, баллдар, НБ және орташа бір кестеде',roster:'Топ, пән, студенттер және олардың аккаунттары',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
   const title=route==='live'?(lessonPending?'Сабақ басталды':se&&(se.status==='open'||VIEW)?ti.title:'Сабақты бастау'):titles[route];
   const subtitle=route==='live'?(VIEW&&se?'Архивтегі сабақ · '+fdate(se.created_at):se?.status==='open'?(LIVE.groups.map(g=>g.name).join(', ')+' · '+allStudents().length+' студент'):'Пәнді, тақырыпты және топты таңдаңыз.'):subtitles[route];
   const shape=JSON.stringify([TAB,title,subtitle,VIEW,se?.id,se?.status,se?.course_group_id]);
@@ -771,7 +764,16 @@ async function renderArchive(fromAnotherView=false){
   });
   return archivePanel.render($('#s-archive'),workspaceFilters.archive,fromAnotherView);
 }
-function renderRoster(){const root=$('#s-roster');if(!ROSTER.some(g=>String(g.id)===rosterGroup))rosterGroup=String(ROSTER.find(g=>g.id===LIVE?.session?.group_id)?.id||ROSTER[0]?.id||'');const search=h('input',{class:'field',type:'search',placeholder:'Топты іздеу',value:groupQuery,'aria-label':'Топты іздеу'}),directory=h('div',{class:'group-directory-list'}),content=h('div');const paintDirectory=()=>{directory.replaceChildren(...ROSTER.filter(g=>g.name.toLocaleLowerCase('kk').includes(groupQuery.toLocaleLowerCase('kk'))).map(g=>h('button',{type:'button',class:'group-button'+(String(g.id)===rosterGroup?' on':''),on:{click:()=>{rosterGroup=String(g.id);paintDirectory();paintGroup();}}},[h('span',{text:g.name}),h('small',{text:String(g.students.filter(s=>s.active!==false).length)})])));};const paintGroup=()=>{const g=ROSTER.find(g=>String(g.id)===rosterGroup);content.replaceChildren();if(!g){content.append(h('p',{class:'analysis-empty',text:'Алдымен топ қосыңыз.'}));return;}const opts=h('details',{},[h('summary',{text:'Топ әрекеттері'}),h('div',{class:'row'},[btn('Атын өзгерту',async()=>{const name=prompt('Топ атауы',g.name);if(name){const j=await api('groups/'+g.id,{name},'PATCH');if(j.ok)setRoster(j);}},'sm'),btn('Топты жою',async()=>{if(confirm(g.name+' тобын және оның барлық студенттері мен жұмыстарын біржола жоясыз ба?')){const j=await api('groups/'+g.id,null,'DELETE');if(j.ok)setRoster(j);}},'sm danger')])]);const names=h('textarea',{class:'field',rows:'5',placeholder:'Әр жолға бір студенттің аты-жөнін жазыңыз','aria-label':'Қосылатын студенттер'});const tbody=h('tbody',{},g.students.map((s,i)=>h('tr',{class:s.active?'':'absent'},[h('td',{text:String(i+1)}),h('td',{class:'l',text:s.name+(s.active?'':' · жасырылған')}),h('td',{},h('details',{},[h('summary',{text:'Өзгерту'}),h('div',{class:'row'},[btn('Аты',async()=>{const name=prompt('Аты-жөні',s.name);if(name){const j=await api('students/'+s.id,{name},'PATCH');if(j.ok)setRoster(j);}},'sm'),btn(s.active?'Жасыру':'Қайтару',async()=>{const j=await api('students/'+s.id,{active:!s.active},'PATCH');if(j.ok)setRoster(j);},'sm'),btn('Өшіру',async()=>{if(confirm(s.name+' біржола өшірілсін бе? Оның жұмыстары да өшеді.')){const j=await api('students/'+s.id,null,'DELETE');if(j.ok)setRoster(j);}},'sm danger')])]))])));content.append(h('div',{class:'card'},[h('div',{class:'row'},[h('h2',{text:g.name}),h('span',{class:'sp'}),btn('Сабақ бастау',()=>newLesson({g:String(g.id)}),'primary sm'),opts]),h('p',{class:'sub',text:g.students.filter(s=>s.active).length+' белсенді студент'}),h('div',{class:'tw',style:'max-height:55vh'},h('table',{class:'t'},[h('thead',{},h('tr',{},['№','Студент','Әрекет'].map(text=>h('th',{text})))),tbody])),h('details',{class:'roster-add'},[h('summary',{text:'+ Студенттерді қосу'}),names,btn('Тізімді сақтау',async()=>{if(!names.value.trim())return;const j=await api('students',{group_id:g.id,names:names.value});if(j.ok){names.value='';setRoster(j);toast('Студенттер қосылды.');}},'primary')])]));};search.oninput=e=>{groupQuery=e.target.value;paintDirectory();};root.replaceChildren(h('div',{class:'group-layout'},[h('div',{class:'group-directory'},[search,directory,btn('+ Топ қосу',async()=>{const name=prompt('Жаңа топтың атауы')?.trim().slice(0,40);if(name){const j=await api('groups',{name:name.trim()});if(j.ok){const g=j.groups.find(g=>g.name===name.trim());if(g){rosterGroup=String(g.id);rememberStart({...LS,g:String(g.id)});}groupQuery='';setRoster(j);toast('Топ қосылды. Студенттерді қосып немесе сабақ бастай аласыз.');}}},'sm')]),content]));paintDirectory();paintGroup();}
+let classesPanel;
+function classes(){
+  return classesPanel||(classesPanel=window.TeacherClasses({
+    h,btn,api,toast,download,csv,
+    onChange:()=>{rosterRevision++;const revision=rosterRevision;api('roster').then(j=>{if(j.ok&&revision===rosterRevision)applyRoster(j.groups);});},
+    startLesson:startCourseLesson,
+    openJournal:course=>goTab('journal',{filters:{course}})
+  }));
+}
+function renderRoster(){return classes().render($('#s-roster'));}
 async function loadHomework(){const j=await api('homework');if(!j.ok){if(!HW)$('#s-homework').replaceChildren(h('p',{class:'bad',text:'Үй жұмысын жүктеу мүмкін болмады.'}));return;}HW=j.rows;renderHomework();}
 function homeworkReviewView(review){
   const findings=Array.isArray(review.findings)?review.findings:[];

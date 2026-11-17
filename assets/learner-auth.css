@@ -1,0 +1,31 @@
+.learner-dialog {
+  margin: auto;
+  width: min(430px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: clamp(16px, 4vw, 24px);
+  border: 1px solid #e0e2ef;
+  border-radius: 16px;
+  color: #171930;
+  background: #fff;
+  box-shadow: 0 20px 70px #1c214b40;
+  font: 15px/1.5 Inter, "Segoe UI", system-ui, sans-serif;
+}
+.learner-dialog::backdrop { background: #171a41a8; }
+.learner-dialog [hidden] { display: none !important; }
+.learner-dialog :is(button, input):focus-visible { outline: 3px solid #5557e6; outline-offset: 3px; }
+.learner-dialog-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 15px; }
+.learner-dialog h2 { margin: 0 0 4px; font-size: 22px; font-weight: 750; line-height: 1.2; letter-spacing: -.028em; }
+.learner-dialog-head p, .learner-dialog-note { margin: 0; color: #5d607a; font-size: 12px; }
+.learner-dialog form { display: grid; gap: 9px; }
+.learner-dialog label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
+.learner-dialog input { font: inherit; min-height: 42px; padding: 7px 9px; width: 100%; border: 1px solid #ccd0e4; border-radius: 8px; color: #171930; background: #fbfbfe; }
+.learner-dialog-switch { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; font-size: 13px; color: #5d607a; }
+.learner-dialog .lr-primary, .learner-dialog .lr-icon-button { display: inline-grid; place-items: center; min-height: 42px; padding: 7px 12px; border: 1px solid transparent; border-radius: 8px; font: inherit; font-weight: 740; cursor: pointer; }
+.learner-dialog .lr-primary { background: #4041cf; color: #fff; }
+.learner-dialog .lr-primary:hover { background: #3031a8; }
+.learner-dialog .lr-primary:disabled { opacity: .65; cursor: wait; }
+.learner-dialog .lr-icon-button { min-width: 40px; padding: 0; color: #171930; background: #fff; border-color: #e0e2ef; font-size: 20px; }
+.learner-dialog .lr-text-link { border: 0; padding: 0; color: #3031a8; background: none; font: inherit; font-weight: 740; cursor: pointer; }
+.learner-dialog .lr-text-link:hover { text-decoration: underline; }
+.learner-error { margin: 0; color: #9e2432; background: #fff0f1; padding: 6px 8px; border-radius: 6px; font-size: 13px; }

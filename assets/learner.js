@@ -1,3 +1,5 @@
+import { accountMessages as messages, createLearnerAuth, learnerAccount as api } from './learner-auth.js?v=1';
+
 const courses = {
   python: { name: 'Python', mark: '‹/›' },
   scratch: { name: 'Scratch', mark: '▤' },
@@ -20,6 +22,7 @@ const top = document.querySelector('[data-learner-top]');
 const overlay = make('button', { type:'button', class:'learner-shade', hidden:'', tabindex:'-1', 'aria-label':'Мәзірді жабу' });
 const isHome = document.body.dataset.learnerPage === 'home';
 const isTools = document.body.dataset.learnerPage === 'tools';
+const isJournal = document.body.dataset.learnerPage === 'journal';
 const catalog = '/#subjects';
 const saved = '/#my-courses';
 const navLink = (name, href, mark, active = false, kind) => {
@@ -44,7 +47,7 @@ nav.after(overlay);
 const menu = make('button', { type:'button', class:'lr-icon-button learner-menu', 'aria-controls':'learner-nav', 'aria-expanded':'false', 'aria-label':'Мәзірді ашу' }, '☰');
 const breadcrumb = make('div',{class:'learner-breadcrumb'},
   ...(currentCourse ? [make('a', {href:catalog}, 'Курстар'), make('span', {'aria-hidden':'true'}, '/'), make('strong', {}, currentCourse.name)]
-    : [make('span', {}, isTools ? 'Көмекші құралдар' : 'Оқу дашборды')]));
+    : [make('span', {}, isTools ? 'Көмекші құралдар' : isJournal ? 'Менің журналым' : 'Оқу дашборды')]));
 const actions = make('div', {class:'learner-top-actions'});
 top.append(menu, breadcrumb, actions);
 
@@ -72,60 +75,21 @@ document.addEventListener('keydown', e => {
 });
 matchMedia('(min-width: 901px)').addEventListener('change', e => { if (e.matches) showNav(false); });
 
-const dialog = make('dialog', { class:'learner-dialog', 'aria-labelledby':'accountTitle' });
-dialog.innerHTML = `
-  <div class="learner-dialog-head">
-    <div><h2 id="accountTitle"></h2><p id="accountIntro"></p></div>
-    <button type="button" class="lr-icon-button" id="accountClose" aria-label="Жабу">×</button>
-  </div>
-  <form id="accountForm">
-    <label id="accountNameRow">Аты-жөніңіз<input name="name" autocomplete="name" minlength="2" maxlength="80" required></label>
-    <label>Электрондық пошта<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
-    <label>Құпиясөз<input name="password" type="password" minlength="8" maxlength="128" required></label>
-    <p id="accountPasswordHint" class="learner-dialog-note">Кемінде 8 таңба.</p>
-    <p id="accountError" class="learner-error" role="alert" hidden></p>
-    <button class="lr-btn lr-primary" id="accountSubmit" type="submit"></button>
-  </form>
-  <div class="learner-dialog-switch"><span id="accountSwitchHint"></span><button type="button" class="lr-text-link" id="accountSwitch"></button></div>`;
-document.body.append(dialog);
-const form = byId('accountForm');
-const submit = byId('accountSubmit');
-const errorBox = byId('accountError');
 let account = null;
 let enrolled = new Set();
-let pendingCourse = '';
-let pendingAuth = false;
 let accountReady = false;
 let accountRevision = 0;
-let mode = 'register';
 let view = location.hash === '#my-courses' ? 'saved' : 'all';
 let snackbarTimer;
 const pendingSaves = new Set();
 const cards = [...document.querySelectorAll('.course-tile[data-course]')];
 const snackbar = make('div',{class:'learner-snackbar',role:'status',hidden:''});
 document.body.append(snackbar);
-const messages = {
-  fields:'Поштаны және құпиясөзді тексеріңіз. Құпиясөз кемінде 8 таңба болуы керек.',
-  credentials:'Пошта немесе құпиясөз сәйкес келмеді.',
-  email_taken:'Бұл пошта тіркелген. «Кіру» арқылы жалғастырыңыз.',
-  wait:'Әрекет саны көбейді. 15 минуттан кейін қайталап көріңіз.',
-  network:'Байланыс үзілді. Қайта әрекет етіңіз.'
-};
-
 function announce(text) {
   snackbar.textContent = text;
   snackbar.hidden = false;
   clearTimeout(snackbarTimer);
   snackbarTimer = setTimeout(() => { snackbar.hidden = true; }, 4500);
-}
-
-async function api(path = '', payload) {
-  try {
-    const response = await fetch('/api/account' + path, payload ? {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-    } : { cache:'no-store' });
-    return await response.json();
-  } catch { return {ok:false,error:'network'}; }
 }
 
 function authButton(label, operation, primary = false) {
@@ -134,38 +98,6 @@ function authButton(label, operation, primary = false) {
   return button;
 }
 
-function showError(message) {
-  errorBox.textContent = message;
-  errorBox.hidden = !message;
-}
-
-function setMode(next) {
-  mode = next;
-  const creating = mode === 'register';
-  byId('accountTitle').textContent = creating ? 'Жеке кабинет ашу' : 'Жеке кабинетке кіру';
-  byId('accountIntro').textContent = pendingCourse ? `${courses[pendingCourse].name} курсын жеке тізіміңізге сақтаңыз.` : 'Курстарыңызға кез келген құрылғыдан оралыңыз.';
-  byId('accountNameRow').hidden = !creating;
-  form.elements.name.disabled = !creating;
-  form.elements.password.autocomplete = creating ? 'new-password' : 'current-password';
-  byId('accountPasswordHint').hidden = !creating;
-  submit.textContent = creating ? 'Тіркелу' : 'Кіру';
-  byId('accountSwitchHint').textContent = creating ? 'Аккаунтыңыз бар ма?' : 'Жеке кабинет әлі ашылмаған ба?';
-  byId('accountSwitch').textContent = creating ? 'Кіру' : 'Тіркелу';
-  showError('');
-}
-
-function openAuth(next, course = '') {
-  pendingCourse = course;
-  form.reset();
-  setMode(next);
-  if (!dialog.open) dialog.showModal();
-  (next === 'register' ? form.elements.name : form.elements.email).focus();
-}
-byId('accountClose').onclick = () => { if (!pendingAuth) dialog.close(); };
-dialog.addEventListener('cancel', event => { if (pendingAuth) event.preventDefault(); });
-byId('accountSwitch').onclick = () => { if (!pendingAuth) setMode(mode === 'register' ? 'login' : 'register'); };
-dialog.addEventListener('close', () => { form.reset(); pendingCourse = ''; });
-
 function updateAccount(result) {
   if (!result.ok) return;
   accountRevision++;
@@ -173,29 +105,24 @@ function updateAccount(result) {
   enrolled = new Set(result.courses);
   accountReady = true;
   paintAccount();
+  document.dispatchEvent(new CustomEvent('learner-account', { detail: { account } }));
 }
 
-form.addEventListener('submit', async event => {
-  event.preventDefault();
-  if (pendingAuth) return;
-  pendingAuth = true;
-  const course = pendingCourse;
-  const payload = Object.fromEntries(new FormData(form));
-  const endpoint = mode;
-  submit.disabled = true;
-  submit.textContent = 'Тексерілуде…';
-  showError('');
-  const result = await api('/' + endpoint, payload);
-  pendingAuth = false;
-  submit.disabled = false;
-  setMode(mode);
-  if (!result.ok) { showError(messages[result.error] || 'Әрекет аяқталмады. Қайта көріңіз.'); return; }
-  updateAccount(result);
-  if (dialog.open) dialog.close();
-  actions.querySelector('summary')?.focus();
-  announce(endpoint === 'register' ? 'Жеке кабинет ашылды.' : 'Жеке кабинет ашық.');
-  if (course && !enrolled.has(course)) await toggleSaved(course, true);
+const auth = createLearnerAuth({
+  async onSuccess(result, mode, course) {
+    updateAccount(result);
+    actions.querySelector('summary')?.focus();
+    announce(mode === 'register' ? 'Жеке кабинет ашылды.' : 'Жеке кабинет ашық.');
+    if (course && !enrolled.has(course)) await toggleSaved(course, true);
+  }
 });
+
+function openAuth(mode, course = '') {
+  auth.open(mode, {
+    context: course,
+    intro: course ? `${courses[course].name} курсын жеке тізіміңізге сақтаңыз.` : 'Курстарыңызға кез келген құрылғыдан оралыңыз.'
+  });
+}
 
 async function toggleSaved(id, force) {
   if (!courses[id] || pendingSaves.size) return;
@@ -230,6 +157,12 @@ function paintSaveButtons() {
 }
 
 function paintAccount() {
+  const journalLink = nav.querySelector('[data-journal-link]');
+  if (account?.student && !journalLink) {
+    const link = navLink('Менің журналым', '/journal/', '▤', isJournal);
+    link.dataset.journalLink = '';
+    nav.querySelector('.learner-nav-group').append(link);
+  } else if (!account?.student) journalLink?.remove();
   if (account) {
     const initials = account.name.trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toLocaleUpperCase('kk');
     const panel = make('details',{class:'learner-profile'});
@@ -242,7 +175,7 @@ function paintAccount() {
       else announce(messages[result.error] || 'Шығу мүмкін болмады.');
     };
     panel.append(make('summary',{},make('span',{class:'lr-avatar','aria-hidden':'true'},initials),make('span',{class:'lr-profile-name'},account.name)),
-      make('div',{class:'learner-profile-panel'},make('b',{},account.name),make('small',{},account.email),make('a',{href:saved,class:'lr-text-link'},'Менің курстарым'),logout));
+      make('div',{class:'learner-profile-panel'},make('b',{},account.name),make('small',{},account.email),...(account.student ? [make('a',{href:'/journal/',class:'lr-text-link'},'Менің журналым')] : []),make('a',{href:saved,class:'lr-text-link'},'Менің курстарым'),logout));
     actions.replaceChildren(panel);
   } else actions.replaceChildren(authButton('Кіру','login'),authButton('Тіркелу','register',true));
   const study = byId('learnerStudy');
