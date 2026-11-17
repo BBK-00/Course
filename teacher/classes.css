@@ -83,3 +83,6 @@
 .student-ai { all: unset; cursor: pointer; font-weight: 700; border-bottom: 1px dotted #9a9cc0 }
 .student-ai:hover, .student-ai:focus-visible { color: #3031a8 }
 .classes-facts { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; color: #3b3f64 }
+
+.classes-journal th.is-practice, .classes-journal td.is-practice { background: #eefaf1 }
+.journal-cell.is-practice { cursor: default }

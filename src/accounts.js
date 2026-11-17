@@ -1,6 +1,7 @@
 import { safeEqual } from './auth.js';
 import { ustazaiTask, runUstazaiTask } from './ustazai-ai.js';
 import { studentJournal } from './classes.js';
+import { hasLesson, gradeItem, savePractice } from './practice.js';
 
 const cookieName = 'bbk_learner';
 const sessionSeconds = 60 * 60 * 24 * 30;
@@ -115,7 +116,7 @@ export async function accountApi(request, DB, url, env) {
     let body;
     try {
       const raw = await request.text();
-      if (raw.length > (path === 'ustazai' ? 24000 : 4096)) return failure('fields', 413);
+      if (raw.length > (path === 'ustazai' ? 24000 : path === 'practice' ? 9000 : 4096)) return failure('fields', 413);
       body = JSON.parse(raw);
       if (!body || typeof body !== 'object' || Array.isArray(body)) return failure('fields');
     } catch { return failure('fields'); }
@@ -140,6 +141,22 @@ export async function accountApi(request, DB, url, env) {
       } catch (error) {
         return failure(error.kind === 'config' ? 'ai_config' : 'ai_unavailable', 503);
       }
+    }
+    if (path === 'practice') {
+      // Өзіндік жаттығу нәтижесі: серверде қайта тексеріліп, тек студент аккаунтына сақталады.
+      const account = await findAccount(DB, hash, now);
+      if (!account) return failure('auth', 401);
+      if (!account.student_id) return failure('not_student', 403);
+      const lesson = Number(body.lesson), kind = body.kind, index = Number(body.index);
+      if (!hasLesson(lesson) || !['warm', 'code', 'test'].includes(kind) || !Number.isInteger(index) || typeof body.value !== 'string') return failure('fields');
+      const scope = kind === 'code' ? 'code' : 'quick';
+      if (!await limit(DB, await sha256('practice:' + scope + ':' + account.id), now, scope === 'code' ? 30 : 90)) return failure('wait', 429);
+      let graded;
+      try { graded = await gradeItem(env, lesson, kind, index, body.value); }
+      catch { return failure('runner', 503); }
+      if (!graded) return failure('fields');
+      await savePractice(DB, account.student_id, lesson, kind, index, graded.points, graded.weight, now);
+      return json({ ok: true, points: graded.points, weight: graded.weight });
     }
     if (path !== 'course') return failure('not_found', 404);
     if (!courseIds.has(body.course) || typeof body.saved !== 'boolean') return failure('fields');

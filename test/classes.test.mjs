@@ -24,7 +24,7 @@ const DB = memoryD1();
 test.after(() => DB.sqlite.close());
 
 async function harness() {
-  const env = { DB, TEACHER_PASSWORD: 'local-test', GEMINI_STUB: '1' };
+  const env = { DB, TEACHER_PASSWORD: 'local-test', GEMINI_STUB: '1', RUNNER_STUB: 'True' };
   const token = await sign(env, { r: 't' }, 600);
   const call = async (path, body, method) => {
     const response = await worker.fetch(new Request(origin + '/api/teacher/' + path, {
@@ -249,4 +249,38 @@ test('AI journal analysis: facts are computed on the server, AI failure still re
   const one = await call('classes/ai', { course, student: view.students[0].id });
   assert.deepEqual(one.facts.scores, [80, 40]);
   assert.equal((await call('classes/ai', { course, student: 999999 })).error, 'not_found');
+});
+
+test('practice: the server re-grades answers, keeps the best result and shows it in the journal', async () => {
+  const { call, learner } = await harness();
+  const made = await call('classes', { name: 'ИФ-320', course: 'py', subject: 'Python', year: 2026, names: 'Бір Студент' });
+  const course = made.groups.find(g => g.id === made.id).courses[0].id;
+  const bulk = await call('classes/accounts', { group: made.id, password: 'student-pass' });
+  const login = await learner('login', { email: bulk.made[0].login, password: 'student-pass' });
+  const cookie = login.response.headers.get('Set-Cookie').split(';')[0];
+  const send = (lesson, kind, index, value) => learner('practice', { lesson, kind, index, value }, cookie);
+
+  assert.equal((await send(5, 'warm', 0, 'True')).points, 1);
+  assert.equal((await send(5, 'warm', 1, 'True')).points, 0);       // дұрысы False
+  assert.deepEqual([(await send(5, 'code', 0, 'print(1)')).points, 3].join('/'), '2/3'); // стуб 3 жағдайдың 2-еуін өткізеді
+  assert.equal((await send(5, 'test', 0, 'False')).points, 1);
+  assert.equal((await send(5, 'warm', 0, 'False')).points, 0);      // қайта жіберу үздікті төмендетпейді
+  assert.equal((await send(99, 'warm', 0, 'x')).response.status, 400);
+  assert.equal((await send(5, 'warm', 99, 'x')).response.status, 400);
+  assert.equal((await send(5, 'bonus', 0, 'x')).response.status, 400);
+
+  const view = await call('classes/journal?course=' + course);
+  const lesson = view.lessons.find(l => l.key === 'p5');
+  assert.equal(lesson.source, 'practice');
+  assert.equal(view.cells[view.students[0].id].p5.score, 19);        // (1 + 2 + 1) / 21
+  assert.equal(view.summary[view.students[0].id].avg, null, 'practice must not affect the graded average');
+  assert.equal((await call('classes/cell', { course, student: view.students[0].id, key: 'p5', value: '100' })).error, 'cell_readonly');
+
+  const mine = await learner('journal', null, cookie);
+  assert.equal(mine.journal.courses[0].cells.p5.score, 19);
+
+  const plain = await learner('register', { name: 'Өзі', email: 'plain@example.test', password: 'long-enough-1' });
+  const plainCookie = plain.response.headers.get('Set-Cookie').split(';')[0];
+  assert.equal((await learner('practice', { lesson: 5, kind: 'warm', index: 0, value: 'True' }, plainCookie)).response.status, 403);
+  assert.equal((await learner('practice', { lesson: 5, kind: 'warm', index: 0, value: 'True' })).response.status, 401);
 });

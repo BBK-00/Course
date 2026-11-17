@@ -57,3 +57,4 @@
 @media (max-width: 680px) {
   .pp-workspace { grid-template-columns: minmax(0, 1fr); }
 }
+.pp-sync { margin: 2px 0 0; font-size: .8rem; color: #5d607a }

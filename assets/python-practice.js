@@ -29,6 +29,18 @@
   const read = key => { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; } };
   const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
+  /* Студент логинімен кірген болса, нәтиже серверде қайта тексеріліп мұғалімге жіберіледі. */
+  const studentMode = fetch('/api/account', { cache: 'no-store' }).then(r => r.json()).then(j => Boolean(j.account?.student)).catch(() => false);
+  async function sendResult(lesson, kind, index, value, note) {
+    if (!await studentMode) return;
+    note.textContent = 'Нәтиже мұғалімге жіберілуде…';
+    try {
+      const r = await fetch('/api/account/practice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lesson, kind, index, value }) });
+      const j = await r.json();
+      note.textContent = j.ok ? 'Нәтиже мұғалімге жіберілді ✓' : 'Нәтиже мұғалімге жіберілмеді. Кейін қайта тексеріп көр.';
+    } catch { note.textContent = 'Нәтиже мұғалімге жіберілмеді (байланыс жоқ).'; }
+  }
+
   let worker, active;
   function execute(code, inputs) {
     if (active) return Promise.reject(new Error('Бір код тексеріліп жатыр. Аяқталған соң қайта бас.'));
@@ -162,6 +174,15 @@
       score.textContent = 'Үздік нәтиже ' + result + ' / 100 · ' + attempted + ' / ' + count + ' орындалды';
       summaries.forEach(summary => { summary.textContent = score.textContent; });
     }
+    const syncNote = el('p', { class: 'pp-sync', role: 'status' });
+    studentMode.then(ok => { syncNote.textContent = ok ? 'Нәтижең мұғалімге жіберіледі.' : 'Нәтиже мұғалімге көрінуі үшін студент логинімен кіріңіз (басты бет → «Кіру»).'; });
+    function report(id, value) {
+      const m = /^pp-(understand|code|test)-(\d+)$/.exec(id);
+      if (!m) return;
+      const kind = { understand: 'warm', code: 'code', test: 'test' }[m[1]], i = Number(m[2]);
+      const index = kind === 'test' && rotation ? state.deck[i] : i;
+      if (Number.isInteger(index)) void sendResult(Number(n), kind, index, String(value), syncNote);
+    }
     function record(id, points, value) {
       state[id] = { ...state[id], value, last: points, best: Math.max(state[id]?.best ?? 0, points) };
       save(key, state);
@@ -209,6 +230,7 @@
         if (!value.trim()) { feedback.dataset.state = 'bad'; feedback.textContent = 'Алдымен жауабыңды енгіз немесе таңда.'; return; }
         const ok = item.opts ? Number(value) === item.correct : normalize(value) === normalize(item.answer);
         record(id, ok ? 1 : 0, value);
+        report(id, value);
         show(ok);
       });
       form.append(el('div', { class: 'pp-actions' }, el('button', { type: 'submit', class: 'btn' }, 'Тексеру')), feedback,
@@ -241,6 +263,7 @@
           const passed = results.length - failures.length;
           const points = Math.round(passed / results.length * weight * 10) / 10;
           record(id, points, '');
+          report(id, code);
           feedback.dataset.state = failures.length ? 'bad' : 'good';
           feedback.replaceChildren(el('b', {}, passed + ' / ' + results.length + ' тексеру өтті · ' + points + ' / ' + weight + ' балл'));
           if (failures.length) {
@@ -273,7 +296,7 @@
       el('p', {}, rotation?.only
         ? 'Жауапты тексеріп, түсіндірмесін оқы. Жаңа нұсқа ашқанда сұрақтар жиынтығы өзгереді.'
         : 'Жауапты осы бетте тексер. Әр есептің шығару жолын ашып, қатеңді түзете аласың. Нәтиже осы браузерде сақталады.'),
-      el('div', { class: 'pp-score' }, score, meter), ...(groups.length > 1 ? [links] : [])));
+      el('div', { class: 'pp-score' }, score, meter, syncNote), ...(groups.length > 1 ? [links] : [])));
     groups.forEach((group, stage) => {
       const caption = el('span', { class: 'pp-stage-score' });
       statusByStage.set(group.id, caption);

@@ -3,6 +3,7 @@ import { readCsv, parseJournal } from './progress-journal.js';
 import { courseYear, courseDate, siteGrades, staticCourses, courseAliases } from './progress.js';
 import { sheetSource } from './progress-google.js';
 import { geminiJson } from './gemini.js';
+import { percentOf } from './practice.js';
 import { setStudentAccount, removeStudentAccount } from './accounts.js';
 import { officeRows, topicsFromRows, topicsFromAi, validTopics } from './plan-import.js';
 
@@ -69,18 +70,31 @@ export async function journalView(DB, course, onlyStudent = null) {
     rowsOf(DB.prepare('SELECT n, title, hours FROM course_plan WHERE course_id=? ORDER BY n').bind(course.id))
   ]);
   const topicOf = new Map(plan.map(t => [t.n, t.title]));
+  // Python курсында студенттің өзіндік жаттығу нәтижелері бөлек бағандармен көрсетіледі (орташаға кірмейді).
+  const practice = course.course === 'py'
+    ? await rowsOf(DB.prepare('SELECT p.student_id, p.lesson, p.item, p.best, p.at FROM practice_results p JOIN students s ON s.id=p.student_id WHERE s.group_id=?').bind(course.group_id))
+    : [];
   const lessons = state.lessons.map(l => ({ key: 'c' + l.column, date: l.date, number: l.number || '', hours: l.hours ?? null, kind: l.kind || '', source: 'journal', title: topicOf.get(Number(l.number)) || '' }));
   const siteLessons = new Map();
   for (const e of site.entries) if (!siteLessons.has(e.column)) siteLessons.set(e.column, { key: 's' + e.column, date: e.date, number: '', hours: null, kind: 'сайт', source: 'site', title: e.title });
   lessons.push(...siteLessons.values());
+  const practiceLessons = new Map(), practiceRows = new Map();
+  for (const row of practice) {
+    const key = row.student_id + ':' + row.lesson;
+    if (!practiceRows.has(key)) practiceRows.set(key, []);
+    practiceRows.get(key).push(row);
+    practiceLessons.set(row.lesson, Math.max(practiceLessons.get(row.lesson) || 0, row.at));
+  }
+  for (const [lesson, at] of practiceLessons) lessons.push({ key: 'p' + lesson, date: courseDate(at * 1000), number: '', hours: null, kind: 'жаттығу', source: 'practice', title: lesson + '-сабақ · өзіндік жаттығу' });
   lessons.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key, 'en', { numeric: true }));
   const cells = {};
   const put = (student, key, score, mark) => { (cells[student] ||= {})[key] = { score, mark }; };
   for (const e of state.entries) put(e.student, 'c' + e.column, e.score, e.mark || '');
   for (const e of site.entries) put(e.student, 's' + e.column, e.score, '');
+  for (const [key, rows] of practiceRows) { const [student, lesson] = key.split(':').map(Number); put(student, 'p' + lesson, percentOf(lesson, rows), ''); }
   const summary = {};
   for (const s of students) {
-    const mine = Object.values(cells[s.id] || {});
+    const mine = Object.entries(cells[s.id] || {}).filter(([key]) => !key.startsWith('p')).map(([, cell]) => cell);
     const scores = mine.filter(c => c.score !== null && c.score !== undefined).map(c => c.score);
     summary[s.id] = {
       avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) / 100 : null,

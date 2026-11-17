@@ -327,16 +327,17 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
     const metrics = h('dl', { class: 'workspace-metrics' }, [
       ['Студенттер', students.length], ['Сабақ күндері', j.lessons.length], ['Топтың орташасы', groupAvg === null ? '—' : fmt.format(groupAvg)],
       ['Межеден төмен', scores.filter(s => s.avg < j.threshold).length]].map(([n, v]) => h('div', {}, [h('dt', { text: n }), h('dd', { text: String(v) })])));
-    const head = [h('th', { class: 'journal-student', scope: 'col', text: 'Студент' }), ...j.lessons.map(l => h('th', { scope: 'col', class: l.source === 'site' ? 'is-site' : '', title: l.title || '' }, [
+    const head = [h('th', { class: 'journal-student', scope: 'col', text: 'Студент' }), ...j.lessons.map(l => h('th', { scope: 'col', class: l.source === 'site' ? 'is-site' : l.source === 'practice' ? 'is-practice' : '', title: l.title || '' }, [
       h('b', { text: dm(l.date) }), h('small', { text: [l.kind, l.hours !== null && l.hours !== undefined ? l.hours + ' сағ' : ''].filter(Boolean).join(' · ') || ' ' })])),
       h('th', { scope: 'col', text: 'Орташа' }), h('th', { scope: 'col', title: 'Сабаққа келмеген', text: 'НБ' }), h('th', { scope: 'col', title: 'Қайта тапсыру керек', text: 'Қайта' })];
     const cell = (student, lesson) => {
       const c = j.cells[student.id]?.[lesson.key];
-      const td = h('td', { class: 'journal-cell' + (lesson.source === 'site' ? ' is-site' : '') });
+      const own = lesson.source === 'journal';
+      const td = h('td', { class: 'journal-cell' + (lesson.source === 'site' ? ' is-site' : lesson.source === 'practice' ? ' is-practice' : '') });
       const show = () => {
-        td.className = 'journal-cell' + (lesson.source === 'site' ? ' is-site' : '');
+        td.className = 'journal-cell' + (lesson.source === 'site' ? ' is-site' : lesson.source === 'practice' ? ' is-practice' : '');
         td.replaceChildren(c ? h('span', { class: 'jc ' + (c.score !== null ? band(c.score, j.threshold) : c.mark === 'ж' ? 'abs' : 'ret'), text: c.score !== null ? fmt.format(c.score) : c.mark === 'ж' ? 'НБ' : 'қ' }) : '');
-        if (lesson.source === 'site') return;
+        if (!own) return;
         td.tabIndex = 0;
         td.onclick = td.onkeydown = e => { if (e.type === 'keydown' && e.key !== 'Enter') return; edit(); };
       };
@@ -363,7 +364,7 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
       h('td', { text: String(sm.absent || 0) }), h('td', { text: String(sm.retake || 0) })]); });
     const exportRows = [['Студент', ...j.lessons.map(l => l.date), 'Орташа', 'НБ', 'Қайта'], ...students.map(s => [s.name, ...j.lessons.map(l => { const c = j.cells[s.id]?.[l.key]; return c ? (c.score !== null ? c.score : c.mark) : ''; }), j.summary[s.id]?.avg ?? '', j.summary[s.id]?.absent || 0, j.summary[s.id]?.retake || 0])];
     host.replaceChildren(metrics, h('section', { class: 'workspace-card journal-table-card' }, [
-      h('p', { class: 'journal-legend', text: 'Ұяшықты басып балл (0–100) жазыңыз. «ж» — НБ, «с» — қайта тапсыру, бос қалдырсаңыз ұяшық тазаланады. Көк бағандар — сайтта өткен сабақтар (автоматты).' }),
+      h('p', { class: 'journal-legend', text: 'Ұяшықты басып балл (0–100) жазыңыз. «ж» — НБ, «с» — қайта тапсыру, бос қалдырсаңыз ұяшық тазаланады. Көк бағандар — сайтта өткен сабақтар, жасыл бағандар — студенттің өзіндік жаттығуы (пайыз, орташаға кірмейді); екеуі де автоматты.' }),
       h('div', { class: 'journal-scroll', tabindex: '0', 'aria-label': 'Журнал кестесі' }, h('table', { class: 'journal-table classes-journal' }, [h('thead', {}, h('tr', {}, head)), h('tbody', {}, rows)])),
       j.plan.length ? h('details', { class: 'journal-plan' }, [h('summary', { text: 'Пән жоспары · ' + j.plan.length + ' тақырып' }),
         h('ol', {}, j.plan.map(t => h('li', { value: t.n, class: j.lessons.some(l => Number(l.number) === t.n) ? 'done' : '' }, [t.title, t.hours ? h('small', { text: ' · ' + t.hours + ' сағ' }) : null])))]) : null,
