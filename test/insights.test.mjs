@@ -154,3 +154,17 @@ test('gaps list unknown topics in order; ж and с count the same; tasks link to
   assert.equal(p.gaps[0].mark, 'с');
   assert.equal(p.gaps[2].mark, 'ж');
 });
+
+import { planHomework, bandOf } from '../src/homework-pool.js';
+
+test('homework plan: weaker students get more and easier tasks, stronger get fewer and harder; lists differ per student', () => {
+  const weak = planHomework(12, 30, 1), mid = planHomework(12, 60, 2), good = planHomework(12, 75, 3), top = planHomework(12, 92, 4);
+  assert.ok(weak.tasks.length > mid.tasks.length && mid.tasks.length > good.tasks.length);
+  assert.ok(weak.tasks.every(t => t.level !== 'hard') && weak.tasks.filter(t => t.level === 'easy').length >= 4);
+  assert.ok(top.tasks.filter(t => t.level === 'hard').length >= 2 && top.tasks.every(t => t.level !== 'easy'));
+  assert.deepEqual([weak, mid, good, top].map(p => p.band.key), ['support', 'base', 'good', 'top']);
+  assert.notDeepEqual(planHomework(12, 60, 1).tasks.map(t => t.id), planHomework(12, 60, 2).tasks.map(t => t.id));
+  assert.equal(new Set(top.tasks.map(t => t.id)).size, top.tasks.length);
+  assert.equal(bandOf(null).key, 'base'); // баға жоқ: базалық
+  assert.deepEqual(planHomework(99, 50, 0).tasks, []);
+});

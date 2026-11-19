@@ -295,3 +295,14 @@ test('practice: the server re-grades answers, keeps the best result and shows it
   assert.equal((await learner('practice', { lesson: 5, kind: 'warm', index: 0, value: 'True' }, plainCookie)).response.status, 403);
   assert.equal((await learner('practice', { lesson: 5, kind: 'warm', index: 0, value: 'True' })).response.status, 401);
 });
+
+test('personal homework: every student of a Python group gets a level-based list', async () => {
+  const { call } = await harness();
+  const made = await call('classes', { name: 'ИФ-399', course: 'py', subject: 'КМ3.5', year: 2026, names: 'Бір Студент\nЕкі Студент' });
+  const data = await call('classes/homework?group=' + made.id + '&topic=12');
+  assert.equal(data.ok, true);
+  assert.equal(data.students.length, 2);
+  assert.ok(data.students.every(s => s.tasks.length > 0 && s.band.key));
+  assert.equal((await call('classes/homework?group=' + made.id + '&topic=99')).error, 'no_pool');
+  assert.equal((await call('classes/homework?group=999999&topic=12')).error, 'no_course');
+});

@@ -700,7 +700,7 @@ async function renderAnalysis(force=false){
 }
 function paintAnalysis(){
  const root=$('#s-analysis'),d=analysisData;if(!d)return;const scroll=root.querySelector('.analysis-scroll')?.scrollTop||0;
- const tabs=[['overview','Шолу'],...(LIVE.session.topic==='P12'?[['python-report','Журнал және ЖИ']]:[]),...(d.ops?[['ops','Амалдар']]:[]),['items','Есептер'],['students','Студенттер']];
+ const tabs=[['overview','Шолу'],...(LIVE.session.topic==='P12'?[['python-report','Журнал және ЖИ']]:[]),...(d.ops?[['ops','Амалдар']]:[]),['items','Есептер'],['students','Студенттер'],...(LIVE.session.topic==='P12'?[['homework','Үй тапсырмасы']]:[])];
  if(!tabs.some(([v])=>v===analysisSelected))analysisSelected='overview';
  const toolbar=h('div',{class:'analysis-toolbar'},tabs.map(([v,t])=>{
    const tab=btn(t,()=>{analysisSelected=v;analysisFocusOp='';analysisFocusItem=0;rememberUI();paintAnalysis();},'sm '+(analysisSelected===v?'primary':''));
@@ -720,6 +720,11 @@ function paintAnalysis(){
        linkCourse:()=>linkSessionCourse(session)
      });
    }).catch(()=>{content.textContent='Есеп бетін жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
+ }else if(analysisSelected==='homework'){
+   const session=LIVE.session;
+   import('./homework-plan-panel.js?v=1').then(({mountHomeworkPlan})=>{
+     if(content.isConnected&&LIVE?.session?.id===session.id)mountHomeworkPlan(content,{h,api,groupId:session.group_id,topic:12});
+   }).catch(()=>{content.textContent='Үй тапсырмасын жүктеу мүмкін болмады. Бетті жаңартыңыз.';});
  }else if(analysisSelected==='overview'){
    window.TeacherAnalysis.render(content,d,{h,btn,people:id=>{analysisFocusItem=id;analysisFocusOp='';analysisSelected='students';paintAnalysis();},showItems:()=>{analysisSelected='items';paintAnalysis();}});
  }else if(analysisSelected==='ops'){

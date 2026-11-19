@@ -7,6 +7,7 @@ import { percentOf } from './practice.js';
 import { setStudentAccount, removeStudentAccount } from './accounts.js';
 import { PYTHON_TITLES } from './python-titles.js';
 import { analyze, compactFacts, factsKey } from './insights.js';
+import { planHomework, BANDS, HOMEWORK_POOL } from './homework-pool.js';
 import { officeRows, topicsFromRows, topicsFromAi, validTopics } from './plan-import.js';
 
 const rowsOf = async statement => (await statement.all()).results || [];
@@ -358,6 +359,24 @@ export async function classesApi(path, method, b, env, url, json, err) {
     const fresh = cached && cached.facts_key === factsKey(compactFacts(analysis));
     return json({ ok: true, course: { id: course.id, subject: course.subject, year: course.year, group: group?.name || '', groupId: course.group_id },
       ...view, analysis, ai: fresh ? { summary: cached.summary, action: cached.action } : null });
+  }
+
+  /* Жеке үй тапсырмасы: студент деңгейіне қарай әр студентке өз тізімі (жеңілден қиынға, нашарға көбірек) */
+  if (sub === 'homework' && method === 'GET') {
+    const topic = Number(url.searchParams.get('topic'));
+    if (!HOMEWORK_POOL[topic]) return err('no_pool', 404);
+    const row = await DB.prepare("SELECT id FROM progress_courses WHERE group_id=? AND course='py' ORDER BY year DESC LIMIT 1").bind(Number(url.searchParams.get('group'))).first();
+    const course = row && await ownedCourse(DB, row.id);
+    if (!course) return err('no_course', 404);
+    const view = await journalView(DB, course);
+    const analysis = analyze(view);
+    const students = analysis.predictions.map(p => {
+      const level = p.ready ? Math.round(p.base * (p.attend ?? 1)) : null;
+      const plan = planHomework(topic, level, p.id);
+      return { id: p.id, name: p.name, avg: p.avg, level, band: { key: plan.band.key, label: plan.band.label }, tasks: plan.tasks,
+        review: (p.gaps || []).filter(g => g.n !== topic).slice(0, 3) };
+    }).sort((a, b) => (a.level ?? 60) - (b.level ?? 60));
+    return json({ ok: true, topic, title: PYTHON_TITLES[topic] || '', course: { id: course.id, subject: course.subject }, bands: BANDS.map(x => ({ key: x.key, label: x.label, min: x.min, plan: x.plan })), students });
   }
 
   /* ЖИ түсініктемесі: тек болжам үшін, 1 шағын сұраныс, нәтиже кэштеледі */

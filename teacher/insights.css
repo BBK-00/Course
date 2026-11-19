@@ -88,3 +88,24 @@ td.ins-chips .ins-chip { margin: 0 4px 4px 0 }
 .ins-gap-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 3px 0; font-size: 13px; }
 .ins-task-link { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #4144c4; color: #fff; font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .ins-task-link:hover { background: #2f32a8; }
+
+/* Жеке үй тапсырмасы */
+.hw-head h2 { margin: 0 0 4px; }
+.hw-bands { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 12px; }
+.hw-band { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #ececf7; color: #2c2d5b; }
+.hw-band small { font-weight: 500; opacity: .75; }
+.hw-b-support { background: #fde3dc; color: #8a2f1c; }
+.hw-b-base { background: #fdf1cf; color: #7a5a06; }
+.hw-b-good { background: #dcefe3; color: #1d6a3c; }
+.hw-b-top { background: #dde0fb; color: #2f32a8; }
+.hw-table th.l small { display: block; font-weight: 400; }
+.hw-count { text-align: center; font-weight: 700; }
+.hw-task { margin: 3px 0; }
+.hw-task summary { cursor: pointer; font-size: 13px; }
+.hw-task p { margin: 4px 0 6px 18px; font-size: 13px; color: #44456a; }
+.hw-lv { display: inline-block; min-width: 58px; text-align: center; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.hw-easy { background: #dcefe3; color: #1d6a3c; }
+.hw-mid { background: #fdf1cf; color: #7a5a06; }
+.hw-hard { background: #fde3dc; color: #8a2f1c; }
+.hw-review { margin-top: 6px; font-size: 12px; }
+@media print { .hw-card .row { display: none; } .hw-task p { display: block; } }
