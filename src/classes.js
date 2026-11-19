@@ -5,6 +5,7 @@ import { sheetSource } from './progress-google.js';
 import { geminiJson } from './gemini.js';
 import { percentOf } from './practice.js';
 import { setStudentAccount, removeStudentAccount } from './accounts.js';
+import { PYTHON_TITLES } from './python-titles.js';
 import { analyze, compactFacts, factsKey } from './insights.js';
 import { officeRows, topicsFromRows, topicsFromAi, validTopics } from './plan-import.js';
 
@@ -75,7 +76,7 @@ export async function journalView(DB, course, onlyStudent = null) {
   const practice = course.course === 'py'
     ? await rowsOf(DB.prepare('SELECT p.student_id, p.lesson, p.item, p.best, p.at FROM practice_results p JOIN students s ON s.id=p.student_id WHERE s.group_id=?').bind(course.group_id))
     : [];
-  const lessons = state.lessons.map(l => ({ key: 'c' + l.column, date: l.date, number: l.number || '', hours: l.hours ?? null, kind: l.kind || '', source: 'journal', title: topicOf.get(Number(l.number)) || '' }));
+  const lessons = state.lessons.map(l => ({ key: 'c' + l.column, date: l.date, number: l.number || '', hours: l.hours ?? null, kind: l.kind || '', source: 'journal', title: topicOf.get(Number(l.number)) || PYTHON_TITLES[Number(l.number)] || '' }));
   const siteLessons = new Map();
   for (const e of site.entries) if (!siteLessons.has(e.column)) siteLessons.set(e.column, { key: 's' + e.column, date: e.date, number: '', hours: null, kind: 'сайт', source: 'site', title: e.title });
   lessons.push(...siteLessons.values());

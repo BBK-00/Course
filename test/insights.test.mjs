@@ -11,10 +11,17 @@ test('slope: rising, falling and flat series', () => {
   assert.equal(slope([60]), 0);
 });
 
-test('forecast: fewer than 3 grades gives no number', () => {
-  const f = forecastStudent(pts(80, 'ж', 70));
-  assert.equal(f.ready, false);
-  assert.equal(f.count, 2);
+test('forecast: few grades lowers the forecast for topics without a grade', () => {
+  const thin = forecastStudent(pts(85, null, null, null, null, null, null, null, null).map(p => ({ score: p.score, mark: '' })));
+  assert.equal(thin.ready, true);
+  assert.equal(thin.thin, true);
+  assert.ok(thin.next[0] < 70); // 85 − 40·8/9 ≈ 49
+  assert.equal(thin.risk, 'high');
+  assert.ok(thin.reasons[0].includes('1-інде'));
+  const none = forecastStudent(pts('ж', 'ж', 'ж'));
+  assert.equal(none.thin, true);
+  assert.equal(none.risk, 'high');
+  assert.equal(forecastStudent([]).ready, false);
 });
 
 test('forecast: stable strong student stays low risk', () => {
@@ -63,7 +70,9 @@ test('analyze: kpi, histogram, risk ordering and weak topics', () => {
   assert.equal(a.histogram[1].count, 1); // 55
   assert.equal(a.histogram[5].count, 1); // 92.75
   assert.equal(a.predictions[0].name, 'Әлсіз'); // қауіптісі бірінші
-  assert.equal(a.predictions.at(-1).ready, false); // дерек аз — соңында
+  assert.equal(a.predictions.find(p => p.id === 3).thin, true); // 1 баға — аз баға болжамы
+  assert.equal(a.predictions.find(p => p.id === 3).risk, 'mid');
+  assert.ok(a.predictions.find(p => p.id === 3).unscored.length === 3);
   const weak = a.predictions[0].weak;
   assert.equal(weak[0].score, 40);
   assert.equal(a.predictions[0].missed[0].number, '3');
@@ -78,7 +87,7 @@ test('analyze: empty journal does not throw', () => {
 test('compactFacts only carries people at risk and the cache key follows the facts', () => {
   const a = analyze(view());
   const facts = compactFacts(a);
-  assert.deepEqual(facts.atRisk.map(r => r.name), ['Әлсіз']);
+  assert.deepEqual(facts.atRisk.map(r => r.name), ['Әлсіз', 'Жаңа']);
   assert.equal(factsKey(facts), factsKey(compactFacts(analyze(view()))));
   const other = view(); other.cells[2].c4 = { score: 90, mark: '' };
   assert.notEqual(factsKey(compactFacts(analyze(other))), factsKey(facts));

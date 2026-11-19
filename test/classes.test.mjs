@@ -247,8 +247,6 @@ test('group insights: figures and forecast come from a formula, AI explanation i
   assert.equal(data.analysis.predictions.length, 2);
   assert.equal(data.ai, null);
   assert.equal((await call('classes/insights?course=999999')).error, 'not_found');
-  // 3 бағадан аз — болжам жоқ, сондықтан ЖИ сұралмайды
-  assert.equal((await call('classes/ai', { course })).ai, 'no_scores');
   // 3 баға қосылғаннан кейін болжам бар: ЖИ түсініктемесі бір рет жасалып, кэштен қайтады
   const view = await call('classes/journal?course=' + course);
   const student = view.students[0].id;

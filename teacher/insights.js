@@ -98,6 +98,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
   function advice(p) {
     const lines = [];
     if (p.weak.length) lines.push('Осы тақырыптардан қосымша тапсырма беріңіз: ' + p.weak.map(w => (w.title || dm(w.date)) + ' (' + fmt.format(w.score) + ')').join('; ') + '.');
+    if (p.unscored?.length) lines.push('Бағасы жоқ тақырыптар (білмеуі мүмкін): ' + p.unscored.map(w => w.title || dm(w.date)).join('; ') + '. Осылардан қосымша тапсырма беріңіз.');
     if (p.missed.length) lines.push('Сабаққа келмеген тақырыптарды қысқаша түсіндіріңіз: ' + p.missed.map(w => w.title || dm(w.date)).join('; ') + '.');
     if (!lines.length) lines.push(p.risk === 'low' ? 'Қосымша шара керек емес, қазіргі қарқынды сақтаңыз.' : 'Жеке әңгіме өткізіп, соңғы жұмыстарын бірге қарап шығыңыз.');
     return lines;
@@ -107,9 +108,9 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const rows = a.predictions.map(p => h('tr', { class: p.ready ? 'risk-' + p.risk : 'risk-none' }, [
       h('th', { scope: 'row' }, h('button', { type: 'button', class: 'student-ai', on: { click: () => student(p.id) } }, p.name)),
       h('td', { text: p.avg === null ? '—' : fmt.format(p.avg) }),
-      p.ready ? h('td', {}, [h('b', { text: p.next[0] + ' · ' + p.next[1] }), h('small', { text: ' (' + p.range[0] + '–' + p.range[1] + ')' })]) : h('td', { class: 'ins-muted', text: 'дерек аз (' + p.count + ' баға)' }),
+      p.ready ? h('td', {}, [h('b', { text: p.next[0] + ' · ' + p.next[1] }), h('small', { text: ' (' + p.range[0] + '–' + p.range[1] + ')' + (p.thin ? ' · аз баға' : '') })]) : h('td', { class: 'ins-muted', text: 'дерек аз (' + p.count + ' баға)' }),
       h('td', {}, p.ready ? h('span', { class: 'jc ' + RISK[p.risk][1], text: RISK[p.risk][0] }) : '—'),
-      h('td', { class: 'ins-reasons', text: p.ready ? p.reasons.join('; ') || '—' : 'Болжам үшін кемінде 3 баға керек' }),
+      h('td', { class: 'ins-reasons', text: p.ready ? p.reasons.join('; ') || '—' : 'Журналда сабақ жоқ' }),
       h('td', { class: 'ins-advice' }, p.ready && p.risk !== 'low' ? advice(p).map(t => h('p', { text: t })) : p.ready ? '' : '')]));
     return h('div', { class: 'ins-scroll' }, h('table', { class: 'classes-table ins-forecast' }, [
       h('thead', {}, h('tr', {}, ['Студент', 'Орташа', 'Болжам (1 · 2 сабақ)', 'Қауіп', 'Себебі', 'Не істеу керек'].map(t => h('th', { scope: 'col', text: t })))), h('tbody', {}, rows)]));
@@ -169,7 +170,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const holder = h('div', {});
     const open = id => { state.student = id; const c = studentCard(a, view, id, () => { state.student = 0; holder.replaceChildren(); }); holder.replaceChildren(...(c ? [c] : [])); c?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     const forecast = card('Келесі 2 сабаққа болжам', 'формула: соңғы баға, үрдіс, НБ және қайта тапсыру', h('p', { class: 'ins-lead', text: summaryText(a) }),
-      forecastTable(a, view, open), h('p', { class: 'ins-note', text: 'Болжам — журнал көрсеткіштеріне негізделген бағалау, кепілдік емес. Дерек аз студенттерге (3 бағадан кем) болжам берілмейді.' }),
+      forecastTable(a, view, open), h('p', { class: 'ins-note', text: 'Болжам — журнал көрсеткіштеріне негізделген бағалау, кепілдік емес. Бағасы аз студенттерде (3-тен кем) бағасыз тақырыптар меңгерілмеген деп есептеліп болжам төмендетіледі, ауқымы кеңірек.' }),
       h('div', { class: 'workspace-actions' }, [aiBtn]), aiBox);
     root.append(kpis, forecast, holder, h('div', { class: 'ins-grid' }, [trend, hist]), h('div', { class: 'ins-grid' }, [attend, topics]), ...(py ? [py] : []),
       card('Студент × сабақ', 'студент атын бассаң жеке талдау ашылады', heatmap(view, open)));

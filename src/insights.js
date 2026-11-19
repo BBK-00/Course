@@ -27,7 +27,24 @@ export function forecastStudent(points, threshold = 60) {
   const scores = points.map(p => p.score).filter(isNum);
   const absent = points.filter(p => p.mark === 'ж').length;
   const retake = points.filter(p => p.mark === 'с').length;
-  if (scores.length < 3) return { ready: false, count: scores.length, absent, retake };
+  if (!points.length) return { ready: false, count: 0, absent, retake };
+  const total = points.length;
+  const missing = total - scores.length; // бағасы жоқ тақырыптар: келмеген, қайта тапсыру немесе бос
+  const blank = points.filter(p => p.score === null && !p.mark).length;
+  // Баға аз (1–2 немесе жоқ): бағасыз тақырыптарды білмеуі мүмкін деп, болжамды төмендетеміз
+  if (scores.length < 3) {
+    const known = scores.length ? mean(scores) : 40;
+    const first = clamp(known - 40 * missing / total, 0, 100);
+    const reasons = [scores.length ? total + ' тақырыптың ' + scores.length + '-інде ғана баға бар, қалғанын білмеуі мүмкін' : 'әлі баға жоқ, тақырыптар меңгерілмеген болуы мүмкін'];
+    if (absent) reasons.push('сабаққа келмеген: ' + absent + ' рет');
+    if (retake) reasons.push('қайта тапсыру: ' + retake);
+    return {
+      ready: true, thin: true, count: scores.length, absent, retake, missing, total,
+      base: round1(known), trend: 0, next: [Math.round(first), Math.round(first)],
+      range: [Math.round(clamp(first - 15, 0, 100)), Math.round(clamp(first + 15, 0, 100))],
+      risk: first < 50 ? 'high' : first < threshold ? 'mid' : 'low', reasons
+    };
+  }
   const last = scores.slice(-3).reverse(); // жаңасы бірінші
   const weights = [0.5, 0.3, 0.2];
   const base = last.reduce((a, v, i) => a + v * weights[i], 0);
@@ -36,7 +53,8 @@ export function forecastStudent(points, threshold = 60) {
   const recentAbsent = recent.filter(p => p.mark === 'ж').length;
   const absencePenalty = 15 * (0.6 * recentAbsent / Math.max(1, recent.length) + 0.4 * absent / Math.max(1, points.length));
   const retakePenalty = Math.min(retake, 4) * 3;
-  const first = clamp(base + 0.5 * trend - absencePenalty - retakePenalty, 0, 100);
+  const blankPenalty = 15 * blank / total; // бос ұяшық = баға қойылмаған тақырып
+  const first = clamp(base + 0.5 * trend - absencePenalty - retakePenalty - blankPenalty, 0, 100);
   const second = clamp(first + 0.5 * trend, 0, 100);
   const spread = clamp(deviation(scores), 5, 15);
   const risk = first < 50 ? 'high' : first < threshold ? 'mid' : 'low';
@@ -46,6 +64,7 @@ export function forecastStudent(points, threshold = 60) {
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
   if (recentAbsent >= 1 || absent >= 2) reasons.push('сабаққа келмеген: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
   if (retake) reasons.push('қайта тапсыру: ' + retake);
+  if (blank >= 2) reasons.push(blank + ' тақырыпқа баға қойылмаған');
   return {
     ready: true, count: scores.length, absent, retake,
     base: round1(base), trend: round1(trend), next: [Math.round(first), Math.round(second)],
@@ -97,7 +116,8 @@ export function analyze(view) {
       if (p.mark === 'ж') missed.push(item);
     });
     weak.sort((a, b) => a.score - b.score);
-    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, weak: weak.slice(0, 3), missed: missed.slice(-3).reverse() };
+    const unscored = graded.map((l, i) => ({ key: l.key, date: l.date, number: l.number, title: l.title || '', score: null, mark: points[i].mark })).filter((_, i) => points[i].score === null && points[i].mark !== 'ж');
+    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, weak: weak.slice(0, 3), missed: missed.slice(-3).reverse(), unscored: f.thin ? unscored.slice(0, 5) : [] };
   });
   const order = { high: 0, mid: 1, low: 2 };
   predictions.sort((a, b) => (a.ready === b.ready ? 0 : a.ready ? -1 : 1) || (order[a.risk] ?? 3) - (order[b.risk] ?? 3) || (a.next?.[0] ?? 0) - (b.next?.[0] ?? 0));
