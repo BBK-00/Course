@@ -176,7 +176,7 @@ export function analyze(view) {
     const sc = students.map(s => cell(s, l)?.score).filter(isNum);
     return { key: l.key, title: l.title, avg: sc.length ? Math.round(mean(sc)) : null, n: sc.length };
   });
-  const rank = topics.filter(t => t.avg !== null);
+  const rank = topics.filter(t => t.avg !== null && t.n); // сайт бағандары (нөмірсіз) тізімге кірмейді
   return {
     kpi: {
       students: students.length, lessons: graded.length, avg: groupAvg, recentAvg, earlierAvg, threshold,

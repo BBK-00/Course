@@ -96,7 +96,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const state = { sort: 'n', status: '' };
     const list = h('div', { class: 'ins-topics' });
     const paintList = () => {
-      const rows = a.topics.filter(t => !state.status || t.status === state.status).sort(sorters[state.sort]);
+      const rows = a.topics.filter(t => t.n && (!state.status || t.status === state.status)).sort(sorters[state.sort]);
       detail.replaceChildren(); openId = '';
       list.replaceChildren(...(rows.length ? rows.map(rowOf) : [h('p', { class: 'workspace-empty', text: 'Бұл сүзгі бойынша тақырып жоқ.' })]));
     };
