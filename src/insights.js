@@ -1,9 +1,10 @@
-import { PYTHON_TITLES } from './python-titles.js';
+import { PYTHON_TITLES, PREREQ } from './python-titles.js';
 /* Топты талдау: журнал деректерінен көрсеткіштер мен келесі 2 сабаққа болжам. ЖИ қолданылмайды — бәрі формула. */
 
 const round1 = v => Math.round(v * 10) / 10;
 const mean = list => list.length ? list.reduce((a, v) => a + v, 0) / list.length : null;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const fmtNum = v => String(round1(v));
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
 
 export const BINS = [[0, 49], [50, 59], [60, 69], [70, 79], [80, 89], [90, 100]];
@@ -36,7 +37,7 @@ export function forecastStudent(points, threshold = 60) {
   if (scores.length < 3) {
     const known = scores.length ? mean(scores) : 40;
     const first = clamp(known - 40 * missing / total, 0, 100);
-    const reasons = [scores.length ? total + ' тақырыптың ' + scores.length + '-інде ғана баға бар, қалғанын білмеуі мүмкін' : 'әлі баға жоқ, тақырыптар меңгерілмеген болуы мүмкін'];
+    const reasons = [];
     if (absent) reasons.push('сабаққа келмеген: ' + absent + ' рет');
     if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
     return {
@@ -65,7 +66,6 @@ export function forecastStudent(points, threshold = 60) {
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
   if (recentAbsent >= 1 || absent >= 2) reasons.push('сабаққа келмеген: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
   if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
-  if (blank >= 2) reasons.push(blank + ' тақырыпқа баға қойылмаған');
   return {
     ready: true, count: scores.length, absent, retake,
     base: round1(base), trend: round1(trend), next: [Math.round(first), Math.round(second)],
@@ -81,14 +81,41 @@ export function analyze(view) {
   const students = view.students;
   const cell = (s, l) => view.cells[s.id]?.[l.key];
   const scoresOf = (s, l) => { const c = cell(s, l); return c && isNum(c.score) ? c.score : null; };
+  const planTitle = new Map(view.plan.map(t => [t.n, t.title]));
+  const nameOf = n => planTitle.get(n) || PYTHON_TITLES[n] || '';
 
   const lessons = graded.map(l => {
     const sc = students.map(s => scoresOf(s, l)).filter(isNum);
     const absent = students.filter(s => cell(s, l)?.mark === 'ж').length;
     return { key: l.key, date: l.date, number: l.number, title: l.title || '', kind: l.kind, source: l.source, avg: sc.length ? round1(mean(sc)) : null, n: sc.length, absent };
   });
+
+  /* ---------- Тақырыптар: бір нөмірлі бағандар біріктіріледі ---------- */
+  const groups = new Map();
+  graded.forEach(l => {
+    const n = Number(l.number);
+    const id = Number.isFinite(n) && n > 0 && l.source === 'journal' ? 't' + n : l.key;
+    if (!groups.has(id)) groups.set(id, { id, n: id[0] === 't' ? n : null, title: l.title || (id[0] === 't' ? nameOf(n) : ''), date: l.date, lessons: [] });
+    groups.get(id).lessons.push(l);
+  });
+  const topics = [...groups.values()].map(g => {
+    const results = students.map(s => {
+      const cells = g.lessons.map(l => cell(s, l)).filter(Boolean);
+      const sc = cells.map(c => c.score).filter(isNum);
+      const mark = sc.length ? '' : cells.some(c => c.mark === 'ж') ? 'ж' : cells.some(c => c.mark === 'с') ? 'с' : '';
+      return { id: s.id, name: s.name, score: sc.length ? round1(mean(sc)) : null, mark };
+    });
+    const sc = results.map(r => r.score).filter(isNum);
+    const avg = sc.length ? round1(mean(sc)) : null;
+    const pass = sc.length ? Math.round(sc.filter(v => v >= threshold).length / sc.length * 100) : null;
+    const spread = { high: sc.filter(v => v >= 75).length, mid: sc.filter(v => v >= threshold && v < 75).length, low: sc.filter(v => v < threshold).length, missed: results.filter(r => r.score === null && r.mark).length };
+    const status = avg === null ? 'none' : avg < threshold || pass < 60 ? 'hard' : avg >= threshold + 15 && pass >= 80 ? 'good' : 'mid';
+    return { id: g.id, n: g.n, title: g.title, date: g.date, avg, min: sc.length ? Math.min(...sc) : null, max: sc.length ? Math.max(...sc) : null, graded: sc.length, pass, spread, status, results };
+  });
+  const topicAvgs = topics.map(t => t.avg).filter(isNum);
+  const overall = mean(topicAvgs);
+  const byN = new Map(topics.filter(t => t.n).map(t => [t.n, t]));
   const filled = lessons.filter(l => l.avg !== null);
-  const overall = mean(filled.map(l => l.avg));
   for (const l of lessons) l.hard = l.avg !== null && overall !== null && (l.avg < threshold || l.avg < overall - 10);
 
   const avgs = students.map(s => view.summary[s.id]?.avg).filter(isNum);
@@ -103,26 +130,44 @@ export function analyze(view) {
   const gradedCells = students.reduce((a, s) => a + graded.filter(l => scoresOf(s, l) !== null).length, 0);
   const attendance = gradedCells + absentTotal + retakeTotal ? Math.round(gradedCells / (gradedCells + absentTotal + retakeTotal) * 100) : null;
 
-  const planned = new Set(view.plan.map(t => t.n));
-  const done = new Set(graded.map(l => Number(l.number)).filter(n => planned.has(n)));
+  const done = new Set(topics.map(t => t.n).filter(n => n && planTitle.has(n)));
 
-  // Келесі 2 тақырып: журналдағы соңғы сабақ нөмірінен кейінгі тақырыптар (жоспар немесе Python сабақтары)
-  const titleOf = new Map(view.plan.map(t => [t.n, t.title]));
-  const lastN = Math.max(0, ...graded.map(l => Number(l.number)).filter(Number.isFinite));
-  const nextTopics = [lastN + 1, lastN + 2].map(n => ({ n, title: titleOf.get(n) || PYTHON_TITLES[n] || '' })).filter(t => t.title);
+  /* ---------- Келесі 2 тақырып ---------- */
+  const lastN = Math.max(0, ...topics.map(t => t.n || 0));
+  const nextTopics = [lastN + 1, lastN + 2].map(n => ({ n, title: nameOf(n), prereq: (PREREQ[n] || []).filter(p => byN.has(p)) })).filter(t => t.title);
+
+  const resultOf = (s, topic) => topic.results.find(r => r.id === s.id);
   const predictions = students.map(s => {
-    const points = graded.map(l => ({ score: scoresOf(s, l), mark: cell(s, l)?.mark || '' }));
+    const points = topics.map(t => { const r = resultOf(s, t); return { score: r.score, mark: r.mark }; });
     const f = forecastStudent(points, threshold);
-    const weak = [], missed = [];
-    graded.forEach((l, i) => {
-      const p = points[i], info = lessons[i];
-      const item = { key: l.key, date: l.date, number: l.number, title: l.title || '', score: p.score };
-      if (p.score !== null && (p.score < threshold || (info.avg !== null && p.score < info.avg - 10))) weak.push(item);
-      if (p.mark === 'ж' || p.mark === 'с') missed.push({ ...item, retake: p.mark === 'с' });
+    const weak = [], missed = [], unscored = [];
+    topics.forEach(t => {
+      const r = resultOf(s, t), item = { n: t.n, title: t.title || t.date, score: r.score };
+      if (r.score !== null && (r.score < threshold || (t.avg !== null && r.score < t.avg - 10))) weak.push(item);
+      else if (r.score === null && r.mark) missed.push({ ...item, retake: r.mark === 'с' });
+      else if (r.score === null) unscored.push(item);
     });
     weak.sort((a, b) => a.score - b.score);
-    const unscored = graded.map((l, i) => ({ key: l.key, date: l.date, number: l.number, title: l.title || '', score: null, mark: points[i].mark })).filter((_, i) => points[i].score === null && points[i].mark !== 'ж');
-    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, weak: weak.slice(0, 3), missed: missed.slice(-3).reverse(), unscored: f.thin ? unscored.slice(0, 5) : [] };
+    // Алғы тақырыптар (келесі тақырыптарға қажет): аты және баллы
+    const need = [...new Set(nextTopics.flatMap(t => t.prereq))].sort((a, b) => a - b);
+    const chips = need.map(n => { const t = byN.get(n), r = resultOf(s, t); return { n, title: t.title, score: r.score, mark: r.mark }; });
+    const forecastFor = nt => {
+      const own = chips.filter(c => nt.prereq.includes(c.n));
+      if (!own.length) return f.next[0];
+      const values = own.map(c => c.score ?? 40), missing = own.filter(c => c.score === null).length;
+      const prereq = clamp(mean(values) - 10 * missing, 0, 100);
+      return Math.round(clamp(0.6 * prereq + 0.4 * f.next[0], 0, 100));
+    };
+    let next = f.next, risk = f.risk, range = f.range;
+    if (f.ready && nextTopics.length) {
+      next = nextTopics.map((t, i) => { const v = forecastFor(t); return i ? Math.round(clamp(v + 0.5 * (f.trend || 0), 0, 100)) : v; });
+      if (next.length === 1) next = [next[0], next[0]];
+      const shift = next[0] - f.next[0];
+      range = [Math.round(clamp(f.range[0] + shift, 0, 100)), Math.round(clamp(f.range[1] + shift, 0, 100))];
+      risk = next[0] < 50 ? 'high' : next[0] < threshold ? 'mid' : 'low';
+    }
+    const reasons = [...(f.reasons || [])];
+    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, next, range, risk, reasons: reasons.slice(0, 4), chips, weak: weak.slice(0, 4), missed: missed.slice(-4).reverse(), unscored: unscored.slice(0, 4) };
   });
   const order = { high: 0, mid: 1, low: 2 };
   predictions.sort((a, b) => (a.ready === b.ready ? 0 : a.ready ? -1 : 1) || (order[a.risk] ?? 3) - (order[b.risk] ?? 3) || (a.next?.[0] ?? 0) - (b.next?.[0] ?? 0));
@@ -131,17 +176,18 @@ export function analyze(view) {
     const sc = students.map(s => cell(s, l)?.score).filter(isNum);
     return { key: l.key, title: l.title, avg: sc.length ? Math.round(mean(sc)) : null, n: sc.length };
   });
-
+  const rank = topics.filter(t => t.avg !== null);
   return {
     kpi: {
       students: students.length, lessons: graded.length, avg: groupAvg, recentAvg, earlierAvg, threshold,
       below: avgs.filter(v => v < threshold).length, attendance, absent: absentTotal, retake: retakeTotal,
       planDone: done.size, planTotal: view.plan.length
     },
-    trend: lessons, histogram,
+    trend: lessons, histogram, topics,
     donut: { graded: gradedCells, absent: absentTotal, retake: retakeTotal },
     absentTop: students.map(s => ({ id: s.id, name: s.name, absent: view.summary[s.id]?.absent || 0 })).filter(r => r.absent).sort((a, b) => b.absent - a.absent).slice(0, 8),
-    hardTopics: lessons.filter(l => l.hard).sort((a, b) => a.avg - b.avg).slice(0, 4),
+    hardTopics: rank.filter(t => t.status === 'hard' || (overall !== null && t.avg < overall - 10)).sort((a, b) => a.avg - b.avg).slice(0, 4),
+    bestTopics: rank.filter(t => t.status === 'good').sort((a, b) => b.avg - a.avg).slice(0, 3),
     practice, predictions, nextTopics,
     risk: { high: predictions.filter(p => p.risk === 'high').length, mid: predictions.filter(p => p.risk === 'mid').length, notReady: predictions.filter(p => !p.ready).length }
   };
@@ -155,7 +201,7 @@ export function compactFacts(analysis) {
     average: k.avg, threshold: k.threshold, recent: k.recentAvg, earlier: k.earlierAvg, attendance: k.attendance,
     hardTopics: analysis.hardTopics.map(t => (t.title || t.date) + ' (' + t.avg + ')'),
     atRisk: analysis.predictions.filter(p => p.ready && p.risk !== 'low').slice(0, 6).map(p => ({
-      name: p.name, forecast: p.next[0], reasons: p.reasons.slice(0, 2), weak: p.weak.map(w => w.title || w.date).slice(0, 2)
+      name: p.name, forecast: p.next[0], reasons: p.reasons.slice(0, 2), weak: p.weak.map(w => w.title).slice(0, 2)
     }))
   };
 }

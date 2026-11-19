@@ -1,6 +1,6 @@
 /* Топты талдау */
 .ins-page { display: grid; gap: 14px; min-width: 0 }
-#s-progress { display: grid; gap: 14px }
+#s-progress.on { display: grid; gap: 14px }
 .ins-card { min-width: 0 }
 .ins-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px }
 .ins-head h2 { margin: 0; font-size: 1.1rem }
@@ -59,3 +59,27 @@
 }
 .ins-student .ins-svg { max-width: 780px }
 .ins-next { margin: 0 0 6px; color: #2c2e57 }
+
+.ins-topics { display: grid; gap: 4px }
+.ins-topic { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 30px minmax(160px, 1.4fr) minmax(120px, 1fr) 52px auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px solid #ececf6; background: #fff }
+.ins-topic:hover, .ins-topic:focus-visible { background: #f6f6fc; border-color: #cfd0f0 }
+.ins-topic-n { font-weight: 800; color: #4144c4; text-align: center }
+.ins-topic-title { display: grid; gap: 1px; min-width: 0 }
+.ins-topic-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ins-topic-title small { color: var(--teacher-muted, #5d607a) }
+.ins-topic-avg { text-align: right; font-size: 1.05rem }
+.ins-stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #f1f1fb }
+.ins-stack i, .ins-legend i.k-high, .ins-legend i.k-mid, .ins-legend i.k-low, .ins-legend i.k-miss { display: block }
+.k-high { background: #4fb97c } .k-mid { background: #f3d36a } .k-low { background: #e8806c } .k-miss { background: #b9bbd3 }
+.ins-topic-detail:empty { display: none }
+.ins-topic-people { margin-top: 10px; padding: 12px 14px; background: #f6f6fc; border-radius: 10px }
+.ins-topic-people h3 { margin: 0 0 8px; font-size: .95rem }
+.ins-chips { display: flex; flex-wrap: wrap; gap: 4px 6px }
+td.ins-chips { display: table-cell; min-width: 210px }
+td.ins-chips .ins-chip { margin: 0 4px 4px 0 }
+.ins-chip { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .78rem; white-space: nowrap }
+.ins-chip.high { background: #b7e1c1 } .ins-chip.good { background: #dcefc8 } .ins-chip.mid { background: #fff1b8 } .ins-chip.low { background: #ffd6cc }
+.ins-chip.abs, .ins-chip.none { background: #e9e9f4; color: #4a4d68 }
+.ins-heat-topic { vertical-align: bottom; height: 120px; padding: 2px }
+.ins-heat-topic span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; max-height: 116px; overflow: hidden }
+@media (max-width: 900px) { .ins-topic { grid-template-columns: 26px minmax(0, 1fr) 46px; } .ins-stack, .ins-topic .jc { display: none } }

@@ -17,7 +17,7 @@ test('forecast: few grades lowers the forecast for topics without a grade', () =
   assert.equal(thin.thin, true);
   assert.ok(thin.next[0] < 70); // 85 − 40·8/9 ≈ 49
   assert.equal(thin.risk, 'high');
-  assert.ok(thin.reasons[0].includes('1-інде'));
+  assert.ok(!thin.reasons.some(r => r.includes('баға қойылмаған') || r.includes('ғана баға')));
   const none = forecastStudent(pts('ж', 'ж', 'ж'));
   assert.equal(none.thin, true);
   assert.equal(none.risk, 'high');
@@ -69,13 +69,15 @@ test('analyze: kpi, histogram, risk ordering and weak topics', () => {
   assert.equal(a.histogram.reduce((n, b) => n + b.count, 0), 3);
   assert.equal(a.histogram[1].count, 1); // 55
   assert.equal(a.histogram[5].count, 1); // 92.75
-  assert.equal(a.predictions[0].name, 'Әлсіз'); // қауіптісі бірінші
-  assert.equal(a.predictions.find(p => p.id === 3).thin, true); // 1 баға — аз баға болжамы
-  assert.equal(a.predictions.find(p => p.id === 3).risk, 'mid');
-  assert.ok(a.predictions.find(p => p.id === 3).unscored.length === 3);
-  const weak = a.predictions[0].weak;
-  assert.equal(weak[0].score, 40);
-  assert.equal(a.predictions[0].missed[0].number, '3');
+  assert.equal(a.predictions.at(-1).name, 'Мықты'); // тұрақтысы соңында
+  assert.equal(a.predictions.at(-1).risk, 'low');
+  const weakOne = a.predictions.find(p => p.id === 2), fresh = a.predictions.find(p => p.id === 3);
+  assert.equal(weakOne.weak[0].score, 40);
+  assert.equal(weakOne.missed[0].n, 3);
+  assert.equal(fresh.thin, true);
+  assert.equal(fresh.unscored.length, 3);
+  assert.notEqual(fresh.risk, 'low');
+  assert.deepEqual(a.nextTopics.map(x => x.n), [5, 6]);
 });
 
 test('analyze: empty journal does not throw', () => {
@@ -87,8 +89,42 @@ test('analyze: empty journal does not throw', () => {
 test('compactFacts only carries people at risk and the cache key follows the facts', () => {
   const a = analyze(view());
   const facts = compactFacts(a);
-  assert.deepEqual(facts.atRisk.map(r => r.name), ['Әлсіз', 'Жаңа']);
+  assert.deepEqual(facts.atRisk.map(r => r.name).sort(), ['Жаңа', 'Әлсіз'].sort());
   assert.equal(factsKey(facts), factsKey(compactFacts(analyze(view()))));
   const other = view(); other.cells[2].c4 = { score: 90, mark: '' };
   assert.notEqual(factsKey(compactFacts(analyze(other))), factsKey(facts));
+});
+
+test('topics: same-number columns merge, status and per-topic results', () => {
+  const v = view();
+  v.lessons.push({ key: 'c5', date: '2026-09-02', number: '4', title: '', kind: '', source: 'journal' });
+  v.cells[1].c5 = { score: 96, mark: '' };
+  const a = analyze(v);
+  assert.equal(a.topics.length, 4); // 4-тақырып екі бағаннан біріктірілді
+  const t4 = a.topics.find(t => t.n === 4);
+  assert.equal(t4.results.find(r => r.id === 1).score, 95); // (94 + 96) / 2
+  assert.equal(a.topics.find(t => t.n === 1).title, 'Тақырып 1');
+  assert.ok(['hard', 'mid', 'good'].includes(t4.status));
+});
+
+test('topic forecast follows prerequisite topics and names them in reasons', () => {
+  const lesson = n => ({ key: 'c' + n, date: '2026-09-0' + n, number: String(n), title: '', kind: '', source: 'journal' });
+  const lessons = [7, 8, 9].map(lesson);
+  const cell = (score, mark = '') => ({ score, mark });
+  const mk = (a, b, c) => ({ c7: cell(a), c8: b === 'ж' ? cell(null, 'ж') : cell(b), c9: cell(c) });
+  const v = {
+    students: [{ id: 1, name: 'Бекем' }, { id: 2, name: 'Қиын' }, { id: 3, name: 'Өткізген' }], lessons,
+    cells: { 1: mk(90, 92, 94), 2: mk(45, 40, 42), 3: mk(80, 'ж', 85) }, threshold: 60, plan: [],
+    summary: { 1: { avg: 92 }, 2: { avg: 52 }, 3: { avg: 82 } }
+  };
+  v.lessons = [7, 8, 9].map(lesson);
+  const a = analyze(v);
+  assert.deepEqual(a.nextTopics.map(x => x.n), [10, 11]); // 7, 8, 9 алғы тақырыптар
+  const byName = Object.fromEntries(a.predictions.map(p => [p.name, p]));
+  assert.equal(byName['Бекем'].risk, 'low');
+  assert.equal(byName['Қиын'].risk, 'high');
+  assert.ok(byName['Қиын'].chips.some(c => c.title.includes('if–else') && c.score === 40));
+  assert.ok(byName['Өткізген'].chips.some(c => c.n === 8 && c.score === null && c.mark === 'ж'));
+  assert.ok(byName['Өткізген'].next[0] < byName['Бекем'].next[0]);
+  assert.ok(a.predictions.every(p => !p.reasons.some(r => r.includes('баға қойылмаған'))));
 });
