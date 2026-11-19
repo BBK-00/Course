@@ -129,8 +129,8 @@ export default function App() {
             <a href="/tools/" className="ustaz-back" aria-label={copy.back}><ArrowLeft size={18} aria-hidden="true" /><span>{copy.back}</span></a>
             <ChevronRight size={14} aria-hidden="true" />
             {stage === 'catalog'
-              ? <strong className="ustaz-top-name">UstazAI</strong>
-              : <button type="button" className="ustaz-top-name" onClick={closeTool}>UstazAI</button>}
+              ? <strong className="ustaz-top-name">СабақЖар</strong>
+              : <button type="button" className="ustaz-top-name" onClick={closeTool}>СабақЖар</button>}
             {stage !== 'catalog' && <span className="ustaz-crumb-tool"><ChevronRight size={14} aria-hidden="true" />{details.title}</span>}
           </div>
           <div className="ustaz-top-actions">
