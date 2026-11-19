@@ -39,7 +39,7 @@ export function forecastStudent(points, threshold = 60) {
     const first = clamp(known - 40 * missing / total, 0, 100);
     const reasons = [];
     if (absent) reasons.push('сабаққа келмеген: ' + absent + ' рет');
-    if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
+    if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
     return {
       ready: true, thin: true, count: scores.length, absent, retake, missing, total,
       base: round1(known), trend: 0, next: [Math.round(first), Math.round(first)],
@@ -65,7 +65,7 @@ export function forecastStudent(points, threshold = 60) {
   else if (trend >= 2) reasons.push('соңғы бағалар жоғарылап барады');
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
   if (recentAbsent >= 1 || absent >= 2) reasons.push('сабаққа келмеген: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
-  if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
+  if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
   return {
     ready: true, count: scores.length, absent, retake,
     base: round1(base), trend: round1(trend), next: [Math.round(first), Math.round(second)],

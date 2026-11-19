@@ -54,7 +54,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
   function donut(parts) {
     const total = parts.reduce((a, p) => a + p.value, 0) || 1, R = 52, C = 2 * Math.PI * R;
     let offset = 0;
-    const root = svg('svg', { viewBox: '0 0 140 140', class: 'ins-donut', role: 'img', 'aria-label': 'Қатысу және қайта тапсыру' });
+    const root = svg('svg', { viewBox: '0 0 140 140', class: 'ins-donut', role: 'img', 'aria-label': 'Қатысу және қалған сабақтар' });
     root.append(svg('circle', { cx: 70, cy: 70, r: R, fill: 'none', stroke: '#ececf6', 'stroke-width': 22 }));
     for (const p of parts) {
       const len = C * p.value / total;
@@ -78,7 +78,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
         const r = t.results.find(x => x.id === s.id);
         const has = r && (r.score !== null || r.mark);
         const text = !has ? '' : r.score !== null ? String(Math.round(r.score)) : r.mark === 'ж' ? 'н' : 'қ';
-        return h('td', { class: has ? 'jc ' + (r.score !== null ? band(r.score, view.threshold) : r.mark === 'ж' ? 'abs' : 'ret') : '', title: has ? (r.score ?? (r.mark === 'ж' ? 'НБ' : 'Қалған сабақ')) + ' · ' + t.title : '', text });
+        return h('td', { class: has ? 'jc ' + (r.score !== null ? band(r.score, view.threshold) : r.mark === 'ж' ? 'abs' : 'ret') : '', title: has ? (r.score ?? (r.mark === 'ж' ? 'Себепсіз қалған' : 'Себеппен қалған')) + ' · ' + t.title : '', text });
       }),
       h('td', { class: 'ins-heat-avg', text: view.summary[s.id]?.avg == null ? '—' : fmt.format(view.summary[s.id].avg) })]));
     return h('div', { class: 'ins-scroll', tabindex: '0', 'aria-label': 'Студент және тақырып бойынша баллдар' }, h('table', { class: 'ins-heat' }, [h('thead', {}, h('tr', {}, head)), h('tbody', {}, rows)]));
@@ -106,7 +106,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
         detail.replaceChildren(h('div', { class: 'ins-topic-people' }, [
           h('h3', { text: (t.n ? t.n + '. ' : '') + (t.title || dm(t.date)) + ' · ең төмен ' + (t.min ?? '—') + ', ең жоғары ' + (t.max ?? '—') + ', межеден өткендер ' + (t.pass ?? '—') + '%' }),
           h('div', { class: 'ins-chips' }, people.map(r => h('span', { class: 'ins-chip ' + (r.score !== null ? band(r.score, view.threshold) : r.mark ? 'abs' : 'none'), title: r.name },
-            [r.name.split(' ').slice(0, 2).join(' ') + ': ', h('b', { text: r.score !== null ? fmt.format(r.score) : r.mark === 'ж' ? 'НБ' : r.mark === 'с' ? 'қалған' : '—' })])))]));
+            [r.name.split(' ').slice(0, 2).join(' ') + ': ', h('b', { text: r.score !== null ? fmt.format(r.score) : r.mark === 'ж' ? 'ж' : r.mark === 'с' ? 'с' : '—' })])))]));
       };
       return row;
     };
@@ -133,14 +133,14 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const lines = [];
     if (next?.length && p.risk !== 'low') lines.push('«' + next[0].title + '» тақырыбына дейін қайталатыңыз:');
     if (p.weak.length) lines.push('Қосымша тапсырма беріңіз: ' + p.weak.map(w => '«' + w.title + '» (' + fmt.format(w.score) + ')').join('; ') + '.');
-    if (p.missed.length) lines.push('Қалған сабақты түсіндіріп, қайта тапсыртыңыз: ' + p.missed.map(w => '«' + w.title + '»' + (w.retake ? ' (с)' : ' (НБ)')).join('; ') + '.');
+    if (p.missed.length) lines.push('Қалған сабақты түсіндіріп, қайта тапсыртыңыз: ' + p.missed.map(w => '«' + w.title + '»' + (w.retake ? ' (с)' : ' (ж)')).join('; ') + '.');
     if (lines.length === 1 && next?.length) lines.length = 0;
     if (!lines.length) lines.push(p.risk === 'low' ? 'Қосымша шара керек емес, қазіргі қарқынды сақтаңыз.' : 'Жеке әңгіме өткізіп, соңғы жұмыстарын бірге қарап шығыңыз.');
     return lines;
   }
 
   const chip = (c, threshold) => h('span', { class: 'ins-chip ' + (c.score !== null ? band(c.score, threshold) : c.mark ? 'abs' : 'none'), title: c.title },
-    [short(c.title) + ': ', h('b', { text: c.score !== null ? fmt.format(c.score) : c.mark === 'ж' ? 'НБ' : c.mark === 'с' ? 'қалған' : 'жоқ' })]);
+    [short(c.title) + ': ', h('b', { text: c.score !== null ? fmt.format(c.score) : c.mark === 'ж' ? 'ж' : c.mark === 'с' ? 'с' : 'жоқ' })]);
 
   function forecastTable(a, view, student) {
     const nextHead = a.nextTopics.length ? 'Болжам (' + a.nextTopics.map(t => t.n).join(' · ') + ' тақырып)' : 'Болжам (1 · 2 сабақ)';
@@ -167,7 +167,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     return h('section', { class: 'workspace-card ins-card ins-student', id: 'insStudent' }, [
       h('div', { class: 'ins-head' }, [h('h2', { text: s.name }), h('span', { class: 'sp' }), btn('Жабу', close, 'sm')]),
       h('div', { class: 'ins-kpis' }, [kpiCard('Орташа', p.avg === null ? '—' : fmt.format(p.avg), 'топта ' + (a.kpi.avg === null ? '—' : fmt.format(a.kpi.avg))), kpiCard('Болжам', p.ready ? p.next[0] + ' · ' + p.next[1] : '—', p.ready ? RISK[p.risk][0] : 'дерек аз', p.ready && p.risk === 'high' ? 'bad' : ''),
-        kpiCard('НБ', p.absent, 'сабаққа келмеген'), kpiCard('Қалған сабақ (с)', p.retake, 'қайта тапсыру керек')]),
+        kpiCard('Себепсіз (ж)', p.absent, 'сабаққа келмеген'), kpiCard('Себеппен (с)', p.retake, 'себеппен қалған')]),
       h('div', { class: 'ins-legend' }, [h('i', { style: 'background:#e2661f' }), s.name.split(' ').slice(0, 2).join(' '), h('i', { style: 'background:#4144c4' }), 'Топ орташасы']),
       lineChart(lessons.map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: group, dash: '6 4' }, { name: s.name, color: '#e2661f', values: own }], view.threshold),
       p.ready && p.reasons.length ? h('p', {}, [h('b', { text: 'Белгілер: ' }), p.reasons.join('; ') + '.']) : null,
@@ -183,14 +183,14 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const kpis = h('div', { class: 'ins-kpis' }, [
       kpiCard('Топтың орташасы', k.avg === null ? '—' : fmt.format(k.avg), delta === null ? null : (delta >= 0 ? '▲ ' : '▼ ') + fmt.format(Math.abs(delta)) + ' соңғы сабақтарда', delta !== null && delta < 0 ? 'bad' : ''),
       kpiCard('Межеден төмен', k.below, 'студент · шек ' + k.threshold, k.below ? 'bad' : ''),
-      kpiCard('Қатысу', k.attendance === null ? '—' : k.attendance + '%', 'НБ ' + k.absent),
-      kpiCard('Қалған сабақ', k.retake, 'қайта тапсыру керек (с)', k.retake ? 'bad' : ''),
+      kpiCard('Қатысу', k.attendance === null ? '—' : k.attendance + '%', 'ж ' + k.absent),
+      kpiCard('Себеппен қалған', k.retake, 'с белгісі', k.retake ? 'bad' : ''),
       kpiCard('Келесі сабақта қауіп', a.risk.high + a.risk.mid, a.risk.high + ' қауіпті · ' + a.risk.mid + ' назар', a.risk.high ? 'bad' : ''),
       kpiCard('Жоспар', k.planTotal ? k.planDone + ' / ' + k.planTotal : '—', k.planTotal ? 'тақырып өтілді' : 'жоспар жүктелмеген')]);
 
     const trend = card('Орташа балл динамикасы', 'сабақ күні бойынша', lineChart(a.trend.filter(l => l.avg !== null).map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: a.trend.filter(l => l.avg !== null).map(l => l.avg) }], k.threshold));
     const hist = card('Баллдар бойынша бөліну', 'студенттің орташасы', histogram(a.histogram));
-    const parts = [{ name: 'Бағаланды', value: a.donut.graded, color: '#4fb97c' }, { name: 'НБ', value: a.donut.absent, color: '#8a8cab' }, { name: 'Қалған сабақ (с)', value: a.donut.retake, color: '#f0b36b' }];
+    const parts = [{ name: 'Бағаланды', value: a.donut.graded, color: '#4fb97c' }, { name: 'Себепсіз (ж)', value: a.donut.absent, color: '#8a8cab' }, { name: 'Себеппен (с)', value: a.donut.retake, color: '#f0b36b' }];
     const attend = card('Қатысу', null, h('div', { class: 'ins-donut-row' }, [donut(parts), h('ul', { class: 'ins-key' }, parts.map(p => h('li', {}, [h('i', { style: 'background:' + p.color }), p.name + ': ' + p.value])))]),
       a.absentTop.length ? bars(a.absentTop.map(r => ({ name: r.name, value: r.absent })), '#8a8cab', a.absentTop[0].absent) : null);
 

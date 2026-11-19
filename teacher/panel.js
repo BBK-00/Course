@@ -563,7 +563,7 @@ let headingShape='';
 function renderHeading(){
   const se=LIVE?.session,ti=tinfo(se?.topic);
   const titles={progress:'Топты талдау',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Сабақтар архиві'};
-  const subtitles={progress:'Көрсеткіштер, диаграммалар және келесі 2 сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Күндер, баллдар, НБ және орташа бір кестеде',roster:'Топ, пән, студенттер және олардың аккаунттары',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
+  const subtitles={progress:'Көрсеткіштер, диаграммалар және келесі 2 сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Күндер, баллдар, ж/с белгілері және орташа бір кестеде',roster:'Топ, пән, студенттер және олардың аккаунттары',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
   const title=route==='live'?(lessonPending?'Сабақ басталды':se&&(se.status==='open'||VIEW)?ti.title:'Сабақты бастау'):titles[route];
   const subtitle=route==='live'?(VIEW&&se?'Архивтегі сабақ · '+fdate(se.created_at):se?.status==='open'?(LIVE.groups.map(g=>g.name).join(', ')+' · '+allStudents().length+' студент'):'Пәнді, тақырыпты және топты таңдаңыз.'):subtitles[route];
   const shape=JSON.stringify([TAB,title,subtitle,VIEW,se?.id,se?.status,se?.course_group_id]);
