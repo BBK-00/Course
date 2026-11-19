@@ -129,6 +129,10 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     return parts.join(' ');
   }
 
+  /* 50-ден төмен нақты санды көрсетпейміз: «50-ден төмен» деп жазылады */
+  const LOW = '50-ден төмен';
+  const fc = v => v < 50 ? LOW : String(v);
+  const forecastText = p => p.next[0] < 50 && p.next[1] < 50 ? LOW : fc(p.next[0]) + ' · ' + fc(p.next[1]);
   const gapLabel = g => g.n + '. ' + g.title;
   const gapValue = g => g.score !== null ? fmt.format(g.score) : g.mark;
 
@@ -166,7 +170,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const rows = a.predictions.map(p => h('tr', { class: p.ready ? 'risk-' + p.risk : 'risk-none' }, [
       h('th', { scope: 'row' }, h('button', { type: 'button', class: 'student-ai', on: { click: () => student(p.id) } }, p.name)),
       h('td', { text: p.avg === null ? '—' : fmt.format(p.avg) }),
-      p.ready ? h('td', {}, [h('b', { text: p.next[0] + ' · ' + p.next[1] }), h('small', { text: ' (' + p.range[0] + '–' + p.range[1] + ')' })]) : h('td', { class: 'ins-muted', text: '—' }),
+      p.ready ? h('td', {}, [h('b', { text: forecastText(p) }), p.next[0] < 50 ? '' : h('small', { text: ' (' + Math.max(50, p.range[0]) + '–' + p.range[1] + ')' })]) : h('td', { class: 'ins-muted', text: '—' }),
       h('td', {}, p.ready ? h('span', { class: 'jc ' + RISK[p.risk][1], text: RISK[p.risk][0] }) : '—'),
       h('td', { class: 'ins-chips' }, p.chips.map(c => chip(c, view.threshold))),
       h('td', { class: 'ins-reasons' }, reasonsCell(p)),
@@ -185,7 +189,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const practice = view.lessons.filter(l => l.source === 'practice').map(l => ({ name: l.title, value: view.cells[s.id]?.[l.key]?.score ?? 0, label: view.cells[s.id]?.[l.key] ? view.cells[s.id][l.key].score + '%' : '—' }));
     return h('section', { class: 'workspace-card ins-card ins-student', id: 'insStudent' }, [
       h('div', { class: 'ins-head' }, [h('h2', { text: s.name }), h('span', { class: 'sp' }), btn('Жабу', close, 'sm')]),
-      h('div', { class: 'ins-kpis' }, [kpiCard('Орташа', p.avg === null ? '—' : fmt.format(p.avg), 'топта ' + (a.kpi.avg === null ? '—' : fmt.format(a.kpi.avg))), kpiCard('Болжам', p.ready ? p.next[0] + ' · ' + p.next[1] : '—', p.ready ? RISK[p.risk][0] : 'дерек аз', p.ready && p.risk === 'high' ? 'bad' : ''),
+      h('div', { class: 'ins-kpis' }, [kpiCard('Орташа', p.avg === null ? '—' : fmt.format(p.avg), 'топта ' + (a.kpi.avg === null ? '—' : fmt.format(a.kpi.avg))), kpiCard('Болжам', p.ready ? forecastText(p) : '—', p.ready ? RISK[p.risk][0] : 'дерек аз', p.ready && p.risk === 'high' ? 'bad' : ''),
         kpiCard('Себепсіз (ж)', p.absent, 'сабаққа келмеген'), kpiCard('Себеппен (с)', p.retake, 'себеппен қалған')]),
       h('div', { class: 'ins-legend' }, [h('i', { style: 'background:#e2661f' }), s.name.split(' ').slice(0, 2).join(' '), h('i', { style: 'background:#4144c4' }), 'Топ орташасы']),
       lineChart(lessons.map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: group, dash: '6 4' }, { name: s.name, color: '#e2661f', values: own }], view.threshold),
