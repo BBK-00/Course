@@ -216,7 +216,7 @@ export default function ReflectionTool({ onBack, lang }: ReflectionToolProps) {
       </main>
 
       <footer className="p-12 text-center">
-        <p className="text-brand-muted font-bold text-[10px] uppercase tracking-[0.3em]">СабақЖар • {t.toolName}</p>
+        <p className="text-brand-muted font-bold text-[10px] uppercase tracking-[0.3em]">AI • {t.toolName}</p>
       </footer>
     </div>
   );

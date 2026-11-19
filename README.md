@@ -1,13 +1,13 @@
 # Оқу кеңістігі — Бақытжанов Бекет Қайратұлы
 
-Python, Scratch, Сандық әдістер және АКТ бойынша интерактивті сабақтар, оқытушы панелі, студент журналы және СабақЖар құралдары. Бәрі бір Cloudflare Worker-де жұмыс істейді (`bbk-courses`): статикалық бет + API + D1 дерекқоры.
+Python, Scratch, Сандық әдістер және АКТ бойынша интерактивті сабақтар, оқытушы панелі, студент журналы және AI құралдары. Бәрі бір Cloudflare Worker-де жұмыс істейді (`bbk-courses`): статикалық бет + API + D1 дерекқоры.
 
 ## Құрылым
 
 ```
 index.html, python/, scratch/, sandyq-adister/, akt/   студент беттері (сабақтар)
 journal/                       студенттің жеке журналы (/journal/)
-tools/ , src/ustazai/          көмекші құралдар; СабақЖар (React) → tools/ustazai/ ішіне жиналады
+tools/ , src/ustazai/          көмекші құралдар; AI (React) → tools/ustazai/ ішіне жиналады
 teacher/                       оқытушы панелі: Топтар, Журнал, Сабақ, Үй жұмысы, Архив, Курс студиясы
 assets/                        ортақ стильдер мен модульдер (learner*, python-*, join.js, py-work.js, my-journal.js)
 src/                           Worker: index.js (маршруттар), classes.js, accounts.js, practice.js, plan-import.js, grading, py*.js
@@ -30,7 +30,7 @@ node scripts/devsite.mjs
 npx wrangler dev -c wrangler.dev.jsonc --port 8788 --local --persist-to .wrangler/local
 ```
 
-`.dev.vars` ішінде `TEACHER_PASSWORD=…` және (қаласаң) `GEMINI_STUB=1` болуы керек. Тікелей Gemini үшін `GEMINI_API_KEY` қос. СабақЖарды жергілікті көру үшін алдымен `npm run build:ustazai` орында.
+`.dev.vars` ішінде `TEACHER_PASSWORD=…` және (қаласаң) `GEMINI_STUB=1` болуы керек. Тікелей Gemini үшін `GEMINI_API_KEY` қос. AIды жергілікті көру үшін алдымен `npm run build:ustazai` орында.
 
 ## Тексеру
 
@@ -42,7 +42,7 @@ npm test          # серверсіз бірлік тесттер
 
 ## Сайтқа шығару
 
-`main` тармағына push жасаса, Cloudflare өздігінен жинап шығарады (`wrangler.jsonc`: СабақЖар жинау командасы бар). Дерекқор кестелері алғашқы сұраныста өздігінен жаңарады (`ensureSchema`).
+`main` тармағына push жасаса, Cloudflare өздігінен жинап шығарады (`wrangler.jsonc`: AI жинау командасы бар). Дерекқор кестелері алғашқы сұраныста өздігінен жаңарады (`ensureSchema`).
 
 > `wrangler.jsonc`-қа R2 (`bbk-media`) қосылымын тек Cloudflare-де бакет жасалған соң қос, әйтпесе деплой құлайды.
 

@@ -85,7 +85,7 @@ export default function ToolCatalog({ lang, filter, onFilter, query, onQuery, on
       <aside className="ustaz-rail">
         <a className="ustaz-rail-brand" href="/" aria-label={copy.home}>
           <span className="ustaz-mark"><BookOpen size={21} aria-hidden="true" /></span>
-          <span><strong>СабақЖар</strong><small>{copy.home}</small></span>
+          <span><strong>AI</strong><small>{copy.home}</small></span>
         </a>
         <nav className="ustaz-filters" aria-label={copy.menu}>
           {filters.map(([key, Icon]) => (
