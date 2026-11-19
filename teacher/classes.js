@@ -265,13 +265,22 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
     const data = await load(!state.data);
     if (!data) { root.replaceChildren(h('p', { class: 'workspace-empty', role: 'alert', text: 'Журналды жүктеу мүмкін болмады.' })); return; }
     const all = data.groups.flatMap(g => g.courses.map(c => ({ ...c, group: g })));
-    if (!all.length) { root.replaceChildren(h('p', { class: 'workspace-empty', text: 'Журнал үшін алдымен «Топтар» бөлімінде топ пен пәнді қосыңыз.' })); return; }
+    const bare = data.groups.filter(g => !g.courses.length);
+    if (!all.length && !bare.length) { root.replaceChildren(h('p', { class: 'workspace-empty', text: 'Журнал үшін алдымен «Топтар» бөлімінде топ пен пәнді қосыңыз.' })); return; }
     if (courseId) state.course = courseId;
-    if (!all.some(c => c.id === state.course)) state.course = all[0].id;
+    if (!all.some(c => c.id === state.course) && !(typeof state.course === 'string' && bare.some(g => 'g' + g.id === state.course))) state.course = all.length ? all[0].id : 'g' + bare[0].id;
     const current = all.find(c => c.id === state.course);
-    const pick = h('select', { class: 'field', 'aria-label': 'Топ және пән' }, all.map(c => h('option', { value: c.id, text: c.group.name + ' · ' + c.subject + ' · ' + schoolYear(c.year) })));
+    const options = [...all.map(c => h('option', { value: c.id, text: c.group.name + ' · ' + c.subject + ' · ' + schoolYear(c.year) })),
+      ...bare.map(g => h('option', { value: 'g' + g.id, text: g.name + ' · пән қосылмаған' }))];
+    const pick = h('select', { class: 'field', 'aria-label': 'Топ және пән' }, options);
     pick.value = String(state.course);
-    pick.onchange = () => { state.course = Number(pick.value); renderJournal(root); };
+    pick.onchange = () => { const v = pick.value; state.course = v[0] === 'g' ? v : Number(v); renderJournal(root); };
+    if (!current) {
+      const g = bare.find(x => 'g' + x.id === state.course);
+      root.replaceChildren(h('section', { class: 'workspace-card' }, [h('div', { class: 'classes-journal-bar' }, [field('Топ және пән', pick)])]),
+        h('section', { class: 'workspace-card' }, [h('p', { class: 'workspace-empty', text: g.name + ' тобына пән қосылмаған. Пәнді қосып, журналды импорттаңыз.' }), btn('+ Пән қосу', () => addCourse(root, g), 'primary sm')]));
+      return;
+    }
     const bar = h('section', { class: 'workspace-card' }, [h('div', { class: 'classes-journal-bar' }, [field('Топ және пән', pick), h('div', { class: 'workspace-actions' }, [
       btn('Google журналынан импорттау', () => importDialog(current, current.group, () => renderJournal(root)), 'primary sm'),
       btn('+ Сабақ күні', () => addLesson(current, () => renderJournal(root)), 'sm'),
