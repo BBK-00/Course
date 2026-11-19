@@ -99,7 +99,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     const lines = [];
     if (p.weak.length) lines.push('Осы тақырыптардан қосымша тапсырма беріңіз: ' + p.weak.map(w => (w.title || dm(w.date)) + ' (' + fmt.format(w.score) + ')').join('; ') + '.');
     if (p.unscored?.length) lines.push('Бағасы жоқ тақырыптар (білмеуі мүмкін): ' + p.unscored.map(w => w.title || dm(w.date)).join('; ') + '. Осылардан қосымша тапсырма беріңіз.');
-    if (p.missed.length) lines.push('Сабаққа келмеген тақырыптарды қысқаша түсіндіріңіз: ' + p.missed.map(w => w.title || dm(w.date)).join('; ') + '.');
+    if (p.missed.length) lines.push('Қалған сабақтарды түсіндіріп, қайта тапсыртыңыз: ' + p.missed.map(w => (w.title || dm(w.date)) + (w.retake ? ' (с)' : ' (НБ)')).join('; ') + '.');
     if (!lines.length) lines.push(p.risk === 'low' ? 'Қосымша шара керек емес, қазіргі қарқынды сақтаңыз.' : 'Жеке әңгіме өткізіп, соңғы жұмыстарын бірге қарап шығыңыз.');
     return lines;
   }
@@ -127,7 +127,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     return h('section', { class: 'workspace-card ins-card ins-student', id: 'insStudent' }, [
       h('div', { class: 'ins-head' }, [h('h2', { text: s.name }), h('span', { class: 'sp' }), btn('Жабу', close, 'sm')]),
       h('div', { class: 'ins-kpis' }, [kpiCard('Орташа', p.avg === null ? '—' : fmt.format(p.avg), 'топта ' + (a.kpi.avg === null ? '—' : fmt.format(a.kpi.avg))), kpiCard('Болжам', p.ready ? p.next[0] + ' · ' + p.next[1] : '—', p.ready ? RISK[p.risk][0] : 'дерек аз', p.ready && p.risk === 'high' ? 'bad' : ''),
-        kpiCard('НБ', p.absent, 'сабаққа келмеген'), kpiCard('Қайта тапсыру', p.retake, marks.length + ' белгі')]),
+        kpiCard('НБ', p.absent, 'сабаққа келмеген'), kpiCard('Қалған сабақ (с)', p.retake, 'қайта тапсыру керек')]),
       h('div', { class: 'ins-legend' }, [h('i', { style: 'background:#e2661f' }), s.name.split(' ').slice(0, 2).join(' '), h('i', { style: 'background:#4144c4' }), 'Топ орташасы']),
       lineChart(lessons.map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: group, dash: '6 4' }, { name: s.name, color: '#e2661f', values: own }], view.threshold),
       p.ready && p.reasons.length ? h('p', {}, [h('b', { text: 'Белгілер: ' }), p.reasons.join('; ') + '.']) : null,
@@ -143,13 +143,13 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       kpiCard('Топтың орташасы', k.avg === null ? '—' : fmt.format(k.avg), delta === null ? null : (delta >= 0 ? '▲ ' : '▼ ') + fmt.format(Math.abs(delta)) + ' соңғы сабақтарда', delta !== null && delta < 0 ? 'bad' : ''),
       kpiCard('Межеден төмен', k.below, 'студент · шек ' + k.threshold, k.below ? 'bad' : ''),
       kpiCard('Қатысу', k.attendance === null ? '—' : k.attendance + '%', 'НБ ' + k.absent),
-      kpiCard('Қайта тапсыру', k.retake, 'белгі'),
+      kpiCard('Қалған сабақ', k.retake, 'қайта тапсыру керек (с)', k.retake ? 'bad' : ''),
       kpiCard('Келесі сабақта қауіп', a.risk.high + a.risk.mid, a.risk.high + ' қауіпті · ' + a.risk.mid + ' назар', a.risk.high ? 'bad' : ''),
       kpiCard('Жоспар', k.planTotal ? k.planDone + ' / ' + k.planTotal : '—', k.planTotal ? 'тақырып өтілді' : 'жоспар жүктелмеген')]);
 
     const trend = card('Орташа балл динамикасы', 'сабақ күні бойынша', lineChart(a.trend.filter(l => l.avg !== null).map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: a.trend.filter(l => l.avg !== null).map(l => l.avg) }], k.threshold));
     const hist = card('Баллдар бойынша бөліну', 'студенттің орташасы', histogram(a.histogram));
-    const parts = [{ name: 'Бағаланды', value: a.donut.graded, color: '#4fb97c' }, { name: 'НБ', value: a.donut.absent, color: '#8a8cab' }, { name: 'Қайта тапсыру', value: a.donut.retake, color: '#f0b36b' }];
+    const parts = [{ name: 'Бағаланды', value: a.donut.graded, color: '#4fb97c' }, { name: 'НБ', value: a.donut.absent, color: '#8a8cab' }, { name: 'Қалған сабақ (с)', value: a.donut.retake, color: '#f0b36b' }];
     const attend = card('Қатысу', null, h('div', { class: 'ins-donut-row' }, [donut(parts), h('ul', { class: 'ins-key' }, parts.map(p => h('li', {}, [h('i', { style: 'background:' + p.color }), p.name + ': ' + p.value])))]),
       a.absentTop.length ? bars(a.absentTop.map(r => ({ name: r.name, value: r.absent })), '#8a8cab', a.absentTop[0].absent) : null);
 

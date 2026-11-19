@@ -37,7 +37,7 @@ export function forecastStudent(points, threshold = 60) {
     const first = clamp(known - 40 * missing / total, 0, 100);
     const reasons = [scores.length ? total + ' тақырыптың ' + scores.length + '-інде ғана баға бар, қалғанын білмеуі мүмкін' : 'әлі баға жоқ, тақырыптар меңгерілмеген болуы мүмкін'];
     if (absent) reasons.push('сабаққа келмеген: ' + absent + ' рет');
-    if (retake) reasons.push('қайта тапсыру: ' + retake);
+    if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
     return {
       ready: true, thin: true, count: scores.length, absent, retake, missing, total,
       base: round1(known), trend: 0, next: [Math.round(first), Math.round(first)],
@@ -63,7 +63,7 @@ export function forecastStudent(points, threshold = 60) {
   else if (trend >= 2) reasons.push('соңғы бағалар жоғарылап барады');
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
   if (recentAbsent >= 1 || absent >= 2) reasons.push('сабаққа келмеген: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
-  if (retake) reasons.push('қайта тапсыру: ' + retake);
+  if (retake) reasons.push('қалған сабақ (қайта тапсыру керек): ' + retake);
   if (blank >= 2) reasons.push(blank + ' тақырыпқа баға қойылмаған');
   return {
     ready: true, count: scores.length, absent, retake,
@@ -100,7 +100,7 @@ export function analyze(view) {
   const absentTotal = students.reduce((a, s) => a + (view.summary[s.id]?.absent || 0), 0);
   const retakeTotal = students.reduce((a, s) => a + (view.summary[s.id]?.retake || 0), 0);
   const gradedCells = students.reduce((a, s) => a + graded.filter(l => scoresOf(s, l) !== null).length, 0);
-  const attendance = gradedCells + absentTotal ? Math.round(gradedCells / (gradedCells + absentTotal) * 100) : null;
+  const attendance = gradedCells + absentTotal + retakeTotal ? Math.round(gradedCells / (gradedCells + absentTotal + retakeTotal) * 100) : null;
 
   const planned = new Set(view.plan.map(t => t.n));
   const done = new Set(graded.map(l => Number(l.number)).filter(n => planned.has(n)));
@@ -113,7 +113,7 @@ export function analyze(view) {
       const p = points[i], info = lessons[i];
       const item = { key: l.key, date: l.date, number: l.number, title: l.title || '', score: p.score };
       if (p.score !== null && (p.score < threshold || (info.avg !== null && p.score < info.avg - 10))) weak.push(item);
-      if (p.mark === 'ж') missed.push(item);
+      if (p.mark === 'ж' || p.mark === 'с') missed.push({ ...item, retake: p.mark === 'с' });
     });
     weak.sort((a, b) => a.score - b.score);
     const unscored = graded.map((l, i) => ({ key: l.key, date: l.date, number: l.number, title: l.title || '', score: null, mark: points[i].mark })).filter((_, i) => points[i].score === null && points[i].mark !== 'ж');
