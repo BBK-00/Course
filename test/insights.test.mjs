@@ -129,3 +129,14 @@ test('topic forecast follows prerequisite topics and names them in reasons', () 
   assert.ok(byName['Өткізген'].next[0] < byName['Бекем'].next[0]);
   assert.ok(a.predictions.every(p => !p.reasons.some(r => r.includes('баға қойылмаған'))));
 });
+
+test('forecast: one attended lesson and many misses cannot give a high score', () => {
+  const f = forecastStudent(pts(70, 'с', 'с', 'с', 'с', 'с', 'с'));
+  assert.ok(f.next[0] >= 10 && f.next[0] <= 25, 'forecast ' + f.next[0]);
+  assert.equal(f.risk, 'high');
+  assert.ok(f.reasons.some(r => r.includes('қатысқан сабақ: 1')));
+  const mostly = forecastStudent(pts(85, 'с'));
+  assert.ok(mostly.next[0] < 70 && mostly.next[0] > f.next[0]);
+  const regular = forecastStudent(pts(90, 85, 88, 90));
+  assert.ok(regular.next[0] >= 85);
+});

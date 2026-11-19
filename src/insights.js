@@ -24,52 +24,34 @@ const deviation = values => {
   return m === null ? 0 : Math.sqrt(mean(values.map(v => (v - m) ** 2)));
 };
 
-/* Студенттің болжамы. points — хронологиялық [{score, mark}] (жаттығу бағандарынсыз). */
+/* Студенттің болжамы. points — хронологиялық [{score, mark}] (жаттығу бағандарынсыз, тек баға қойылған тақырыптар).
+   Болжам = деңгей (өз бағалары) × қатысу үлесі.
+   деңгей: баға ≥3 болса 60% соңғы 3 баға + 40% орташа + тенденция, әйтпесе бар бағалардың орташасы;
+   қатысу: k / (k + қалғандар), ж = 1, с = 0.5 салмақпен (бір рет келіп, қалғанында жоқ студент жоғары балл ала алмайды);
+   бос ұяшық пен ешкім баға алмаған күн есептелмейді. */
 export function forecastStudent(points, threshold = 60) {
   const scores = points.map(p => p.score).filter(isNum);
   const absent = points.filter(p => p.mark === 'ж').length;
   const retake = points.filter(p => p.mark === 'с').length;
-  if (!points.length) return { ready: false, count: 0, absent, retake };
-  const total = points.length;
-  // Бірде баға жоқ: болжам жасалмайды (ешкім баға алмаған күндер 0 емес)
-  if (!scores.length) return { ready: false, count: 0, absent, retake };
-  const markPenalty = Math.min(absent, 3) * 2 + Math.min(retake, 3) * 2; // ж/с белгілері ғана аздап түсіреді
-  // Баға аз (1–2): бар бағалардың өзіне сүйенеміз, диапазон кеңірек
-  if (scores.length < 3) {
-    const known = mean(scores);
-    const first = clamp(known - markPenalty, 0, 100);
-    const reasons = [];
-    if (absent) reasons.push('себепсіз қалған: ' + absent + ' рет');
-    if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
-    return {
-      ready: true, thin: true, count: scores.length, absent, retake, total,
-      base: round1(known), trend: 0, next: [Math.round(first), Math.round(first)],
-      range: [Math.round(clamp(first - 10, 0, 100)), Math.round(clamp(first + 10, 0, 100))],
-      risk: first < 50 ? 'high' : first < threshold ? 'mid' : 'low', reasons
-    };
-  }
-  const last = scores.slice(-3).reverse(); // жаңасы бірінші
-  const weights = [0.5, 0.3, 0.2];
-  const recentWeighted = last.reduce((a, v, i) => a + v * weights[i], 0);
-  const base = 0.6 * recentWeighted + 0.4 * mean(scores);
-  const trend = clamp(slope(scores.slice(-4)), -10, 10);
-  const recent = points.slice(-5);
-  const recentAbsent = recent.filter(p => p.mark === 'ж').length;
-  const absencePenalty = 8 * (0.6 * recentAbsent / Math.max(1, recent.length) + 0.4 * absent / Math.max(1, points.length));
-  const retakePenalty = Math.min(retake, 4) * 1.5;
-  const first = clamp(base + 0.5 * trend - absencePenalty - retakePenalty, 0, 100);
-  const second = clamp(first + 0.5 * trend, 0, 100);
-  const spread = clamp(deviation(scores), 5, 15);
+  if (!points.length || !scores.length) return { ready: false, count: 0, absent, retake };
+  const k = scores.length;
+  const attend = k / (k + absent + 0.5 * retake); // 1 = барлығына қатысқан
+  const level = k < 3 ? mean(scores) : 0.6 * [...scores.slice(-3)].reverse().reduce((acc, v, i) => acc + v * [0.5, 0.3, 0.2][i], 0) + 0.4 * mean(scores);
+  const trend = k < 3 ? 0 : clamp(slope(scores.slice(-4)), -10, 10);
+  const first = clamp((level + 0.5 * trend) * attend, 0, 100);
+  const second = clamp((level + trend) * attend, 0, 100);
+  const spread = (k < 3 ? 10 : clamp(deviation(scores), 5, 15)) + 12 * (1 - attend);
   const risk = first < 50 ? 'high' : first < threshold ? 'mid' : 'low';
   const reasons = [];
+  if (attend < 0.8) reasons.push('қатысқан сабақ: ' + k + (absent + retake ? ', қалған: ' + (absent + retake) : ''));
+  else if (absent + retake) reasons.push('қалған сабақ: ' + (absent + retake));
+  if (absent) reasons.push('себепсіз қалған (ж): ' + absent);
   if (trend <= -2) reasons.push('соңғы бағалар төмендеп барады');
   else if (trend >= 2) reasons.push('соңғы бағалар жоғарылап барады');
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
-  if (recentAbsent >= 1 || absent >= 2) reasons.push('себепсіз қалған: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
-  if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
   return {
-    ready: true, count: scores.length, absent, retake,
-    base: round1(base), trend: round1(trend), next: [Math.round(first), Math.round(second)],
+    ready: true, thin: k < 3, count: k, absent, retake, attend: round1(attend), total: points.length,
+    base: round1(level), trend: round1(trend), next: [Math.round(first), Math.round(second)],
     range: [Math.round(clamp(first - spread, 0, 100)), Math.round(clamp(first + spread, 0, 100))],
     risk, reasons
   };
@@ -158,7 +140,7 @@ export function analyze(view) {
       const scored = own.filter(c => c.score !== null);
       if (!scored.length) return f.next[0];
       const missing = own.filter(c => c.score === null && c.mark).length;
-      const prereq = clamp(mean(scored.map(c => c.score)) - 3 * missing, 0, 100);
+      const prereq = clamp(mean(scored.map(c => c.score)) * (f.attend ?? 1) - 3 * missing, 0, 100);
       return Math.round(clamp(0.6 * prereq + 0.4 * f.next[0], 0, 100));
     };
     let next = f.next, risk = f.risk, range = f.range;
