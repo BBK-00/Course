@@ -58,3 +58,4 @@
   .ins-card, .ins-kpi { break-inside: avoid }
 }
 .ins-student .ins-svg { max-width: 780px }
+.ins-next { margin: 0 0 6px; color: #2c2e57 }

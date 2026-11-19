@@ -1,3 +1,4 @@
+import { PYTHON_TITLES } from './python-titles.js';
 /* Топты талдау: журнал деректерінен көрсеткіштер мен келесі 2 сабаққа болжам. ЖИ қолданылмайды — бәрі формула. */
 
 const round1 = v => Math.round(v * 10) / 10;
@@ -105,6 +106,10 @@ export function analyze(view) {
   const planned = new Set(view.plan.map(t => t.n));
   const done = new Set(graded.map(l => Number(l.number)).filter(n => planned.has(n)));
 
+  // Келесі 2 тақырып: журналдағы соңғы сабақ нөмірінен кейінгі тақырыптар (жоспар немесе Python сабақтары)
+  const titleOf = new Map(view.plan.map(t => [t.n, t.title]));
+  const lastN = Math.max(0, ...graded.map(l => Number(l.number)).filter(Number.isFinite));
+  const nextTopics = [lastN + 1, lastN + 2].map(n => ({ n, title: titleOf.get(n) || PYTHON_TITLES[n] || '' })).filter(t => t.title);
   const predictions = students.map(s => {
     const points = graded.map(l => ({ score: scoresOf(s, l), mark: cell(s, l)?.mark || '' }));
     const f = forecastStudent(points, threshold);
@@ -137,7 +142,7 @@ export function analyze(view) {
     donut: { graded: gradedCells, absent: absentTotal, retake: retakeTotal },
     absentTop: students.map(s => ({ id: s.id, name: s.name, absent: view.summary[s.id]?.absent || 0 })).filter(r => r.absent).sort((a, b) => b.absent - a.absent).slice(0, 8),
     hardTopics: lessons.filter(l => l.hard).sort((a, b) => a.avg - b.avg).slice(0, 4),
-    practice, predictions,
+    practice, predictions, nextTopics,
     risk: { high: predictions.filter(p => p.risk === 'high').length, mid: predictions.filter(p => p.risk === 'mid').length, notReady: predictions.filter(p => !p.ready).length }
   };
 }
@@ -146,6 +151,7 @@ export function analyze(view) {
 export function compactFacts(analysis) {
   const k = analysis.kpi;
   return {
+    nextTopics: analysis.nextTopics.map(t => t.n + '. ' + t.title),
     average: k.avg, threshold: k.threshold, recent: k.recentAvg, earlier: k.earlierAvg, attendance: k.attendance,
     hardTopics: analysis.hardTopics.map(t => (t.title || t.date) + ' (' + t.avg + ')'),
     atRisk: analysis.predictions.filter(p => p.ready && p.risk !== 'low').slice(0, 6).map(p => ({

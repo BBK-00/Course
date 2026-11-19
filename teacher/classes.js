@@ -308,7 +308,7 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
       ['Студенттер', students.length], ['Сабақ күндері', j.lessons.length], ['Топтың орташасы', groupAvg === null ? '—' : fmt.format(groupAvg)],
       ['Межеден төмен', scores.filter(s => s.avg < j.threshold).length]].map(([n, v]) => h('div', {}, [h('dt', { text: n }), h('dd', { text: String(v) })])));
     const head = [h('th', { class: 'journal-student', scope: 'col', text: 'Студент' }), ...j.lessons.map(l => h('th', { scope: 'col', class: l.source === 'site' ? 'is-site' : l.source === 'practice' ? 'is-practice' : '', title: l.title || '' }, [
-      h('b', { text: dm(l.date) }), h('small', { text: [l.kind, l.hours !== null && l.hours !== undefined ? l.hours + ' сағ' : ''].filter(Boolean).join(' · ') || ' ' })])),
+      h('b', { text: dm(l.date) }), h('small', { text: l.source === 'journal' && l.number ? '№' + l.number : ' ' })])),
       h('th', { scope: 'col', text: 'Орташа' }), h('th', { scope: 'col', title: 'Сабаққа келмеген', text: 'НБ' }), h('th', { scope: 'col', title: 'Қайта тапсыру керек', text: 'Қайта' })];
     const cell = (student, lesson) => {
       const c = j.cells[student.id]?.[lesson.key];
