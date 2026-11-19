@@ -140,3 +140,17 @@ test('forecast: one attended lesson and many misses cannot give a high score', (
   const regular = forecastStudent(pts(90, 85, 88, 90));
   assert.ok(regular.next[0] >= 85);
 });
+
+test('gaps list unknown topics in order; ж and с count the same; tasks link to the topic page', () => {
+  const lesson = n => ({ key: 'c' + n, date: '2026-09-0' + n, number: String(n), title: '', kind: '', source: 'journal' });
+  const cell = (score, mark = '') => ({ score, mark });
+  const v = {
+    students: [{ id: 1, name: 'А' }], lessons: [7, 5, 8].map(lesson), threshold: 60, plan: [],
+    cells: { 1: { c7: cell(30), c5: cell(null, 'с'), c8: cell(null, 'ж') } }, summary: { 1: { avg: 30 } }
+  };
+  const p = analyze(v).predictions[0];
+  assert.deepEqual(p.gaps.map(g => g.n), [5, 7, 8]);
+  assert.ok(p.gaps.every(g => g.url.startsWith('/python/') && g.url.endsWith('.html#task')));
+  assert.equal(p.gaps[0].mark, 'с');
+  assert.equal(p.gaps[2].mark, 'ж');
+});

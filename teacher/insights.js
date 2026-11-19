@@ -129,14 +129,33 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     return parts.join(' ');
   }
 
+  const gapLabel = g => g.n + '. ' + g.title;
+  const gapValue = g => g.score !== null ? fmt.format(g.score) : g.mark;
+
+  /* Себебі: білмейтін тақырыптар ретімен (ж және с — екеуінде де тақырып меңгерілмеген) + жалпы белгілер */
+  function reasonsCell(p) {
+    if (!p.ready) return 'Баға жоқ, болжам жасалмады';
+    const nodes = [];
+    if (p.gaps.length) {
+      nodes.push(h('p', { class: 'ins-sub', text: 'Білмейтін тақырыптар:' }));
+      p.gaps.forEach(g => nodes.push(h('div', { class: 'ins-gap-line' }, [gapLabel(g) + ' — ', h('b', { text: gapValue(g) })])));
+    }
+    if (p.reasons.length) nodes.push(h('p', { class: 'ins-sub', text: p.reasons.join('; ') + '.' }));
+    return nodes.length ? nodes : '—';
+  }
+
+  /* Не істеу керек: сол тақырыптардан тапсырма + «Тапсырманы қарау» батырмасы */
   function advice(p, next) {
-    const lines = [];
-    if (next?.length && p.risk !== 'low') lines.push('«' + next[0].title + '» тақырыбына дейін қайталатыңыз:');
-    if (p.weak.length) lines.push('Қосымша тапсырма беріңіз: ' + p.weak.map(w => '«' + w.title + '» (' + fmt.format(w.score) + ')').join('; ') + '.');
-    if (p.missed.length) lines.push('Қалған сабақты түсіндіріп, қайта тапсыртыңыз: ' + p.missed.map(w => '«' + w.title + '»' + (w.retake ? ' (с)' : ' (ж)')).join('; ') + '.');
-    if (lines.length === 1 && next?.length) lines.length = 0;
-    if (!lines.length) lines.push(p.risk === 'low' ? 'Қосымша шара керек емес, қазіргі қарқынды сақтаңыз.' : 'Жеке әңгіме өткізіп, соңғы жұмыстарын бірге қарап шығыңыз.');
-    return lines;
+    if (!p.ready) return [];
+    const nodes = [];
+    if (p.gaps.length) {
+      nodes.push(h('p', { class: 'ins-sub', text: 'Осы тақырыптардан тапсырма беріңіз:' }));
+      p.gaps.forEach(g => nodes.push(h('div', { class: 'ins-gap-line' }, [gapLabel(g),
+        g.url ? h('a', { class: 'ins-task-link', href: g.url, target: '_blank', rel: 'noopener', text: 'Тапсырманы қарау' }) : null])));
+    }
+    if (next?.length && p.risk !== 'low') nodes.push(h('p', { class: 'ins-sub', text: '«' + next[0].title + '» тақырыбына дейін жоғарыдағыларды қайталатыңыз.' }));
+    if (!nodes.length) nodes.push(h('p', { text: p.risk === 'low' ? 'Қосымша шара керек емес, қазіргі қарқынды сақтаңыз.' : 'Жеке әңгіме өткізіп, соңғы жұмыстарын бірге қарап шығыңыз.' }));
+    return nodes;
   }
 
   const chip = (c, threshold) => h('span', { class: 'ins-chip ' + (c.score !== null ? band(c.score, threshold) : c.mark ? 'abs' : 'none'), title: c.title },
@@ -150,8 +169,8 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       p.ready ? h('td', {}, [h('b', { text: p.next[0] + ' · ' + p.next[1] }), h('small', { text: ' (' + p.range[0] + '–' + p.range[1] + ')' })]) : h('td', { class: 'ins-muted', text: '—' }),
       h('td', {}, p.ready ? h('span', { class: 'jc ' + RISK[p.risk][1], text: RISK[p.risk][0] }) : '—'),
       h('td', { class: 'ins-chips' }, p.chips.map(c => chip(c, view.threshold))),
-      h('td', { class: 'ins-reasons', text: p.ready ? p.reasons.join('; ') || '—' : 'Баға жоқ, болжам жасалмады' }),
-      h('td', { class: 'ins-advice' }, p.ready && p.risk !== 'low' ? advice(p, a.nextTopics).map(t => h('p', { text: t })) : '')]));
+      h('td', { class: 'ins-reasons' }, reasonsCell(p)),
+      h('td', { class: 'ins-advice' }, p.ready && (p.risk !== 'low' || p.gaps.length) ? advice(p, a.nextTopics) : '')]));
     return h('div', { class: 'ins-scroll' }, h('table', { class: 'classes-table ins-forecast' }, [
       h('thead', {}, h('tr', {}, ['Студент', 'Орташа', nextHead, 'Қауіп', 'Алғы тақырыптар', 'Себебі', 'Не істеу керек'].map(t => h('th', { scope: 'col', text: t })))), h('tbody', {}, rows)]));
   }
@@ -171,7 +190,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       h('div', { class: 'ins-legend' }, [h('i', { style: 'background:#e2661f' }), s.name.split(' ').slice(0, 2).join(' '), h('i', { style: 'background:#4144c4' }), 'Топ орташасы']),
       lineChart(lessons.map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: group, dash: '6 4' }, { name: s.name, color: '#e2661f', values: own }], view.threshold),
       p.ready && p.reasons.length ? h('p', {}, [h('b', { text: 'Белгілер: ' }), p.reasons.join('; ') + '.']) : null,
-      h('div', { class: 'ins-advice-box' }, [h('b', { text: 'Ұсыныс' }), ...advice(p, a.nextTopics).map(t => h('p', { text: t }))]),
+      h('div', { class: 'ins-advice-box' }, [h('b', { text: 'Ұсыныс' }), ...advice(p, a.nextTopics)]),
       h('div', {}, [h('h3', { text: 'Тақырыптар бойынша баллдары' }), bars(a.topics.filter(t => t.results.find(r => r.id === s.id)?.score !== null).map(t => { const r = t.results.find(x => x.id === s.id); return { name: (t.n ? t.n + '. ' : '') + (t.title || dm(t.date)), value: r.score, color: r.score < view.threshold ? '#e8806c' : '#4144c4', label: fmt.format(r.score) + (t.avg !== null ? ' (топ ' + fmt.format(t.avg) + ')' : '') }; }), '#4144c4', 100)]),
       practice.length ? h('div', {}, [h('h3', { text: 'Python жаттығуы' }), bars(practice, '#4fb97c', 100)]) : null]);
   }

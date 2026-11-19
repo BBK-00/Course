@@ -1,4 +1,4 @@
-import { PYTHON_TITLES, PREREQ } from './python-titles.js';
+import { PYTHON_TITLES, PYTHON_SLUGS, PREREQ } from './python-titles.js';
 /* Топты талдау: журнал деректерінен көрсеткіштер мен келесі 2 сабаққа болжам. ЖИ қолданылмайды — бәрі формула. */
 
 const round1 = v => Math.round(v * 10) / 10;
@@ -27,7 +27,7 @@ const deviation = values => {
 /* Студенттің болжамы. points — хронологиялық [{score, mark}] (жаттығу бағандарынсыз, тек баға қойылған тақырыптар).
    Болжам = деңгей (өз бағалары) × қатысу үлесі.
    деңгей: баға ≥3 болса 60% соңғы 3 баға + 40% орташа + тенденция, әйтпесе бар бағалардың орташасы;
-   қатысу: k / (k + қалғандар), ж = 1, с = 0.3 салмақпен (бір рет келіп, қалғанында жоқ студент жоғары балл ала алмайды);
+   қатысу: k / (k + қалғандар), ж мен с бірдей (екеуінде де тақырыпты білмейді) (бір рет келіп, қалғанында жоқ студент жоғары балл ала алмайды);
    бос ұяшық пен ешкім баға алмаған күн есептелмейді. */
 export function forecastStudent(points, threshold = 60) {
   const scores = points.map(p => p.score).filter(isNum);
@@ -35,7 +35,7 @@ export function forecastStudent(points, threshold = 60) {
   const retake = points.filter(p => p.mark === 'с').length;
   if (!points.length || !scores.length) return { ready: false, count: 0, absent, retake };
   const k = scores.length;
-  const attend = k / (k + absent + 0.3 * retake); // 1 = барлығына қатысқан
+  const attend = k / (k + absent + retake); // 1 = барлығына қатысқан
   const level = k < 3 ? mean(scores) : 0.6 * [...scores.slice(-3)].reverse().reduce((acc, v, i) => acc + v * [0.5, 0.3, 0.2][i], 0) + 0.4 * mean(scores);
   const trend = k < 3 ? 0 : clamp(slope(scores.slice(-4)), -10, 10);
   const first = clamp((level + 0.5 * trend) * attend, 0, 100);
@@ -131,6 +131,11 @@ export function analyze(view) {
       else if (r.score === null) unscored.push(item);
     });
     weak.sort((a, b) => a.score - b.score);
+    // Білмейтін тақырыптар (ретімен): балл межеден төмен немесе ж/с — екі жағдайда да тақырып меңгерілмеген
+    const gaps = topics.filter(t => t.n).map(t => {
+      const r = resultOf(s, t), unknown = r.score === null && (r.mark === 'ж' || r.mark === 'с'), low = r.score !== null && r.score < threshold;
+      return unknown || low ? { n: t.n, title: t.title || nameOf(t.n), score: r.score, mark: r.mark, url: PYTHON_SLUGS[t.n] ? '/python/' + PYTHON_SLUGS[t.n] + '.html#task' : '' } : null;
+    }).filter(Boolean).sort((x, y) => x.n - y.n);
     // Алғы тақырыптар (келесі тақырыптарға қажет): аты және баллы
     const need = [...new Set(nextTopics.flatMap(t => t.prereq))].sort((a, b) => a - b);
     const chips = need.map(n => { const t = byN.get(n), r = resultOf(s, t); return { n, title: t.title, score: r.score, mark: r.mark }; });
@@ -152,7 +157,7 @@ export function analyze(view) {
       risk = next[0] < 50 ? 'high' : next[0] < threshold ? 'mid' : 'low';
     }
     const reasons = [...(f.reasons || [])];
-    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, next, range, risk, reasons: reasons.slice(0, 4), chips, weak: weak.slice(0, 4), missed: missed.slice(-4).reverse(), unscored: unscored.slice(0, 4) };
+    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, next, range, risk, reasons: reasons.slice(0, 4), chips, gaps, weak: weak.slice(0, 4), missed: missed.slice(-4).reverse(), unscored: unscored.slice(0, 4) };
   });
   const order = { high: 0, mid: 1, low: 2 };
   predictions.sort((a, b) => (a.ready === b.ready ? 0 : a.ready ? -1 : 1) || (order[a.risk] ?? 3) - (order[b.risk] ?? 3) || (a.next?.[0] ?? 0) - (b.next?.[0] ?? 0));

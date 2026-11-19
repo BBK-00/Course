@@ -26,6 +26,14 @@ export const PYTHON_TITLES = {
   24: "Екі өлшемді массивтің параметрлері"
 };
 
+/* Тақырып беттері (python/*.html): тапсырмалар беттегі #task бөлімінде */
+export const PYTHON_SLUGS = {
+  1: '01-ide-sintaksis', 2: '02-ainymalilar-tipter', 3: '03-engizu-shygaru', 4: '04-arifmetika', 5: '05-salystyru-logika', 6: '06-syzyqtyq-algoritm',
+  7: '07-if-operatory', 8: '08-if-else-elif', 9: '09-kuramdy-shart', 10: '10-kiristirilgen-shart', 11: '11-tarmaqtalu-praktika', 12: '12-for-range',
+  13: '13-while-cikli', 14: '14-break-continue', 15: '15-kiristirilgen-ciklder', 16: '16-ciklder-praktika', 17: '17-joldar', 18: '18-joldy-izdeu-auystyru',
+  19: '19-bolu-biriktiru-pishim', 20: '20-bir-olshemdi-massiv', 21: '21-tizim-adisteri', 22: '22-massiv-izdeu-auystyru', 23: '23-eki-olshemdi-massiv', 24: '24-massiv-parametrleri'
+};
+
 /* Алғы тақырыптар: тақырып → алдымен меңгеру керек тақырыптар (келесі тақырыпқа болжам үшін) */
 export const PREREQ = {
   1: [], 2: [1], 3: [2], 4: [2, 3], 5: [2, 3], 6: [3, 4], 7: [5], 8: [7], 9: [5, 7, 8], 10: [7, 8, 9], 11: [7, 8, 9, 10],

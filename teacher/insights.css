@@ -83,3 +83,8 @@ td.ins-chips .ins-chip { margin: 0 4px 4px 0 }
 .ins-heat-topic { vertical-align: bottom; height: 120px; padding: 2px }
 .ins-heat-topic span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; max-height: 116px; overflow: hidden }
 @media (max-width: 900px) { .ins-topic { grid-template-columns: 26px minmax(0, 1fr) 46px; } .ins-stack, .ins-topic .jc { display: none } }
+
+.ins-sub { margin: 4px 0; font-size: 12px; color: var(--muted, #5d5f7a); }
+.ins-gap-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 3px 0; font-size: 13px; }
+.ins-task-link { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #4144c4; color: #fff; font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.ins-task-link:hover { background: #2f32a8; }
