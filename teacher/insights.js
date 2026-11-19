@@ -166,8 +166,19 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
   }
 
   /* Не істеу керек: сол тақырыптардан тапсырма + «Тапсырманы қарау» батырмасы */
-  function advice(p, next) {
+  /* Үздік студент: болжам жоғары, білмейтін тақырыбы жоқ — оған олимпиадалық есеп беріп, үздіктермен бірге отырғызамыз */
+  const isStrong = p => p.ready && p.risk === 'low' && !p.gaps.length && p.next[0] >= 85;
+  const shortName = n => n.split(' ').slice(0, 2).join(' ');
+
+  function advice(p, next, peers = []) {
     if (!p.ready) return [];
+    if (isStrong(p)) {
+      const mates = peers.filter(x => x.id !== p.id).map(x => shortName(x.name));
+      return [
+        h('p', { class: 'ins-sub', text: 'Олимпиадалық деңгейдегі, барынша қиын есептер беріңіз.' }),
+        mates.length ? h('p', { class: 'ins-sub', text: 'Үздік студенттермен бірге отырғызып, бірлесіп шешуге ұсыныңыз: ' + mates.join(', ') + '.' }) : h('p', { class: 'ins-sub', text: 'Басқа студенттерге көмектесіп, есепті түсіндіруге тапсырма беріңіз.' })
+      ];
+    }
     const nodes = [];
     if (p.gaps.length) {
       nodes.push(h('p', { class: 'ins-sub', text: 'Осы тақырыптардан тапсырма беріңіз:' }));
@@ -184,6 +195,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
 
   function forecastTable(a, view, student) {
     const nextHead = a.nextTopics.length ? 'Болжам (' + a.nextTopics.map(t => t.n).join(' · ') + ' тақырып)' : 'Болжам (1 · 2 сабақ)';
+    const peers = a.predictions.filter(isStrong);
     const rows = a.predictions.map(p => h('tr', { class: p.ready ? 'risk-' + p.risk : 'risk-none' }, [
       h('th', { scope: 'row' }, h('button', { type: 'button', class: 'student-ai', on: { click: () => student(p.id) } }, p.name)),
       h('td', { text: p.avg === null ? '—' : fmt.format(p.avg) }),
@@ -191,7 +203,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       h('td', {}, p.ready ? h('span', { class: 'jc ' + RISK[p.risk][1], text: RISK[p.risk][0] }) : '—'),
       h('td', { class: 'ins-chips' }, p.chips.map(c => chip(c, view.threshold))),
       h('td', { class: 'ins-reasons' }, reasonsCell(p)),
-      h('td', { class: 'ins-advice' }, p.ready && (p.risk !== 'low' || p.gaps.length) ? advice(p, a.nextTopics) : '')]));
+      h('td', { class: 'ins-advice' }, p.ready && (p.risk !== 'low' || p.gaps.length || isStrong(p)) ? advice(p, a.nextTopics, peers) : '')]));
     return h('div', { class: 'ins-scroll' }, h('table', { class: 'classes-table ins-forecast' }, [
       h('thead', {}, h('tr', {}, ['Студент', 'Орташа', nextHead, 'Қауіп', 'Алғы тақырыптар', 'Себебі', 'Не істеу керек'].map(t => h('th', { scope: 'col', text: t })))), h('tbody', {}, rows)]));
   }
@@ -211,7 +223,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       h('div', { class: 'ins-legend' }, [h('i', { style: 'background:#e2661f' }), s.name.split(' ').slice(0, 2).join(' '), h('i', { style: 'background:#4144c4' }), 'Топ орташасы']),
       lineChart(lessons.map(l => dm(l.date)), [{ name: 'Топ орташасы', color: '#4144c4', values: group, dash: '6 4' }, { name: s.name, color: '#e2661f', values: own }], view.threshold),
       p.ready && p.reasons.length ? h('p', {}, [h('b', { text: 'Белгілер: ' }), p.reasons.join('; ') + '.']) : null,
-      h('div', { class: 'ins-advice-box' }, [h('b', { text: 'Ұсыныс' }), ...advice(p, a.nextTopics)]),
+      h('div', { class: 'ins-advice-box' }, [h('b', { text: 'Ұсыныс' }), ...advice(p, a.nextTopics, a.predictions.filter(isStrong))]),
       h('div', {}, [h('h3', { text: 'Тақырыптар бойынша баллдары' }), bars(a.topics.filter(t => t.results.find(r => r.id === s.id)?.score !== null).map(t => { const r = t.results.find(x => x.id === s.id); return { name: (t.n ? t.n + '. ' : '') + (t.title || dm(t.date)), value: r.score, color: r.score < view.threshold ? '#e8806c' : '#4144c4', label: fmt.format(r.score) + (t.avg !== null ? ' (топ ' + fmt.format(t.avg) + ')' : '') }; }), '#4144c4', 100)]),
       practice.length ? h('div', {}, [h('h3', { text: 'Python жаттығуы' }), bars(practice, '#4fb97c', 100)]) : null]);
   }
