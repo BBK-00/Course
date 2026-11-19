@@ -168,3 +168,15 @@ test('homework plan: weaker students get more and easier tasks, stronger get few
   assert.equal(bandOf(null).key, 'base'); // баға жоқ: базалық
   assert.deepEqual(planHomework(99, 50, 0).tasks, []);
 });
+
+test('reasons explain a forecast above the average by strong related topics', () => {
+  const lesson = n => ({ key: 'c' + n, date: '2026-09-0' + n, number: String(n), title: '', kind: '', source: 'journal' });
+  const cell = score => ({ score, mark: '' });
+  const v = {
+    students: [{ id: 1, name: 'А' }], lessons: [7, 8, 9].map(lesson), threshold: 60, plan: [],
+    cells: { 1: { c7: cell(88), c8: cell(92), c9: cell(95) } }, summary: { 1: { avg: 78 } } // журнал орташасы төмен, жақын тақырыптар күшті
+  };
+  const p = analyze(v).predictions[0];
+  assert.ok(p.next[0] >= 82);
+  assert.ok(p.reasons[0].includes('Орташа 78') && p.reasons[0].includes('жақсы біледі') && p.reasons[0].includes('болжам жоғары'), p.reasons[0]);
+});

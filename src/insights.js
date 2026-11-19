@@ -157,7 +157,17 @@ export function analyze(view) {
       risk = next[0] < 50 ? 'high' : next[0] < threshold ? 'mid' : 'low';
     }
     const reasons = [...(f.reasons || [])];
-    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, next, range, risk, reasons: reasons.slice(0, 4), chips, gaps, weak: weak.slice(0, 4), missed: missed.slice(-4).reverse(), unscored: unscored.slice(0, 4) };
+    // Болжам орташадан неге өзгеше: жақын (алғы) тақырыптардағы баллдар
+    const avgNow = view.summary[s.id]?.avg;
+    if (f.ready && isNum(avgNow) && next[0] !== undefined) {
+      const shown = nextTopics.length ? '«' + nextTopics[0].title + '»' : 'келесі тақырып';
+      const scoredChips = chips.filter(c => c.score !== null && nextTopics.some(t => t.prereq.includes(c.n)));
+      const list = arr => arr.map(c => '«' + c.title + '» (' + fmtNum(c.score) + ')').join(', ');
+      const strong = scoredChips.filter(c => c.score >= Math.max(threshold + 10, next[0])), weakC = scoredChips.filter(c => c.score < threshold);
+      if (next[0] >= avgNow + 4) reasons.unshift('Орташа ' + fmtNum(avgNow) + ', бірақ ' + shown + ' тақырыбына жақын ' + (strong.length ? list(strong.slice(0, 3)) + ' тақырыптарын жақсы біледі' : 'тақырыптардан жақсы нәтиже көрсетті') + ', сондықтан болжам жоғары (' + next[0] + ')');
+      else if (next[0] <= avgNow - 4) reasons.unshift('Орташа ' + fmtNum(avgNow) + ', бірақ ' + shown + ' тақырыбына жақын ' + (weakC.length ? list(weakC.slice(0, 3)) + ' тақырыптары әлсіз' : f.attend < 0.8 ? 'сабақтарға жиі қатыспаған' : 'бағалары төмендеп барады') + ', сондықтан болжам төмен');
+    }
+    return { id: s.id, name: s.name, avg: view.summary[s.id]?.avg ?? null, ...f, next, range, risk, reasons: reasons.slice(0, 5), chips, gaps, weak: weak.slice(0, 4), missed: missed.slice(-4).reverse(), unscored: unscored.slice(0, 4) };
   });
   const order = { high: 0, mid: 1, low: 2 };
   predictions.sort((a, b) => (a.ready === b.ready ? 0 : a.ready ? -1 : 1) || (order[a.risk] ?? 3) - (order[b.risk] ?? 3) || (a.next?.[0] ?? 0) - (b.next?.[0] ?? 0));
