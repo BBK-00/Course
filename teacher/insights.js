@@ -88,7 +88,23 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
   /* Тақырыптар бойынша талдау: қиыны жоғарыда, тақырыпты бассаң студенттері ашылады */
   function topicsCard(a, view) {
     const detail = h('div', { class: 'ins-topic-detail' });
-    const order = [...a.topics].sort((x, y) => (x.avg ?? 101) - (y.avg ?? 101));
+    const sorters = {
+      n: (x, y) => (x.n ? 0 : 1) - (y.n ? 0 : 1) || (x.n || 0) - (y.n || 0) || String(x.date).localeCompare(String(y.date)),
+      hard: (x, y) => (x.avg ?? 101) - (y.avg ?? 101),
+      good: (x, y) => (y.avg ?? -1) - (x.avg ?? -1)
+    };
+    const state = { sort: 'n', status: '' };
+    const list = h('div', { class: 'ins-topics' });
+    const paintList = () => {
+      const rows = a.topics.filter(t => !state.status || t.status === state.status).sort(sorters[state.sort]);
+      detail.replaceChildren(); openId = '';
+      list.replaceChildren(...(rows.length ? rows.map(rowOf) : [h('p', { class: 'workspace-empty', text: 'Бұл сүзгі бойынша тақырып жоқ.' })]));
+    };
+    const select = (label, options, key) => h('label', { class: 'workspace-filter ins-filter' }, [h('span', { text: label }),
+      h('select', { class: 'field', on: { change: e => { state[key] = e.target.value; paintList(); } } }, options.map(([value, text]) => h('option', { value, text, selected: state[key] === value })))]);
+    const filters = h('div', { class: 'ins-filters' }, [
+      select('Реті', [['n', 'Тақырып нөмірі бойынша'], ['hard', 'Қиыны бірінші'], ['good', 'Жақсысы бірінші']], 'sort'),
+      select('Күйі', [['', 'Барлығы'], ['hard', 'Қиын'], ['mid', 'Орташа'], ['good', 'Меңгерілген'], ['none', 'Баға жоқ']], 'status')]);
     let openId = '';
     const rowOf = t => {
       const total = Math.max(1, t.graded + t.spread.missed);
@@ -112,9 +128,10 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
     };
     const hard = a.hardTopics.map(t => '«' + (t.title || dm(t.date)) + '» (' + fmt.format(t.avg) + ')'), best = (a.bestTopics || []).map(t => '«' + (t.title || dm(t.date)) + '» (' + fmt.format(t.avg) + ')');
     const lead = [hard.length ? 'Ең қиын: ' + hard.join(', ') + '.' : 'Қиын тақырып жоқ.', best.length ? ' Жақсы меңгерілген: ' + best.join(', ') + '.' : ''].join('');
-    return card('Тақырыптар бойынша талдау', 'қиыны жоғарыда · тақырыпты бассаң студенттері көрінеді', h('p', { class: 'ins-lead', text: lead }),
+    paintList();
+    return card('Тақырыптар бойынша талдау', 'тақырып нөмірімен · тақырыпты бассаң студенттері көрінеді', h('p', { class: 'ins-lead', text: lead }),
       h('div', { class: 'ins-legend' }, [h('i', { class: 'k-high' }), '75+', h('i', { class: 'k-mid' }), 'шектен өтті', h('i', { class: 'k-low' }), 'шектен төмен', h('i', { class: 'k-miss' }), 'өткізді']),
-      h('div', { class: 'ins-topics' }, order.map(rowOf)), detail);
+      filters, list, detail);
   }
 
   const kpiCard = (name, value, note, tone) => h('div', { class: 'ins-kpi' + (tone ? ' ' + tone : '') }, [h('small', { text: name }), h('strong', { text: String(value) }), note ? h('span', { text: note }) : null]);
