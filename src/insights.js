@@ -31,32 +31,33 @@ export function forecastStudent(points, threshold = 60) {
   const retake = points.filter(p => p.mark === 'с').length;
   if (!points.length) return { ready: false, count: 0, absent, retake };
   const total = points.length;
-  const missing = total - scores.length; // бағасы жоқ тақырыптар: келмеген, қайта тапсыру немесе бос
-  const blank = points.filter(p => p.score === null && !p.mark).length;
-  // Баға аз (1–2 немесе жоқ): бағасыз тақырыптарды білмеуі мүмкін деп, болжамды төмендетеміз
+  // Бірде баға жоқ: болжам жасалмайды (ешкім баға алмаған күндер 0 емес)
+  if (!scores.length) return { ready: false, count: 0, absent, retake };
+  const markPenalty = Math.min(absent, 3) * 2 + Math.min(retake, 3) * 2; // ж/с белгілері ғана аздап түсіреді
+  // Баға аз (1–2): бар бағалардың өзіне сүйенеміз, диапазон кеңірек
   if (scores.length < 3) {
-    const known = scores.length ? mean(scores) : 40;
-    const first = clamp(known - 40 * missing / total, 0, 100);
+    const known = mean(scores);
+    const first = clamp(known - markPenalty, 0, 100);
     const reasons = [];
-    if (absent) reasons.push('сабаққа келмеген: ' + absent + ' рет');
+    if (absent) reasons.push('себепсіз қалған: ' + absent + ' рет');
     if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
     return {
-      ready: true, thin: true, count: scores.length, absent, retake, missing, total,
+      ready: true, thin: true, count: scores.length, absent, retake, total,
       base: round1(known), trend: 0, next: [Math.round(first), Math.round(first)],
-      range: [Math.round(clamp(first - 15, 0, 100)), Math.round(clamp(first + 15, 0, 100))],
+      range: [Math.round(clamp(first - 10, 0, 100)), Math.round(clamp(first + 10, 0, 100))],
       risk: first < 50 ? 'high' : first < threshold ? 'mid' : 'low', reasons
     };
   }
   const last = scores.slice(-3).reverse(); // жаңасы бірінші
   const weights = [0.5, 0.3, 0.2];
-  const base = last.reduce((a, v, i) => a + v * weights[i], 0);
+  const recentWeighted = last.reduce((a, v, i) => a + v * weights[i], 0);
+  const base = 0.6 * recentWeighted + 0.4 * mean(scores);
   const trend = clamp(slope(scores.slice(-4)), -10, 10);
   const recent = points.slice(-5);
   const recentAbsent = recent.filter(p => p.mark === 'ж').length;
-  const absencePenalty = 15 * (0.6 * recentAbsent / Math.max(1, recent.length) + 0.4 * absent / Math.max(1, points.length));
-  const retakePenalty = Math.min(retake, 4) * 3;
-  const blankPenalty = 15 * blank / total; // бос ұяшық = баға қойылмаған тақырып
-  const first = clamp(base + 0.5 * trend - absencePenalty - retakePenalty - blankPenalty, 0, 100);
+  const absencePenalty = 8 * (0.6 * recentAbsent / Math.max(1, recent.length) + 0.4 * absent / Math.max(1, points.length));
+  const retakePenalty = Math.min(retake, 4) * 1.5;
+  const first = clamp(base + 0.5 * trend - absencePenalty - retakePenalty, 0, 100);
   const second = clamp(first + 0.5 * trend, 0, 100);
   const spread = clamp(deviation(scores), 5, 15);
   const risk = first < 50 ? 'high' : first < threshold ? 'mid' : 'low';
@@ -64,7 +65,7 @@ export function forecastStudent(points, threshold = 60) {
   if (trend <= -2) reasons.push('соңғы бағалар төмендеп барады');
   else if (trend >= 2) reasons.push('соңғы бағалар жоғарылап барады');
   if (mean(scores) < threshold) reasons.push('орташа балл межеден төмен (' + round1(mean(scores)) + ')');
-  if (recentAbsent >= 1 || absent >= 2) reasons.push('сабаққа келмеген: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
+  if (recentAbsent >= 1 || absent >= 2) reasons.push('себепсіз қалған: ' + absent + ' рет' + (recentAbsent ? ' (соңғы 5 сабақта ' + recentAbsent + ')' : ''));
   if (retake) reasons.push('себеппен қалған сабақ: ' + retake);
   return {
     ready: true, count: scores.length, absent, retake,
@@ -138,7 +139,7 @@ export function analyze(view) {
 
   const resultOf = (s, topic) => topic.results.find(r => r.id === s.id);
   const predictions = students.map(s => {
-    const points = topics.map(t => { const r = resultOf(s, t); return { score: r.score, mark: r.mark }; });
+    const points = topics.filter(t => t.avg !== null).map(t => { const r = resultOf(s, t); return { score: r.score, mark: r.mark }; });
     const f = forecastStudent(points, threshold);
     const weak = [], missed = [], unscored = [];
     topics.forEach(t => {
@@ -154,8 +155,10 @@ export function analyze(view) {
     const forecastFor = nt => {
       const own = chips.filter(c => nt.prereq.includes(c.n));
       if (!own.length) return f.next[0];
-      const values = own.map(c => c.score ?? 40), missing = own.filter(c => c.score === null).length;
-      const prereq = clamp(mean(values) - 10 * missing, 0, 100);
+      const scored = own.filter(c => c.score !== null);
+      if (!scored.length) return f.next[0];
+      const missing = own.filter(c => c.score === null && c.mark).length;
+      const prereq = clamp(mean(scored.map(c => c.score)) - 3 * missing, 0, 100);
       return Math.round(clamp(0.6 * prereq + 0.4 * f.next[0], 0, 100));
     };
     let next = f.next, risk = f.risk, range = f.range;

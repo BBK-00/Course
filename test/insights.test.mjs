@@ -11,16 +11,17 @@ test('slope: rising, falling and flat series', () => {
   assert.equal(slope([60]), 0);
 });
 
-test('forecast: few grades lowers the forecast for topics without a grade', () => {
+test('forecast: blank days are not zeros; few grades keep their own level', () => {
   const thin = forecastStudent(pts(85, null, null, null, null, null, null, null, null).map(p => ({ score: p.score, mark: '' })));
   assert.equal(thin.ready, true);
   assert.equal(thin.thin, true);
-  assert.ok(thin.next[0] < 70); // 85 − 40·8/9 ≈ 49
-  assert.equal(thin.risk, 'high');
+  assert.ok(thin.next[0] >= 80); // бос күндер болжамды түсірмейді
+  assert.equal(thin.risk, 'low');
+  const two = forecastStudent(pts(90, 85, null, null, null));
+  assert.ok(two.next[0] >= 80 && two.next[0] <= 90);
   assert.ok(!thin.reasons.some(r => r.includes('баға қойылмаған') || r.includes('ғана баға')));
   const none = forecastStudent(pts('ж', 'ж', 'ж'));
-  assert.equal(none.thin, true);
-  assert.equal(none.risk, 'high');
+  assert.equal(none.ready, false); // бірде баға жоқ: 0 деп есептелмейді
   assert.equal(forecastStudent([]).ready, false);
 });
 
@@ -37,7 +38,7 @@ test('forecast: falling grades with absences end below 50', () => {
   assert.ok(f.next[0] < 50);
   assert.ok(f.range[0] <= f.next[0] && f.next[0] <= f.range[1]);
   assert.ok(f.reasons.some(r => r.includes('төмендеп')));
-  assert.ok(f.reasons.some(r => r.includes('келмеген')));
+  assert.ok(f.reasons.some(r => r.includes('себепсіз қалған')));
 });
 
 test('forecast: retakes lower the forecast', () => {
@@ -76,7 +77,7 @@ test('analyze: kpi, histogram, risk ordering and weak topics', () => {
   assert.equal(weakOne.missed[0].n, 3);
   assert.equal(fresh.thin, true);
   assert.equal(fresh.unscored.length, 3);
-  assert.notEqual(fresh.risk, 'low');
+  assert.equal(fresh.risk, 'low'); // бір баға 80: болжам сол деңгейде
   assert.deepEqual(a.nextTopics.map(x => x.n), [5, 6]);
 });
 
@@ -89,7 +90,7 @@ test('analyze: empty journal does not throw', () => {
 test('compactFacts only carries people at risk and the cache key follows the facts', () => {
   const a = analyze(view());
   const facts = compactFacts(a);
-  assert.deepEqual(facts.atRisk.map(r => r.name).sort(), ['Жаңа', 'Әлсіз'].sort());
+  assert.deepEqual(facts.atRisk.map(r => r.name).sort(), ['Әлсіз']);
   assert.equal(factsKey(facts), factsKey(compactFacts(analyze(view()))));
   const other = view(); other.cells[2].c4 = { score: 90, mark: '' };
   assert.notEqual(factsKey(compactFacts(analyze(other))), factsKey(facts));

@@ -150,7 +150,7 @@ window.TeacherInsights = function ({ h, btn, api, toast, openJournal }) {
       p.ready ? h('td', {}, [h('b', { text: p.next[0] + ' · ' + p.next[1] }), h('small', { text: ' (' + p.range[0] + '–' + p.range[1] + ')' })]) : h('td', { class: 'ins-muted', text: '—' }),
       h('td', {}, p.ready ? h('span', { class: 'jc ' + RISK[p.risk][1], text: RISK[p.risk][0] }) : '—'),
       h('td', { class: 'ins-chips' }, p.chips.map(c => chip(c, view.threshold))),
-      h('td', { class: 'ins-reasons', text: p.ready ? p.reasons.join('; ') || '—' : 'Журналда сабақ жоқ' }),
+      h('td', { class: 'ins-reasons', text: p.ready ? p.reasons.join('; ') || '—' : 'Баға жоқ, болжам жасалмады' }),
       h('td', { class: 'ins-advice' }, p.ready && p.risk !== 'low' ? advice(p, a.nextTopics).map(t => h('p', { text: t })) : '')]));
     return h('div', { class: 'ins-scroll' }, h('table', { class: 'classes-table ins-forecast' }, [
       h('thead', {}, h('tr', {}, ['Студент', 'Орташа', nextHead, 'Қауіп', 'Алғы тақырыптар', 'Себебі', 'Не істеу керек'].map(t => h('th', { scope: 'col', text: t })))), h('tbody', {}, rows)]));
