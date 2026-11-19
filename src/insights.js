@@ -27,7 +27,7 @@ const deviation = values => {
 /* Студенттің болжамы. points — хронологиялық [{score, mark}] (жаттығу бағандарынсыз, тек баға қойылған тақырыптар).
    Болжам = деңгей (өз бағалары) × қатысу үлесі.
    деңгей: баға ≥3 болса 60% соңғы 3 баға + 40% орташа + тенденция, әйтпесе бар бағалардың орташасы;
-   қатысу: k / (k + қалғандар), ж = 1, с = 0.5 салмақпен (бір рет келіп, қалғанында жоқ студент жоғары балл ала алмайды);
+   қатысу: k / (k + қалғандар), ж = 1, с = 0.3 салмақпен (бір рет келіп, қалғанында жоқ студент жоғары балл ала алмайды);
    бос ұяшық пен ешкім баға алмаған күн есептелмейді. */
 export function forecastStudent(points, threshold = 60) {
   const scores = points.map(p => p.score).filter(isNum);
@@ -35,7 +35,7 @@ export function forecastStudent(points, threshold = 60) {
   const retake = points.filter(p => p.mark === 'с').length;
   if (!points.length || !scores.length) return { ready: false, count: 0, absent, retake };
   const k = scores.length;
-  const attend = k / (k + absent + 0.5 * retake); // 1 = барлығына қатысқан
+  const attend = k / (k + absent + 0.3 * retake); // 1 = барлығына қатысқан
   const level = k < 3 ? mean(scores) : 0.6 * [...scores.slice(-3)].reverse().reduce((acc, v, i) => acc + v * [0.5, 0.3, 0.2][i], 0) + 0.4 * mean(scores);
   const trend = k < 3 ? 0 : clamp(slope(scores.slice(-4)), -10, 10);
   const first = clamp((level + 0.5 * trend) * attend, 0, 100);
