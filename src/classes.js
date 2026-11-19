@@ -5,6 +5,7 @@ import { sheetSource } from './progress-google.js';
 import { geminiJson } from './gemini.js';
 import { percentOf } from './practice.js';
 import { setStudentAccount, removeStudentAccount } from './accounts.js';
+import { analyze, compactFacts, factsKey } from './insights.js';
 import { officeRows, topicsFromRows, topicsFromAi, validTopics } from './plan-import.js';
 
 const rowsOf = async statement => (await statement.all()).results || [];
@@ -247,6 +248,7 @@ export async function classesApi(path, method, b, env, url, json, err) {
       await DB.batch([
         DB.prepare('DELETE FROM learner_accounts WHERE student_id IN (SELECT id FROM students WHERE group_id=?)').bind(id),
         DB.prepare('DELETE FROM course_plan WHERE course_id IN (SELECT id FROM progress_courses WHERE group_id=?)').bind(id),
+        DB.prepare('DELETE FROM progress_ai WHERE course_id IN (SELECT id FROM progress_courses WHERE group_id=?)').bind(id),
         DB.prepare('DELETE FROM progress_courses WHERE group_id=?').bind(id),
         DB.prepare('DELETE FROM groups WHERE id=?').bind(id)
       ]);
@@ -270,7 +272,7 @@ export async function classesApi(path, method, b, env, url, json, err) {
     if (!course) return err('not_found', 404);
     const linked = await DB.prepare(`SELECT 1 AS x FROM progress_imports WHERE course_id=? UNION ALL SELECT 1 FROM sessions WHERE course_group_id=? LIMIT 1`).bind(course.id, course.id).first();
     if (linked) return err('course_has_data', 409);
-    await DB.batch([DB.prepare('DELETE FROM course_plan WHERE course_id=?').bind(course.id), DB.prepare('DELETE FROM progress_courses WHERE id=?').bind(course.id)]);
+    await DB.batch([DB.prepare('DELETE FROM course_plan WHERE course_id=?').bind(course.id), DB.prepare('DELETE FROM progress_ai WHERE course_id=?').bind(course.id), DB.prepare('DELETE FROM progress_courses WHERE id=?').bind(course.id)]);
     return json({ ok: true, groups: await classesOverview(DB) });
   }
 
@@ -344,43 +346,44 @@ export async function classesApi(path, method, b, env, url, json, err) {
     return json({ ok: true });
   }
 
-  /* ЖИ талдау: көрсеткіштерді сервер есептейді, ЖИ тек қысқаша түсіндіреді */
+  /* Топты талдау: көрсеткіштер мен болжам формуламен есептеледі (ЖИ жоқ) */
+  if (sub === 'insights' && method === 'GET') {
+    const course = await ownedCourse(DB, url.searchParams.get('course'));
+    if (!course) return err('not_found', 404);
+    const group = await DB.prepare('SELECT name FROM groups WHERE id=?').bind(course.group_id).first();
+    const view = await journalView(DB, course);
+    const analysis = analyze(view);
+    const cached = await DB.prepare('SELECT facts_key, summary, action FROM progress_ai WHERE course_id=?').bind(course.id).first();
+    const fresh = cached && cached.facts_key === factsKey(compactFacts(analysis));
+    return json({ ok: true, course: { id: course.id, subject: course.subject, year: course.year, group: group?.name || '', groupId: course.group_id },
+      ...view, analysis, ai: fresh ? { summary: cached.summary, action: cached.action } : null });
+  }
+
+  /* ЖИ түсініктемесі: тек болжам үшін, 1 шағын сұраныс, нәтиже кэштеледі */
   if (sub === 'ai' && method === 'POST') {
     const course = await ownedCourse(DB, b.course);
     if (!course) return err('not_found', 404);
-    const view = await journalView(DB, course);
-    const single = b.student ? view.students.find(s => s.id === Number(b.student)) : null;
-    if (b.student && !single) return err('not_found', 404);
-    const lessonKeys = view.lessons.map(l => l.key);
-    const scoresOf = id => lessonKeys.map(k => view.cells[id]?.[k]?.score).filter(v => v !== null && v !== undefined);
-    const mean = list => list.length ? Math.round(list.reduce((a, v) => a + v, 0) / list.length * 10) / 10 : null;
-    const facts = single ? {
-      student: single.name, scores: scoresOf(single.id), average: view.summary[single.id].avg, absent: view.summary[single.id].absent,
-      retake: view.summary[single.id].retake, threshold: view.threshold
-    } : (() => {
-      const rows = view.students.map(s => ({ name: s.name, ...view.summary[s.id] }));
-      const graded = rows.filter(r => r.avg !== null);
-      const last = view.lessons.slice(-3).flatMap(l => view.students.map(s => view.cells[s.id]?.[l.key]?.score)).filter(v => v !== null && v !== undefined);
-      const before = view.lessons.slice(0, -3).flatMap(l => view.students.map(s => view.cells[s.id]?.[l.key]?.score)).filter(v => v !== null && v !== undefined);
-      return {
-        students: rows.length, average: mean(graded.map(r => r.avg)), threshold: view.threshold,
-        belowThreshold: graded.filter(r => r.avg < view.threshold).map(r => r.name).slice(0, 8),
-        mostAbsent: rows.filter(r => r.absent).sort((x, y) => y.absent - x.absent).slice(0, 5).map(r => ({ name: r.name, absent: r.absent })),
-        mostRetake: rows.filter(r => r.retake).sort((x, y) => y.retake - x.retake).slice(0, 5).map(r => ({ name: r.name, retake: r.retake })),
-        recentAverage: mean(last), earlierAverage: mean(before)
-      };
-    })();
-    if ((single ? facts.scores.length : facts.average) === null || (single && !facts.scores.length)) return json({ ok: true, facts, ai: 'no_scores' });
-    if (env.GEMINI_STUB) return json({ ok: true, facts, summary: 'Журнал көрсеткіштері бойынша қысқа талдау.', action: 'Қайта тапсыру көп студенттермен жеке сөйлесіңіз.' });
-    try {
-      const out = await geminiJson(env, [{ text: 'Қазақ тілінде оқытушыға оқу журналы бойынша қысқа қорытынды жаз (2–3 сөйлем) және бір нақты қолдау әрекетін ұсын. '
-        + 'Тек берілген көрсеткіштерге сүйен, сандарды өзгертпе, себептерді ойдан шығарма. Көрсеткіштер: ' + JSON.stringify(facts) }],
-      { type: 'OBJECT', properties: { summary: { type: 'STRING' }, action: { type: 'STRING' } }, required: ['summary', 'action'] },
-      { budgetMs: 12000, maxOutputTokens: 400, validate: o => typeof o.summary === 'string' && typeof o.action === 'string' });
-      return json({ ok: true, facts, summary: out.summary.slice(0, 800), action: out.action.slice(0, 500) });
-    } catch (error) {
-      return json({ ok: true, facts, ai: error.kind === 'config' ? 'ai_config' : 'ai_unavailable' });
+    const analysis = analyze(await journalView(DB, course));
+    const facts = compactFacts(analysis);
+    if (facts.average === null || !analysis.predictions.some(p => p.ready)) return json({ ok: true, ai: 'no_scores' });
+    const key = factsKey(facts);
+    const cached = await DB.prepare('SELECT facts_key, summary, action FROM progress_ai WHERE course_id=?').bind(course.id).first();
+    if (cached && cached.facts_key === key) return json({ ok: true, summary: cached.summary, action: cached.action, cached: true });
+    let out;
+    if (env.GEMINI_STUB) out = { summary: 'Журнал көрсеткіштері бойынша қысқа түсініктеме.', action: 'Қауіптегі студенттерге әлсіз тақырыптардан қосымша тапсырма беріңіз.' };
+    else {
+      try {
+        out = await geminiJson(env, [{ text: 'Қазақ тілінде оқытушыға келесі 2 сабаққа арналған болжамды түсіндір: 2–3 сөйлем қорытынды және бір нақты әрекет. '
+          + 'Тек берілген сандарға сүйен, жаңа сан немесе себеп ойлап таппа. Деректер: ' + JSON.stringify(facts) }],
+        { type: 'OBJECT', properties: { summary: { type: 'STRING' }, action: { type: 'STRING' } }, required: ['summary', 'action'] },
+        { budgetMs: 12000, maxOutputTokens: 300, validate: o => typeof o.summary === 'string' && typeof o.action === 'string' });
+      } catch (error) {
+        return json({ ok: true, ai: error.kind === 'config' ? 'ai_config' : 'ai_unavailable' });
+      }
     }
+    const summary = out.summary.slice(0, 700), action = out.action.slice(0, 400);
+    await DB.prepare('INSERT OR REPLACE INTO progress_ai (course_id, facts_key, summary, action, at) VALUES (?,?,?,?,?)').bind(course.id, key, summary, action, Date.now()).run();
+    return json({ ok: true, summary, action });
   }
 
   /* Журнал */

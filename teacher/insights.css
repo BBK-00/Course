@@ -1,0 +1,60 @@
+/* Топты талдау */
+.ins-page { display: grid; gap: 14px; min-width: 0 }
+#s-progress { display: grid; gap: 14px }
+.ins-card { min-width: 0 }
+.ins-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px }
+.ins-head h2 { margin: 0; font-size: 1.1rem }
+.ins-head small { color: var(--teacher-muted, #5d607a) }
+.ins-head .sp { flex: 1 }
+.ins-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.ins-kpi { display: grid; gap: 2px; background: #fff; border: 1px solid #ececf6; border-radius: 12px; padding: 10px 14px }
+.ins-kpi small { color: var(--teacher-muted, #5d607a); font-size: .75rem; font-weight: 700 }
+.ins-kpi strong { font-size: 1.6rem; line-height: 1.15 }
+.ins-kpi span { font-size: .78rem; color: var(--teacher-muted, #5d607a) }
+.ins-kpi.bad { background: #fff5f3; border-color: #f6cfc7 }
+.ins-kpi.bad strong { color: #b42318 }
+.ins-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px }
+.ins-svg { width: 100%; height: auto; display: block }
+.ins-axis { font-size: 10px; fill: #6c6f8c }
+.ins-num { font-size: 12px; font-weight: 700; fill: #2c2e57 }
+.ins-donut-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 12px }
+.ins-donut { width: 130px; height: 130px }
+.ins-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.ins-key i, .ins-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px }
+.ins-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; margin: 8px 0 }
+.ins-bars { display: grid; gap: 6px }
+.ins-bar { display: grid; grid-template-columns: minmax(110px, 38%) 1fr auto; gap: 10px; align-items: center; font-size: .85rem }
+.ins-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ins-bar-track { background: #f1f1fb; border-radius: 6px; height: 12px; overflow: hidden }
+.ins-bar-track i { display: block; height: 100%; border-radius: 6px }
+.ins-bar b { font-size: .8rem; white-space: nowrap }
+.ins-scroll { overflow: auto; max-width: 100%; border-radius: 10px }
+.ins-heat { border-collapse: separate; border-spacing: 2px; font-size: .78rem }
+.ins-heat th, .ins-heat td { text-align: center; padding: 4px 6px; white-space: nowrap }
+.ins-heat thead th { color: var(--teacher-muted, #5d607a); font-weight: 600; font-size: .7rem }
+.ins-heat .ins-heat-name { text-align: left; position: sticky; left: 0; background: #fff; z-index: 1; min-width: 170px; max-width: 220px; overflow: hidden; text-overflow: ellipsis }
+.ins-heat td.jc { border-radius: 6px; min-width: 32px; font-weight: 700 }
+.ins-heat-avg { font-weight: 800 }
+.ins-lead { margin: 0 0 12px; line-height: 1.5 }
+.ins-note, .ins-muted { color: var(--teacher-muted, #5d607a); font-size: .8rem }
+.ins-note { margin: 10px 0 }
+.ins-forecast th[scope=row] { white-space: nowrap }
+.ins-forecast .ins-reasons { font-size: .82rem; min-width: 190px }
+.ins-forecast .ins-advice { font-size: .82rem; min-width: 260px }
+.ins-forecast .ins-advice p { margin: 0 0 4px }
+.ins-forecast tr.risk-high { background: #fff7f5 }
+.ins-forecast tr.risk-mid { background: #fffcf0 }
+.ins-forecast .jc { white-space: nowrap }
+.ins-ai { margin-top: 10px; padding: 12px 14px; background: #f1f1ff; border-radius: 10px }
+.ins-ai:empty { display: none }
+.ins-ai p { margin: 0 0 6px }
+.ins-advice-box { background: #f6f6fc; border-radius: 10px; padding: 10px 14px; margin-top: 8px }
+.ins-advice-box p { margin: 6px 0 0 }
+.ins-student { border: 2px solid #4144c4; scroll-margin-top: 80px }
+@media (max-width: 900px) { .ins-grid { grid-template-columns: minmax(0, 1fr) } .ins-bar { grid-template-columns: minmax(90px, 34%) 1fr auto } }
+@media print {
+  .dash-sidebar, .dash-topbar, .dash-sync, .workspace-actions, #toast { display: none !important }
+  .dash-workspace { margin: 0 !important }
+  .ins-card, .ins-kpi { break-inside: avoid }
+}
+.ins-student .ins-svg { max-width: 780px }

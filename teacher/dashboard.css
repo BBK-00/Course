@@ -99,3 +99,26 @@ button,input,select,textarea{font:inherit}button,a,input,select,textarea{touch-a
 .va-task-bar i.good{background:#319581}.va-task-bar i.mid{background:#5c83e8}.va-task-bar i.low{background:#edab57}
 .va-task-sub{color:#6b7a8c;font-size:12px}.va-task .va-item{margin:12px 0 0}
 @media(max-width:800px){.va-task-grid{grid-template-columns:1fr}}
+
+/* Ықшам сабақ беті: студенттер кестесі экранға көбірек сыйсын */
+.teacher-dashboard .page-heading{margin-bottom:10px}
+.teacher-dashboard .live-metrics{gap:8px;margin-bottom:10px}
+.teacher-dashboard .metric{min-height:0;padding:7px 12px;gap:9px}
+.teacher-dashboard .metric>.icon{width:20px;height:20px}
+.teacher-dashboard .metric small{margin:0;font-size:11px}
+.teacher-dashboard .metric strong{font-size:19px}
+.teacher-dashboard .metric .den{font-size:14px}
+.teacher-dashboard .live-control-grid{gap:8px;margin-bottom:10px}
+.teacher-dashboard .control-panel{padding:9px 12px}
+.teacher-dashboard .entry-panel{padding:9px 12px}
+.teacher-dashboard .entry-panel h2{margin:0 0 2px}
+.teacher-dashboard .entry-code{font-size:26px}
+.teacher-dashboard .entry-hw{margin-top:6px;padding:5px 8px}
+.teacher-dashboard .roster-card{padding:10px 12px 0}
+.teacher-dashboard .roster-toolbar{margin-bottom:8px}
+.teacher-dashboard .roster-toolbar h2{font-size:16px}
+.teacher-dashboard .roster-scroll{max-height:calc(100dvh - 285px);min-height:260px}
+.teacher-dashboard .t th{padding:6px 9px}
+.teacher-dashboard .t td{padding:4px 9px}
+.teacher-dashboard .roster-table .student-avatar{width:26px;height:26px;font-size:10px}
+@media(max-width:650px){.teacher-dashboard .live-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}

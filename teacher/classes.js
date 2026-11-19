@@ -1,5 +1,5 @@
 /* Топтар (топ + пән + студент аккаунттары) және Журнал. Сервер: /api/teacher/classes/* */
-window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLesson, onChange, openJournal }) {
+window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLesson, onChange, openJournal, openInsights }) {
   const state = { data: null, group: 0, course: 0, journal: null, loading: false };
   const fmt = new Intl.NumberFormat('kk-KZ', { maximumFractionDigits: 1 });
   const dm = date => date.slice(8, 10) + '.' + date.slice(5, 7);
@@ -275,7 +275,7 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
     const bar = h('section', { class: 'workspace-card' }, [h('div', { class: 'classes-journal-bar' }, [field('Топ және пән', pick), h('div', { class: 'workspace-actions' }, [
       btn('Google журналынан импорттау', () => importDialog(current, current.group, () => renderJournal(root)), 'primary sm'),
       btn('+ Сабақ күні', () => addLesson(current, () => renderJournal(root)), 'sm'),
-      btn('ЖИ талдау', () => aiDialog(current), 'sm'),
+      btn('Топты талдау', () => openInsights(current.id), 'sm'),
       btn('Сабақ бастау', () => startLesson({ course: current.course, group_id: current.group.id, id: current.id, subject: current.subject, year: current.year }), 'sm')])])]);
     const host = h('div', {}, h('p', { class: 'workspace-empty', role: 'status', text: 'Журнал жүктелуде…' }));
     root.replaceChildren(bar, host);
@@ -284,26 +284,6 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
     if (ticket !== state.course) return;
     if (!j.ok) { host.replaceChildren(h('p', { class: 'workspace-empty', role: 'alert', text: 'Журналды жүктеу мүмкін болмады.' })); return; }
     paintJournal(host, j, current, () => renderJournal(root));
-  }
-
-  function aiDialog(course, studentName, studentId) {
-    dialog('ЖИ талдау' + (studentName ? ' · ' + studentName : ' · ' + course.group.name + ' · ' + course.subject), (body, close) => {
-      const out = h('div', { class: 'classes-preview', role: 'status', text: 'Талдау жасалуда…' });
-      body.append(out, h('div', { class: 'workspace-actions' }, [h('span', { class: 'sp' }), btn('Жабу', close, 'primary sm')]));
-      api('classes/ai', { course: course.id, student: studentId || undefined }).then(j => {
-        if (!j.ok) { out.textContent = 'Талдау жасалмады.'; return; }
-        const f = j.facts;
-        const facts = studentId
-          ? ['Орташа: ' + (f.average ?? '—'), 'НБ: ' + f.absent, 'Қайта тапсыру: ' + f.retake, 'Бағалар: ' + (f.scores.join(', ') || '—')]
-          : ['Студент: ' + f.students, 'Орташа: ' + (f.average ?? '—'), 'Соңғы сабақтар: ' + (f.recentAverage ?? '—') + ' (бұрын: ' + (f.earlierAverage ?? '—') + ')',
-            f.belowThreshold.length ? 'Межеден төмен: ' + f.belowThreshold.join(', ') : 'Межеден төмен студент жоқ',
-            f.mostAbsent.length ? 'НБ көп: ' + f.mostAbsent.map(r => r.name + ' (' + r.absent + ')').join(', ') : null,
-            f.mostRetake.length ? 'Қайта тапсыру көп: ' + f.mostRetake.map(r => r.name + ' (' + r.retake + ')').join(', ') : null].filter(Boolean);
-        const note = j.summary ? [h('p', {}, [h('b', { text: 'Қорытынды. ' }), j.summary]), h('p', {}, [h('b', { text: 'Не істеу керек. ' }), j.action])]
-          : [h('p', { class: 'bad', text: j.ai === 'no_scores' ? 'Талдауға баға жеткіліксіз.' : j.ai === 'ai_config' ? 'ЖИ бапталмаған, төменде тек есептелген көрсеткіштер.' : 'ЖИ қазір жауап бермейді, төменде тек есептелген көрсеткіштер.' })];
-        out.replaceChildren(...note, h('ul', { class: 'classes-facts' }, facts.map(t => h('li', { text: t }))));
-      });
-    });
   }
 
   function addLesson(course, after) {
@@ -359,7 +339,7 @@ window.TeacherClasses = function ({ h, btn, api, toast, download, csv, startLess
       return td;
     };
     const rows = students.map(s => { const sm = j.summary[s.id] || {}; return h('tr', {}, [
-      h('th', { scope: 'row', class: 'journal-student' }, [h('button', { type: 'button', class: 'student-ai', title: 'ЖИ талдау', on: { click: () => aiDialog(course, s.name, s.id) } }, s.name)]), ...j.lessons.map(l => cell(s, l)),
+      h('th', { scope: 'row', class: 'journal-student' }, [h('button', { type: 'button', class: 'student-ai', title: 'Жеке талдау', on: { click: () => openInsights(course.id, s.id) } }, s.name)]), ...j.lessons.map(l => cell(s, l)),
       h('td', { class: 'journal-average' + (sm.avg !== null && sm.avg !== undefined && sm.avg < j.threshold ? ' low' : ''), text: sm.avg === null || sm.avg === undefined ? '—' : fmt.format(sm.avg) }),
       h('td', { text: String(sm.absent || 0) }), h('td', { text: String(sm.retake || 0) })]); });
     const exportRows = [['Студент', ...j.lessons.map(l => l.date), 'Орташа', 'НБ', 'Қайта'], ...students.map(s => [s.name, ...j.lessons.map(l => { const c = j.cells[s.id]?.[l.key]; return c ? (c.score !== null ? c.score : c.mark) : ''; }), j.summary[s.id]?.avg ?? '', j.summary[s.id]?.absent || 0, j.summary[s.id]?.retake || 0])];

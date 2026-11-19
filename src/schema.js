@@ -45,5 +45,6 @@ export const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS topic_meta (subject TEXT NOT NULL, num INTEGER NOT NULL, title TEXT, descr TEXT, PRIMARY KEY (subject, num))",
   "CREATE TABLE IF NOT EXISTS page_edits (path TEXT PRIMARY KEY, edits TEXT NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS practice_results (student_id INTEGER NOT NULL, lesson INTEGER NOT NULL, item TEXT NOT NULL, best REAL NOT NULL, last REAL NOT NULL, weight INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (student_id, lesson, item))",
-  "CREATE TABLE IF NOT EXISTS course_plan (course_id INTEGER NOT NULL, n INTEGER NOT NULL, title TEXT NOT NULL, hours INTEGER, PRIMARY KEY (course_id, n))"
+  "CREATE TABLE IF NOT EXISTS course_plan (course_id INTEGER NOT NULL, n INTEGER NOT NULL, title TEXT NOT NULL, hours INTEGER, PRIMARY KEY (course_id, n))",
+  "CREATE TABLE IF NOT EXISTS progress_ai (course_id INTEGER PRIMARY KEY, facts_key TEXT NOT NULL, summary TEXT NOT NULL, action TEXT NOT NULL, at INTEGER NOT NULL)"
 ];

@@ -233,22 +233,35 @@ test('plan upload: preview, edit, save, show in journal and student view', async
   assert.equal((await call('classes/plan?course=' + course)).topics.length, 0);
 });
 
-test('AI journal analysis: facts are computed on the server, AI failure still returns them', async t => {
+test('group insights: figures and forecast come from a formula, AI explanation is cached', async t => {
   const { call } = await harness();
   const made = await call('classes', { name: 'ИФ-319', course: 'sm', subject: 'КМ3.5', year: 2026 });
   const course = made.groups.find(g => g.id === made.id).courses[0].id;
   assert.equal((await call('classes/ai', { course })).ai, 'no_scores');
   t.mock.method(globalThis, 'fetch', async () => new Response(csv, { headers: { 'Content-Type': 'text/csv' } }));
   await call('classes/import', { course, sheet: 'https://docs.google.com/spreadsheets/d/abcdefghij123/edit?gid=1', commit: true });
-  const group = await call('classes/ai', { course });
-  assert.equal(group.facts.students, 2);
-  assert.equal(group.facts.average, 65);
-  assert.deepEqual(group.facts.belowThreshold, []);
-  assert.equal(typeof group.summary, 'string'); // тесттегі GEMINI_STUB режимі
+  const data = await call('classes/insights?course=' + course);
+  assert.equal(data.ok, true);
+  assert.equal(data.analysis.kpi.students, 2);
+  assert.equal(data.analysis.kpi.avg, 65);
+  assert.equal(data.analysis.predictions.length, 2);
+  assert.equal(data.ai, null);
+  assert.equal((await call('classes/insights?course=999999')).error, 'not_found');
+  // 3 бағадан аз — болжам жоқ, сондықтан ЖИ сұралмайды
+  assert.equal((await call('classes/ai', { course })).ai, 'no_scores');
+  // 3 баға қосылғаннан кейін болжам бар: ЖИ түсініктемесі бір рет жасалып, кэштен қайтады
   const view = await call('classes/journal?course=' + course);
-  const one = await call('classes/ai', { course, student: view.students[0].id });
-  assert.deepEqual(one.facts.scores, [80, 40]);
-  assert.equal((await call('classes/ai', { course, student: 999999 })).error, 'not_found');
+  const student = view.students[0].id;
+  for (const [i, lesson] of view.lessons.entries()) await call('classes/cell', { course, student, key: lesson.key, value: String(60 - i * 10) });
+  const after = await call('classes/insights?course=' + course);
+  const mine = after.analysis.predictions.find(p => p.id === student);
+  assert.equal(mine.ready, true);
+  assert.ok(mine.next[0] < 50);
+  const first = await call('classes/ai', { course });
+  assert.equal(typeof first.summary, 'string');
+  assert.equal(first.cached, undefined);
+  assert.equal((await call('classes/ai', { course })).cached, true);
+  assert.equal((await call('classes/insights?course=' + course)).ai.summary, first.summary);
 });
 
 test('practice: the server re-grades answers, keeps the best result and shows it in the journal', async () => {

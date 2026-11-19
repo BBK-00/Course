@@ -379,15 +379,11 @@ function setRoster(j){
 let pythonReportRevision = 0;
 
 function loadJournal(){return classes().renderJournal($('#s-journal'),workspaceFilters.journal?.course);}
+let insightsPanel;
 function loadProgress(){
-  return window.TeacherProgress({
-    root:$('#s-progress'),h,api,selection:workspaceFilters.progress,
-    onSelect:filters=>updateWorkspace('progress',filters),
-    onUpdate:()=>{pythonReportRevision++;},
-    openArchive:filters=>goTab('archive',{filters}),
-    openJournal:filters=>goTab('journal',{filters}),
-    startLesson:startCourseLesson
-  });
+  const f=workspaceFilters.progress||{};
+  insightsPanel=insightsPanel||window.TeacherInsights({h,btn,api,toast,openJournal:course=>goTab('journal',{filters:{course}})});
+  return insightsPanel.render($('#s-progress'),{course:Number(f.course)||0,student:Number(f.student)||0});
 }
 async function startCourseLesson(course){
   if(!SUBJ.some(s=>s.id===course.course))await loadDataLessons();
@@ -566,8 +562,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){mobileClose();close
 let headingShape='';
 function renderHeading(){
   const se=LIVE?.session,ti=tinfo(se?.topic);
-  const titles={progress:'Үлгерім',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Сабақтар архиві'};
-  const subtitles={progress:'Топтың динамикасы, жеке қолдау және келесі сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Күндер, баллдар, НБ және орташа бір кестеде',roster:'Топ, пән, студенттер және олардың аккаунттары',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
+  const titles={progress:'Топты талдау',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Сабақтар архиві'};
+  const subtitles={progress:'Көрсеткіштер, диаграммалар және келесі 2 сабаққа болжам',homework:'Студент жұмыстары мен оқытушы бағасы',journal:'Күндер, баллдар, НБ және орташа бір кестеде',roster:'Топ, пән, студенттер және олардың аккаунттары',archive:'Өткен сабақтардың жұмыстары мен талдауы'};
   const title=route==='live'?(lessonPending?'Сабақ басталды':se&&(se.status==='open'||VIEW)?ti.title:'Сабақты бастау'):titles[route];
   const subtitle=route==='live'?(VIEW&&se?'Архивтегі сабақ · '+fdate(se.created_at):se?.status==='open'?(LIVE.groups.map(g=>g.name).join(', ')+' · '+allStudents().length+' студент'):'Пәнді, тақырыпты және топты таңдаңыз.'):subtitles[route];
   const shape=JSON.stringify([TAB,title,subtitle,VIEW,se?.id,se?.status,se?.course_group_id]);
@@ -601,7 +597,7 @@ function renderContext(){
   contextShape=key;
   const bar=$('#contextBar');
   if(route!=='live'){
-    bar.replaceChildren(h('span',{class:'workspace-breadcrumb',text:'Оқытушы панелі / '+({progress:'Үлгерім',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Архив'})[route]}));return;
+    bar.replaceChildren(h('span',{class:'workspace-breadcrumb',text:'Оқытушы панелі / '+({progress:'Топты талдау',homework:'Үй жұмысы',journal:'Журнал',roster:'Топтар',archive:'Архив'})[route]}));return;
   }
   const option=(value,text,selected)=>h('option',{value,text,selected});
   const subj=h('select',{class:'field','aria-label':'Пәнді таңдау'},SUBJ.map(subject=>option(subject.id,subject.name,subject.id===ti.subj.id)));
@@ -770,7 +766,8 @@ function classes(){
     h,btn,api,toast,download,csv,
     onChange:()=>{rosterRevision++;const revision=rosterRevision;api('roster').then(j=>{if(j.ok&&revision===rosterRevision)applyRoster(j.groups);});},
     startLesson:startCourseLesson,
-    openJournal:course=>goTab('journal',{filters:{course}})
+    openJournal:course=>goTab('journal',{filters:{course}}),
+    openInsights:(course,student)=>goTab('progress',{filters:{course,student}})
   }));
 }
 function renderRoster(){return classes().render($('#s-roster'));}
