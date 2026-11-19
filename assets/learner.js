@@ -38,7 +38,7 @@ const allLink = navLink('Курстар', catalog, '▦', false, 'all');
 const savedLink = navLink('Менің курстарым', saved, '◇', false, 'saved');
 nav.append(
   make('a', { class:'learner-brand', href:'/' }, make('b', {class:'learner-brand-icon'}, 'ББ'), make('span', {}, 'Оқу кеңістігі')),
-  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink, navLink('Көмекші құралдар', '/tools/', '⚙', isTools)),
+  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink),
   make('nav', {class:'learner-nav-group learner-subject-nav','aria-label':'Пәндер'}, make('span', {class:'learner-nav-caption'}, 'Пәндер'),
     ...Object.entries(courses).map(([id,c]) => navLink(c.name, `/${id}/`, c.mark, id===courseId))),
   make('div', {class:'learner-nav-foot'}, navLink('Оқытушы панелі', '/teacher/', '↗'))
