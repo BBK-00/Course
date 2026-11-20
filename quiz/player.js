@@ -31,7 +31,8 @@
       steps.push({ kind: 'round', ri }, { kind: 'rules', ri });
       r.questions.forEach((_, qi) => steps.push({ kind: 'question', ri, qi }));
       steps.push({ kind: 'collect', ri });
-      r.questions.forEach((_, qi) => steps.push({ kind: 'answer', ri, qi }));
+      // жауаптар: алдымен сұрақ шығады, «Келесі» басқанда жауабы ашылады
+      r.questions.forEach((_, qi) => steps.push({ kind: 'answerq', ri, qi }, { kind: 'answer', ri, qi }));
     });
     steps.push({ kind: 'end' });
     return steps;
@@ -40,7 +41,7 @@
   const audioKey = s => {
     const r = s.ri !== undefined ? roundOf(s) : null;
     return { welcome: 'welcome', end: 'end', round: r && r.id + '-intro', rules: r && r.id + '-rules', collect: r && r.id + '-collect',
-      question: r && `${r.id}-q${s.qi + 1}`, answer: r && `${r.id}-a${s.qi + 1}` }[s.kind];
+      question: r && `${r.id}-q${s.qi + 1}`, answerq: r && `${r.id}-q${s.qi + 1}`, answer: r && `${r.id}-a${s.qi + 1}` }[s.kind];
   };
   const isTimed = s => s.kind === 'question' || s.kind === 'collect';
   const secondsOf = s => s.kind === 'collect' ? (state.quiz.collectSeconds || 30) : roundOf(s).seconds;
@@ -138,6 +139,15 @@
           qq.type === 'open' ? null : el('div', { class: 'pl-opts' }, qq.options.map((o, k) => el('div', { class: 'pl-opt' }, el('i', { text: LETTERS[k] }), el('span', { text: o }))))),
         el('div', { class: 'pl-qfoot' }, el('span', { class: 'lbl', text: `${n}-сұрақ` }), el('div', { class: 'mid' }, smallClock(r.seconds)), el('div', { class: 'pills' }, pills(count, step.qi))),
         ui.hint = el('p', { class: 'pl-hint' }));
+    } else if (step.kind === 'answerq') {
+      const qq = r.questions[step.qi], n = step.qi + 1, count = r.questions.length;
+      slide = el('div', { class: 'pl-slide' },
+        el('div', { class: 'pl-qcard' },
+          el('div', { class: 'pl-qhead' }, el('span', { text: 'Жауаптарды тексереміз' }), el('span', { class: 'count' }, wave(), ` ${pad2(n)} / ${pad2(count)}`)),
+          el('h1', { class: 'pl-title q', text: qq.q }),
+          qq.type === 'open' ? null : el('div', { class: 'pl-opts' }, qq.options.map((o, k) => el('div', { class: 'pl-opt' }, el('i', { text: LETTERS[k] }), el('span', { text: o }))))),
+        el('div', { class: 'pl-qfoot' }, el('span', { class: 'lbl', text: `${n}-сұрақ` }), el('span'), el('div', { class: 'pills' }, pills(count, step.qi))),
+        ui.hint = el('p', { class: 'pl-hint', text: '«Келесі» басқанда дұрыс жауап ашылады' }));
     } else if (step.kind === 'collect') {
       slide = el('div', { class: 'pl-slide pl-collect' }, tickRing(secondsOf(step)),
         el('div', { style: 'display:grid;gap:clamp(10px,2vh,22px);justify-items:start' }, el('span', { class: 'pl-tag', text: `${roundTag()} аяқталды` }),
@@ -239,7 +249,7 @@
         chip('Кезең', idx('round', ri)), chip('Ереже', idx('rules', ri)),
         ...r.questions.map((_, qi) => chip(`${qi + 1}-сұрақ`, idx('question', ri, qi))),
         chip('Жинау', idx('collect', ri)),
-        ...r.questions.map((_, qi) => chip(`${qi + 1}-жауап`, idx('answer', ri, qi)))))),
+        ...r.questions.map((_, qi) => chip(`${qi + 1}-жауап`, idx('answerq', ri, qi)))))),
       chip('Соңы', state.steps.length - 1));
   }
 
