@@ -127,10 +127,15 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 .pl-info { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; border-radius: 14px; background: var(--sky2); color: var(--navy); font-size: clamp(16px, 2vw, 24px); }
 .pl-info::before { content: "i"; flex: none; display: grid; place-items: center; width: 1.5em; height: 1.5em; border: 2px solid var(--blue); border-radius: 50%; color: var(--blue); font-weight: 700; font-size: .85em; }
 
-/* қысқа жауап: жауап карточкасы */
-.pl-answer-card { display: flex; align-items: center; gap: 18px; padding: clamp(16px, 3vh, 32px) clamp(20px, 3vw, 40px); border-radius: 18px; background: var(--green-bg); border: 2px solid var(--green); font-size: clamp(40px, min(8vw, 14vh), 110px); font-weight: 800; color: var(--green-ink); line-height: 1; }
-.pl-answer-card .tick { flex: none; width: .8em; height: .8em; border-radius: 50%; background: var(--green); position: relative; }
-.pl-answer-card .tick::after { content: ""; position: absolute; left: 33%; top: 16%; width: 28%; height: 50%; border: solid #fff; border-width: 0 5px 5px 0; transform: rotate(45deg); }
+/* жауап карточкасы: сұрақпен бірдей өлшем, басқа түс, анимациямен шығады */
+.pl-answer-card { display: inline-flex; align-items: center; gap: .5em; width: fit-content; max-width: 100%; padding: .3em .7em .3em .8em; border-radius: 18px; background: var(--green); color: #fff; font-size: clamp(28px, min(4.6vw, 7.5vh), 64px); font-weight: 800; line-height: 1.1; box-shadow: 0 10px 28px rgba(31, 170, 104, .35); animation: popin .7s cubic-bezier(.2, .9, .3, 1.25) .35s both; }
+.pl-answer-card.sm { font-size: clamp(24px, min(3.6vw, 6vh), 48px); }
+.pl-answer-card .tick { flex: none; width: .8em; height: .8em; border-radius: 50%; background: #fff; position: relative; animation: pop .45s cubic-bezier(.2, .9, .3, 1.5) 1s both; }
+.pl-answer-card .tick::after { content: ""; position: absolute; left: 32%; top: 14%; width: 28%; height: 52%; border: solid var(--green); border-width: 0 .1em .1em 0; transform: rotate(45deg); }
+@keyframes popin { from { opacity: 0; transform: translateY(22px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+.pl-slide .pl-info { animation: fadeup .6s ease 1.1s both; }
+@keyframes fadeup { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 /* сәйкестендіру */
 .pl-match { display: grid; gap: clamp(10px, 1.8vh, 18px); }
@@ -192,3 +197,25 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
   .pl-subbar { flex-wrap: wrap; }
 }
 @media (prefers-reduced-motion: reduce) { .pl-slide, .pl-dark-slide, .pl-wave i, .pl-btn.next.pulse { animation: none; } }
+
+/* жауап көрсетілгенде: дұрыс нұсқа жанады, қалғандары күңгірттенеді */
+.pl-opts.reveal .pl-opt { animation: dim .6s ease .5s both; }
+.pl-opts.reveal .pl-opt.right { animation: lit 1.1s ease .35s both; position: relative; z-index: 1; }
+.pl-opts.reveal .pl-opt.right .tick { animation: pop .45s cubic-bezier(.2, .9, .3, 1.5) 1.1s both; }
+@keyframes dim { to { opacity: .32; filter: saturate(.3); } }
+@keyframes lit {
+  0% { background: #fff; border-color: var(--line); transform: scale(1); box-shadow: 0 0 0 0 rgba(31, 170, 104, 0); }
+  35% { background: var(--green-bg); border-color: var(--green); transform: scale(1.045); box-shadow: 0 0 0 14px rgba(31, 170, 104, .32), 0 0 40px 6px rgba(31, 170, 104, .35); }
+  100% { background: var(--green-bg); border-color: var(--green); transform: scale(1.02); box-shadow: 0 0 0 0 rgba(31, 170, 104, 0), 0 10px 26px rgba(31, 170, 104, .28); }
+}
+.pl-opts.reveal .pl-opt.right i { animation: bg .6s ease .5s both; }
+@keyframes bg { from { background: var(--blue); } to { background: var(--green); } }
+
+/* сәйкестендіру жауабы: қатарлар кезекпен шығады */
+.pl-mrow.ok { animation: rowin .6s cubic-bezier(.2, .9, .3, 1.2) both; animation-delay: calc(var(--i, 0) * .45s + .3s); }
+@keyframes rowin { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.pl-mrow.ok .pl-mcell.r { background: var(--green); border-color: var(--green); color: #fff; box-shadow: 0 8px 22px rgba(31, 170, 104, .3); }
+.pl-mrow.ok .tick { background: #fff; }
+.pl-mrow.ok .tick::after { border-color: var(--green); }
+.pl-mrow.ok .arrow { color: var(--green); font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .pl-answer-card, .pl-answer-card .tick, .pl-slide .pl-info, .pl-opts.reveal .pl-opt, .pl-mrow.ok { animation: none; } }

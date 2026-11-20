@@ -102,10 +102,10 @@
     svgEl('path', { d: 'M178 70l30-34 10 9-30 34-14 5z', fill: '#2f5be7' }));
 
   /* ---------- Сұрақ түрлері ---------- */
-  const optionsGrid = (qq, showRight) => el('div', { class: 'pl-opts' }, qq.options.map((o, k) => el('div', { class: 'pl-opt' + (showRight && k === qq.correct ? ' right' : '') }, el('i', { text: LETTERS[k] }), el('span', { text: o }), showRight && k === qq.correct ? tick2() : null)));
+  const optionsGrid = (qq, showRight) => el('div', { class: 'pl-opts' + (showRight ? ' reveal' : '') }, qq.options.map((o, k) => el('div', { class: 'pl-opt' + (showRight && k === qq.correct ? ' right' : '') }, el('i', { text: LETTERS[k] }), el('span', { text: o }), showRight && k === qq.correct ? tick2() : null)));
   const matchGrid = qq => el('div', { class: 'pl-match' }, qq.left.map((l, k) => el('div', { class: 'pl-mrow' }, el('div', { class: 'pl-mcell l' }, el('b', { text: k + 1 + ' ·' }), l), el('div', { class: 'pl-mdots' }), el('div', { class: 'pl-mcell r' }, el('b', { text: LETTERS[k] + ' ·' }), qq.right[k]))));
-  const matchAnswers = qq => el('div', { class: 'pl-match' }, qq.left.map((l, k) => el('div', { class: 'pl-mrow ok' }, el('div', { class: 'pl-mcell l' }, l), el('div', { class: 'arrow', text: '→' }), el('div', { class: 'pl-mcell r' }, qq.right[qq.map[k]], tick2()))));
-  const answerCard = qq => el('div', { class: 'pl-answer-card' }, el('span', { text: qq.answer }), tick2());
+  const matchAnswers = qq => el('div', { class: 'pl-match' }, qq.left.map((l, k) => el('div', { class: 'pl-mrow ok', style: `--i:${k}` }, el('div', { class: 'pl-mcell l' }, l), el('div', { class: 'arrow', text: '→' }), el('div', { class: 'pl-mcell r' }, qq.right[qq.map[k]], tick2()))));
+  const answerCard = (qq, small) => el('div', { class: 'pl-answer-card' + (small ? ' sm' : '') }, el('span', { text: qq.answer }), tick2());
   const info = text => text ? el('div', { class: 'pl-info', text }) : null;
 
   function audioPlayer(src) {
@@ -135,14 +135,14 @@
     const qq = questionOf(step), t = qq.type || 'choice', reveal = mode === 'reveal', media = mode === 'ask';
     const q = el('h1', { class: 'pl-q', text: qq.q });
     if (t === 'open') return reveal
-      ? el('div', { class: 'pl-slide' }, el('p', { class: 'pl-hint', text: qq.q }), answerCard(qq), info(qq.note))
+      ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
       : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: 'Қысқа жауап' }), q);
     if (t === 'choice') return el('div', { class: 'pl-slide' }, q, optionsGrid(qq, reveal), reveal ? info(qq.note) : null);
     if (t === 'match') return reveal
-      ? el('div', { class: 'pl-slide' }, el('h1', { class: 'pl-q', text: 'Дұрыс сәйкестіктер' }), matchAnswers(qq))
+      ? el('div', { class: 'pl-slide' }, q, matchAnswers(qq))
       : el('div', { class: 'pl-slide' }, q, matchGrid(qq), el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.format || '' }));
     if (t === 'photo') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-photo' }, el('img', { src: qq.src, alt: qq.alt || '' }),
-      el('div', { class: 'txt' }, el('span', { class: reveal ? 'pl-tag ok' : 'pl-tag', text: reveal ? 'Дұрыс жауап' : 'Фото сұрақ' }), reveal ? [answerCard(qq), info(qq.note)] : [el('h1', { class: 'pl-q', style: 'font-size:clamp(24px,min(3.6vw,6vh),48px)', text: qq.q }), el('div', { class: 'rule' }), el('p', { class: 'pl-hint', text: qq.hint || '' })])));
+      el('div', { class: 'txt' }, el('span', { class: reveal ? 'pl-tag ok' : 'pl-tag', text: reveal ? 'Дұрыс жауап' : 'Фото сұрақ' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(24px,min(3.6vw,6vh),48px)', text: qq.q }), reveal ? [answerCard(qq, true), info(qq.note)] : [el('div', { class: 'rule' }), el('p', { class: 'pl-hint', text: qq.hint || '' })])));
     if (t === 'audio') return reveal
       ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
       : el('div', { class: 'pl-slide' }, q, media ? audioPlayer(qq.src) : null, el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint || '' }));
