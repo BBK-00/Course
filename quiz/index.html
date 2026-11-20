@@ -3,32 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quiz — Оқу кеңістігі</title>
+  <title>Quiz — қазақша куиз достармен ойнауға</title>
+  <meta name="description" content="Қағаз бен қаламмен ойнайтын қазақша куиздер. Жүргізуші дауыстап оқиды.">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/lesson.css">
-  <link rel="stylesheet" href="/assets/student.css?v=20261111">
-  <link rel="stylesheet" href="/assets/learner.css?v=2">
-  <link rel="stylesheet" href="/assets/learning-tools.css?v=1">
+  <link rel="stylesheet" href="/quiz/quiz.css?v=1">
 </head>
-<body class="learner" data-learner-page="quiz">
-  <a class="skip-link" href="#learner-main">Мазмұнға өту</a>
-  <div class="learner-layout">
-    <aside class="learner-sidebar" data-learner-nav aria-label="Негізгі мәзір"></aside>
-    <div class="learner-workspace">
-      <header class="learner-top" data-learner-top></header>
-      <main class="tools-main" id="learner-main">
-        <h1>Quiz</h1>
-        <section class="tool-card" aria-labelledby="quiz-soon">
-          <span class="tool-badge">ЖАҚЫНДА</span>
-          <h2 id="quiz-soon">Quiz бөлімі әзірленуде</h2>
-          <p>Мұнда тақырып бойынша қысқа сынақтар болады. Алғашқы Quiz-дер жақын арада қосылады.</p>
-          <a class="lr-btn lr-secondary" href="/#subjects">Курстарға оралу</a>
-        </section>
-      </main>
-      <footer class="learner-foot">© Бақытжанов Бекет Қайратұлы</footer>
+<body>
+  <a class="skip" href="#main">Мазмұнға өту</a>
+  <header class="qz-top">
+    <a class="qz-logo" href="/quiz/">Q<b>uiz</b></a>
+    <span class="sp"></span>
+    <a class="qz-link" href="/">Оқу кеңістігі</a>
+  </header>
+  <main class="qz-main" id="main">
+    <section class="qz-hero">
+      <h1>Достармен куиз ойнаңыз</h1>
+      <p>Экранды қосыңыз, командаларға бөлініңіз, қағаз бен қалам алыңыз. Жүргізуші ережені, сұрақтарды және жауаптарды дауыстап оқиды.</p>
+    </section>
+
+    <h2>Ойындар</h2>
+    <div class="qz-grid">
+      <article class="qz-card">
+        <div class="qz-cover"><div>КЛАССИКА<small>сынақ нұсқа</small></div></div>
+        <div class="qz-body">
+          <h3>Классика</h3>
+          <div class="qz-chips"><span class="qz-chip">≈ 2 минут</span><span class="qz-chip">1 кезең</span><span class="qz-chip">2 сұрақ</span><span class="qz-chip">Қиындығы: жеңіл</span></div>
+          <a class="qz-play" href="/quiz/play.html?g=klassika">▶ Ойнау</a>
+        </div>
+      </article>
     </div>
-  </div>
-  <script type="module" src="/assets/learner.js?v=5"></script>
+
+    <h2>Қалай ойнаймыз?</h2>
+    <ol class="qz-steps">
+      <li><b>Экранды қосыңыз</b>Ноутбукты немесе планшетті теледидарға не проекторға жалғаңыз. Дыбысты қосыңыз.</li>
+      <li><b>Командаға бөлініңіз</b>Әр командаға қағаз бен қалам беріңіз.</li>
+      <li><b>Тыңдап жазыңыз</b>Жүргізуші сұрақты оқиды, одан кейін таймер жүреді. Жауапты қағазға жазыңыз.</li>
+      <li><b>Жауапты тексеріңіз</b>Уақыт біткенде дұрыс жауап экранда шығады. Дұрыс жауап жазған команда ұпай алады.</li>
+    </ol>
+  </main>
+  <footer class="qz-foot">© Бақытжанов Бекет Қайратұлы</footer>
 </body>
 </html>
