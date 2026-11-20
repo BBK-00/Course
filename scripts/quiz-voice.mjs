@@ -26,11 +26,11 @@ export function segments(quiz) {
       // сұрақ тек оқылады (нұсқалар / сәйкестік тізімі де); дұрыс жауап кезең соңында әр сұрақ бойынша бөлек айтылады
       const qt = String(q.sayQ || q.q).trim(); // дауыс үзілісі үшін сұрақ соңында тыныс белгісі болсын
       let read = `${ordinal(n)} сұрақ. ${lead}${qt}${/[.?!]$/.test(qt) ? '' : '.'}`;
-      if (q.type === 'choice') read += ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ');
+      if (q.options) read += ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ');
       if (q.type === 'match') read += ' Сол жақта: ' + q.left.map((o, k) => `${k + 1} — ${o}`).join('; ') + '. Оң жақта: ' + q.right.map((o, k) => `${LETTERS[k]} — ${o}`).join('; ') + '.';
       out[`${r.id}-q${n}`] = read;
       let right;
-      if (q.type === 'choice') right = `${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}`;
+      if (q.options) right = `${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}`;
       else if (q.type === 'match') right = q.left.map((l, k) => `${l} — ${q.right[q.map[k]]}`).join('; ');
       else right = q.sayAnswer || q.answer;
       out[`${r.id}-a${n}`] = `${ordinal(n)} сұрақтың дұрыс жауабы — ${right}. ${q.sayNote || q.note || ''}`.trim();

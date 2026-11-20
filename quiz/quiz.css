@@ -241,3 +241,7 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 .qz-cover.kino { background: radial-gradient(circle at 20% 80%, #ff8a3d 0, transparent 50%), var(--navy2); }
 .qz-cover.kino::before { border-radius: 50%; width: 38%; aspect-ratio: 1; background: transparent; border: 26px solid #ffd37a; right: 10%; top: 8%; opacity: .95; }
 .qz-cover.kino::after { background: #fff; border-radius: 4px; width: 5%; aspect-ratio: 1; right: 24%; top: 26%; }
+
+.qz-cover.music { background: radial-gradient(circle at 80% 85%, #ff5c8a 0, transparent 50%), var(--navy2); }
+.qz-cover.music::before { border-radius: 50%; width: 30%; aspect-ratio: 1; background: #7ee0b5; right: 12%; top: 14%; opacity: .95; border: 0; }
+.qz-cover.music::after { width: 4%; aspect-ratio: .12; border-radius: 3px; background: #fff; right: 32%; top: 8%; height: 34%; }

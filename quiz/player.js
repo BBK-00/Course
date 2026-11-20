@@ -159,8 +159,8 @@
     if (t === 'photo') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-photo' }, el('img', { src: qq.src, alt: qq.alt || '' }),
       el('div', { class: 'txt' }, el('span', { class: reveal ? 'pl-tag ok' : 'pl-tag', text: reveal ? 'Дұрыс жауап' : 'Фото сұрақ' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(24px,min(3.6vw,6vh),48px)', text: qq.q }), reveal ? [answerCard(qq, true), info(qq.note)] : [el('div', { class: 'rule' }), el('p', { class: 'pl-hint', text: qq.hint || '' })])));
     if (t === 'audio') return reveal
-      ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
-      : el('div', { class: 'pl-slide' }, q, media ? audioPlayer(qq.src) : null, el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint || '' }));
+      ? el('div', { class: 'pl-slide' }, q, qq.options ? optionsGrid(qq, true) : answerCard(qq), info(qq.note))
+      : el('div', { class: 'pl-slide' }, q, media ? audioPlayer(qq.src) : null, qq.options ? optionsGrid(qq, false) : null, qq.hint ? el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint }) : null);
     if (t === 'video') return reveal
       ? el('div', { class: 'pl-slide' }, el('div', { class: 'pl-photo' }, revealVideo(qq),
         el('div', { class: 'txt' }, el('span', { class: 'pl-tag ok', text: 'Дұрыс жауап' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(22px,min(3vw,5vh),40px)', text: qq.q }), answerCard(qq, true), info(qq.note))))
