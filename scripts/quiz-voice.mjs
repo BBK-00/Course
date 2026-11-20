@@ -22,10 +22,16 @@ export function segments(quiz) {
     out[r.id + '-rules'] = `Бұл кезеңде ${numWords(r.questions.length)} сұрақ. Әр сұраққа ${numWords(r.seconds)} секунд беріледі. Дұрыс жауап үшін ${numWords(r.points || 1)} ұпай. Жауаптарыңызды қағазға жазыңыздар.`;
     out[r.id + '-collect'] = r.collect;
     r.questions.forEach((q, i) => {
-      const n = i + 1, opts = q.sayOptions || q.options;
-      // сұрақ тек оқылады; дұрыс жауап кезең соңында әр сұрақ бойынша бөлек айтылады
-      out[`${r.id}-q${n}`] = `${ordinal(n)} сұрақ. ${q.sayQ || q.q}` + (q.type === 'open' ? '' : ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' '));
-      const right = q.type === 'open' ? (q.sayAnswer || q.answer) : `${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}`;
+      const n = i + 1, opts = q.sayOptions || q.options, lead = { photo: 'Суретке қараңыз. ', audio: 'Дыбысты тыңдаңыз. ', video: 'Видеоға назар аударыңыз. ' }[q.type] || '';
+      // сұрақ тек оқылады (нұсқалар / сәйкестік тізімі де); дұрыс жауап кезең соңында әр сұрақ бойынша бөлек айтылады
+      let read = `${ordinal(n)} сұрақ. ${lead}${q.sayQ || q.q}`;
+      if (q.type === 'choice') read += ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ');
+      if (q.type === 'match') read += ' Сол жақта: ' + q.left.map((o, k) => `${k + 1} — ${o}`).join('; ') + '. Оң жақта: ' + q.right.map((o, k) => `${LETTERS[k]} — ${o}`).join('; ') + '.';
+      out[`${r.id}-q${n}`] = read;
+      let right;
+      if (q.type === 'choice') right = `${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}`;
+      else if (q.type === 'match') right = q.left.map((l, k) => `${l} — ${q.right[q.map[k]]}`).join('; ');
+      else right = q.sayAnswer || q.answer;
       out[`${r.id}-a${n}`] = `${ordinal(n)} сұрақтың дұрыс жауабы — ${right}. ${q.sayNote || q.note || ''}`.trim();
     });
   });
