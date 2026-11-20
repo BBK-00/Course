@@ -148,7 +148,7 @@
   /* сұрақ денесі: mode = ask (таймермен) | review (жауап алдындағы сұрақ) | reveal (жауап) */
   function questionBody(step, mode) {
     const qq = questionOf(step), t = qq.type || 'choice', reveal = mode === 'reveal', media = mode === 'ask';
-    const q = el('h1', { class: 'pl-q', text: qq.q });
+    const q = el('h1', { class: 'pl-q' + (qq.long ? ' long' : ''), text: qq.q });
     if (t === 'open') return reveal
       ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
       : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: qq.tag || 'Қысқа жауап' }), qq.big ? el('h1', { class: 'pl-q big', text: qq.q }) : q);

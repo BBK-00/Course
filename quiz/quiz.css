@@ -245,3 +245,5 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 .qz-cover.music { background: radial-gradient(circle at 80% 85%, #ff5c8a 0, transparent 50%), var(--navy2); }
 .qz-cover.music::before { border-radius: 50%; width: 30%; aspect-ratio: 1; background: #7ee0b5; right: 12%; top: 14%; opacity: .95; border: 0; }
 .qz-cover.music::after { width: 4%; aspect-ratio: .12; border-radius: 3px; background: #fff; right: 32%; top: 8%; height: 34%; }
+
+.pl-q.long { font-size: clamp(24px, min(3.6vw, 6vh), 50px); line-height: 1.2; max-width: 1000px; }
