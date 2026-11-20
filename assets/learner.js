@@ -22,6 +22,7 @@ const top = document.querySelector('[data-learner-top]');
 const overlay = make('button', { type:'button', class:'learner-shade', hidden:'', tabindex:'-1', 'aria-label':'Мәзірді жабу' });
 const isHome = document.body.dataset.learnerPage === 'home';
 const isTools = document.body.dataset.learnerPage === 'tools';
+const isQuiz = document.body.dataset.learnerPage === 'quiz';
 const isJournal = document.body.dataset.learnerPage === 'journal';
 const catalog = '/#subjects';
 const saved = '/#my-courses';
@@ -38,7 +39,7 @@ const allLink = navLink('Курстар', catalog, '▦', false, 'all');
 const savedLink = navLink('Менің курстарым', saved, '◇', false, 'saved');
 nav.append(
   make('a', { class:'learner-brand', href:'/' }, make('b', {class:'learner-brand-icon'}, 'ББ'), make('span', {}, 'Оқу кеңістігі')),
-  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink),
+  make('nav', {class:'learner-nav-group','aria-label':'Оқу кеңістігі'}, homeLink, allLink, savedLink, navLink('AI көмекші', '/tools/ustazai/', '✦'), navLink('Quiz', '/quiz/', '?', isQuiz)),
   make('nav', {class:'learner-nav-group learner-subject-nav','aria-label':'Пәндер'}, make('span', {class:'learner-nav-caption'}, 'Пәндер'),
     ...Object.entries(courses).map(([id,c]) => navLink(c.name, `/${id}/`, c.mark, id===courseId))),
   make('div', {class:'learner-nav-foot'}, navLink('Оқытушы панелі', '/teacher/', '↗'))
@@ -47,7 +48,7 @@ nav.after(overlay);
 const menu = make('button', { type:'button', class:'lr-icon-button learner-menu', 'aria-controls':'learner-nav', 'aria-expanded':'false', 'aria-label':'Мәзірді ашу' }, '☰');
 const breadcrumb = make('div',{class:'learner-breadcrumb'},
   ...(currentCourse ? [make('a', {href:catalog}, 'Курстар'), make('span', {'aria-hidden':'true'}, '/'), make('strong', {}, currentCourse.name)]
-    : [make('span', {}, isTools ? 'Көмекші құралдар' : isJournal ? 'Менің журналым' : 'Оқу дашборды')]));
+    : [make('span', {}, isTools ? 'Көмекші құралдар' : isQuiz ? 'Quiz' : isJournal ? 'Менің журналым' : 'Оқу дашборды')]));
 const actions = make('div', {class:'learner-top-actions'});
 top.append(menu, breadcrumb, actions);
 

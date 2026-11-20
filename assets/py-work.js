@@ -154,7 +154,7 @@ function codeCard(it, opt){
   }
   else if (live) card.append(head, text, edHost, el('div', { class:'stepbar' }, [bRun, bSend, bHint]), con.box, msg, res, hint);
   else card.append(head, text, edHost, el('div', { class:'py-tools' }, [stdin]), el('div', { class:'stepbar' }, [bRun, bSend, bHint]), out, msg, res, hint);
-  const ed = window.CodeEditor.create(edHost, { lang:'python', stats:st, onChange:v => { save(it.id, v); } });
+  const ed = window.CodeEditor.create(edHost, { lang:'python', stats:st, allowPaste:true, onChange:v => { save(it.id, v); } });
   const last = items[it.id] && items[it.id].state, saved = load(it.id);
   ed.setValue(saved !== null ? saved : (last && last.code) || it.starter || '# Жауабыңды осы жерде жаз\n', saved === null && !(last && last.code));
   ed.ta.addEventListener('focus', () => { if (!opened[it.id]){ opened[it.id] = 1; J().api('py/open', { item:it.id }); } });
@@ -562,7 +562,7 @@ function paintRevision(){
         const text=el('div',{class:'py-text',html:it.text});if(it.fig&&window.PyFig)text.append(window.PyFig.make(it.fig));
         if(it.formula)text.append(el('p',{class:'pf-formula',text:'Формула: '+it.formula}));
         const host=el('div',{class:'py-ed'}),stats={typed:0,assist:0,pasted:0,paste:0,tpl:0};
-        card.append(text,host);r.ed=window.CodeEditor.create(host,{lang:'python',stats,onChange:v=>save('r'+it.id,v)});
+        card.append(text,host);r.ed=window.CodeEditor.create(host,{lang:'python',stats,allowPaste:true,onChange:v=>save('r'+it.id,v)});
         r.ed.setValue(load('r'+it.id)??o.ed?.getValue()??s.code??it.starter??'');
         const run=el('button',{type:'button',class:'btn',text:'▶ Орындау'}),con=consoleBox();con.bind(()=>r.ed.getValue(),run);
         card.append(el('div',{class:'stepbar'},[run,send]),con.box);

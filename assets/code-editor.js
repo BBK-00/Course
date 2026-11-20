@@ -193,7 +193,8 @@ function create(host, o){
     if (e.key === 'Backspace' && s === en && s > 0 && PAIRS[v[s - 1]] === v[s]){ e.preventDefault(); insert('', s - 1, s + 1); }
   });
   ta.addEventListener('input', () => {
-    const v = ta.value, d = v.length - prev.length;
+    const v = ta.value; let d = v.length - prev.length;
+    if (skip && !progr){ d = Math.max(0, d - skip); skip = 0; }
     if (d > 0){ if (progr) stats.assist += d; else stats.typed += d; }
     prev = v; changed();
     if (!progr) suggest(false);
@@ -202,7 +203,14 @@ function create(host, o){
   ta.addEventListener('click', closePop);
   ta.addEventListener('blur', () => setTimeout(closePop, 120));
   ta.addEventListener('scroll', () => { sync(); closePop(); });
-  /* қою да, сүйреп әкелу де өшірулі */
+  /* allowPaste: қоюға болады, бірақ қойылған таңба саны мен қою саны есептеледі (жазылғанға қосылмайды) */
+  let skip = 0;
+  if (o.allowPaste) {
+    const note = n => { stats.paste++; stats.pasted += n; skip += n; };
+    ta.addEventListener('paste', e => note(((e.clipboardData && e.clipboardData.getData('text')) || '').length));
+    ta.addEventListener('drop', e => note(((e.dataTransfer && e.dataTransfer.getData('text')) || '').length));
+  }
+  /* әдепкіде қою да, сүйреп әкелу де өшірулі */
   const blocked = (n, why) => { stats.paste++; stats.pasted += n; if (o.onBlocked) o.onBlocked(n, why); };
   if (!o.allowPaste) {
     ta.addEventListener('paste', e => { e.preventDefault(); blocked(((e.clipboardData && e.clipboardData.getData('text')) || '').length, 'paste'); });

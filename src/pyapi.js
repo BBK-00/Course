@@ -265,10 +265,18 @@ export async function pyStudent(path, method, b, request, env, ctx) {
       const task = lesson.find(t => t.n === tn), map = {};
       task.items.forEach(it => { map[it.id] = (by[it.id] || []).map(a => ({ n: a.n, frac: a.frac })); });
       const pl = task.pair ? pairPayload(task, by, pair, (await partnerOf(DB, pair, p.st) || {}).name) : taskPayload(task, map), fl = task.pair ? [pl.flags] : [];
-      task.items.forEach(it => (by[it.id] || []).forEach(a => {
-        if ((a.signals.pasted || 0) >= 40) fl.push('🟠 «' + it.title + '»: қою әрекеті (' + a.signals.pasted + ' таңба)');
-        if (a.detail && a.detail.dup) fl.push('🔴 «' + it.title + '»: код «' + a.detail.dup + '» студентінің кодымен бірдей');
-      }));
+      let pasted = 0, pastes = 0, away = 0;
+      task.items.forEach(it => {
+        const list = by[it.id] || [];
+        // сигналдар сабақ беті ашылғаннан бері жиналады (өсіп отырады), сондықтан әр есептің ең үлкен мәні алынады
+        pasted += Math.max(0, ...list.map(a => a.signals.pasted || 0)); pastes += Math.max(0, ...list.map(a => a.signals.paste || 0));
+        away = Math.max(away, ...list.map(a => a.signals.away || 0));
+        list.forEach(a => {
+          if (a.detail && a.detail.dup) fl.push('🔴 «' + it.title + '»: код «' + a.detail.dup + '» студентінің кодымен бірдей');
+        });
+      });
+      if (pasted > 0) fl.push('📋 Қойылған код: ' + pasted + ' таңба (' + pastes + ' рет)');
+      if (away > 0) fl.push('🪟 Беттен шыққан: ' + away + ' рет');
       await writeSub(DB, p.ses, p.st, tn, pl, pl.pts, [...new Set(fl)].slice(0, 6).join('; '));
       if (task.pair && partnerId) { const me0 = await DB.prepare('SELECT full_name FROM students WHERE id=?').bind(p.st).first(); await writeSub(DB, p.ses, partnerId, tn, pl, pl.pts, '👥 Жұбы: ' + (me0 ? me0.full_name : '')); }
     }

@@ -264,7 +264,6 @@ function paintDetail(j){ detailDirty = false;
     if (!s) { const box=h('div',{class:'box'},[h('h3',{text:title}),h('p',{class:'sub',text:n===5&&j.hw_upload?'Фото сақталды. ЖИ бағасы әлі қойылмаған.':'Әлі жіберілмеген.'})]);if(n===5&&j.hw_upload)box.append(homeworkUploadView(j.hw_upload));left.append(box);return; }
     const p = s.payload, parts = [h('h3', { text: title + ' — ' + t.pts + ' / ' + t.max + (t.edited ? ' (сіз қойдыңыз)' : '') })];
     if (x10 && s.flags) parts.push(h('p', { class: 'aibox', text: s.flags }));
-    /* ДЕМО (көрсету үшін, кейін өшіріледі) */ if (n === 1 && j.session.topic === 'P12' && /Аманғали/i.test(j.student.name)) parts.push(h('p', { class: 'aibox', text: '⚠️ Бет 7 рет ауыстырылды. Көшіру пайызы жоғары: 15 таңба көшіріліп қойылды.' }));
     if (x10) parts.push(h('pre', { text: (p.items || []).map(i => (i.got >= i.max ? '✓ ' : i.got > 0 ? '◑ ' : '✗ ') + i.id + '  ' + i.label + ' — ' + i.got + ' / ' + i.max).join('\n') }));
     if (x7) {
       const r = p.run || {}, sg = s.signals || {};
