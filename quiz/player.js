@@ -124,10 +124,25 @@
     ui.media = a;
     return el('div', { class: 'pl-audio' }, a, btn, el('div', { class: 'wavef' }, bars), time, el('span', { class: 'vol', text: '♪' }));
   }
-  function videoPlayer(src) {
-    const v = el('video', { src, controls: '', playsinline: '', preload: 'auto' });
+  const missingClip = src => el('div', { class: 'pl-missing' }, el('b', { text: '🎬 Клип қосылмаған' }), el('span', { text: src }));
+  /* qq.blind: экран қара, тек дыбыс шығады (жауап ашылғанда видео көрінеді) */
+  function videoPlayer(qq) {
+    const v = el('video', { src: qq.src, playsinline: '', preload: 'auto' });
+    if (!qq.blind) v.controls = true; else v.className = 'pl-hidden-video';
     ui.media = v;
-    return el('div', { class: 'pl-video' }, v);
+    const wrap = el('div', { class: 'pl-video' + (qq.blind ? ' blind' : '') }, v);
+    if (qq.blind) wrap.append(el('div', { class: 'pl-blind' }, el('div', { class: 'eq', 'aria-hidden': 'true' }, ...Array.from({ length: 9 }, () => el('i'))), el('span', { text: 'Тек дыбыс · экран қара' }),
+      el('button', { class: 'again', type: 'button', text: '↻ Қайта тыңдау', onclick: () => { try { v.muted = state.muted; v.currentTime = 0; v.play().catch(() => {}); } catch { /* жоқ */ } } })));
+    v.addEventListener('error', () => { ui.media = null; wrap.replaceChildren(missingClip(qq.src)); });
+    return wrap;
+  }
+  /* жауап көрсетілгенде видео ашылады (дыбыссыз, қайталанып ойналады) */
+  function revealVideo(qq) {
+    const v = el('video', { src: qq.src, playsinline: '', controls: '', loop: '', preload: 'auto' });
+    v.muted = true; ui.media = v;
+    const wrap = el('div', { class: 'pl-video' }, v);
+    v.addEventListener('error', () => { ui.media = null; wrap.replaceChildren(missingClip(qq.src)); });
+    return wrap;
   }
 
   /* сұрақ денесі: mode = ask (таймермен) | review (жауап алдындағы сұрақ) | reveal (жауап) */
@@ -136,7 +151,7 @@
     const q = el('h1', { class: 'pl-q', text: qq.q });
     if (t === 'open') return reveal
       ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
-      : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: 'Қысқа жауап' }), q);
+      : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: qq.tag || 'Қысқа жауап' }), qq.big ? el('h1', { class: 'pl-q big', text: qq.q }) : q);
     if (t === 'choice') return el('div', { class: 'pl-slide' }, q, optionsGrid(qq, reveal), reveal ? info(qq.note) : null);
     if (t === 'match') return reveal
       ? el('div', { class: 'pl-slide' }, q, matchAnswers(qq))
@@ -147,8 +162,9 @@
       ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
       : el('div', { class: 'pl-slide' }, q, media ? audioPlayer(qq.src) : null, el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint || '' }));
     if (t === 'video') return reveal
-      ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
-      : el('div', { class: 'pl-slide' }, q, media ? videoPlayer(qq.src) : null);
+      ? el('div', { class: 'pl-slide' }, el('div', { class: 'pl-photo' }, revealVideo(qq),
+        el('div', { class: 'txt' }, el('span', { class: 'pl-tag ok', text: 'Дұрыс жауап' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(22px,min(3vw,5vh),40px)', text: qq.q }), answerCard(qq, true), info(qq.note))))
+      : el('div', { class: 'pl-slide' }, q, media ? videoPlayer(qq) : null);
     return el('div', { class: 'pl-slide' }, q);
   }
 
@@ -216,6 +232,7 @@
     render(step);
     ui.nextBtn.classList.remove('pulse');
     paintMenuState();
+    if (step.kind === 'answer' && ui.media) { try { ui.media.muted = true; ui.media.play().catch(() => {}); } catch { /* медиа қолжетімсіз */ } }
     if (step.kind === 'welcome' && !state.started) return; // алғашқы басу — браузер дыбысқа рұқсат беруі үшін қажет
     speak(step, afterVoice);
   }

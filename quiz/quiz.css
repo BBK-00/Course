@@ -219,3 +219,25 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 .pl-mrow.ok .tick::after { border-color: var(--green); }
 .pl-mrow.ok .arrow { color: var(--green); font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .pl-answer-card, .pl-answer-card .tick, .pl-slide .pl-info, .pl-opts.reveal .pl-opt, .pl-mrow.ok { animation: none; } }
+
+/* эмодзи сұрағы: үлкен белгілер */
+.pl-q.big { font-size: clamp(56px, min(11vw, 18vh), 170px); letter-spacing: .08em; line-height: 1.1; white-space: nowrap; }
+
+/* қара экран (тек дыбыс) */
+.pl-video.blind { position: relative; }
+.pl-hidden-video { position: absolute; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.pl-blind { display: grid; place-items: center; align-content: center; gap: 14px; min-height: min(46vh, 420px); border-radius: 18px; background: #000; color: #9fb4ee; font-size: clamp(16px, 2vw, 24px); }
+.pl-blind .eq { display: flex; gap: 6px; align-items: end; height: clamp(46px, 9vh, 90px); }
+.pl-blind .eq i { width: 8px; height: 100%; border-radius: 4px; background: var(--blue); animation: wave 1s ease-in-out infinite; }
+.pl-blind .eq i:nth-child(2n) { animation-delay: .2s; background: #6f93f5; } .pl-blind .eq i:nth-child(3n) { animation-delay: .45s; }
+.pl-blind .again { padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .3); background: transparent; color: #fff; font-weight: 600; }
+.pl-blind .again:hover { background: rgba(255, 255, 255, .12); }
+
+/* клип файлы жоқ */
+.pl-missing { display: grid; gap: 6px; place-items: center; align-content: center; min-height: min(40vh, 360px); border-radius: 18px; border: 2px dashed var(--line); background: #fff; color: var(--muted); text-align: center; padding: 20px; }
+.pl-missing b { font-size: clamp(20px, 2.6vw, 32px); color: var(--ink); }
+.pl-missing span { font-size: 14px; word-break: break-all; }
+
+.qz-cover.kino { background: radial-gradient(circle at 20% 80%, #ff8a3d 0, transparent 50%), var(--navy2); }
+.qz-cover.kino::before { border-radius: 50%; width: 38%; aspect-ratio: 1; background: transparent; border: 26px solid #ffd37a; right: 10%; top: 8%; opacity: .95; }
+.qz-cover.kino::after { background: #fff; border-radius: 4px; width: 5%; aspect-ratio: 1; right: 24%; top: 26%; }
