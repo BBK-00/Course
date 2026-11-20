@@ -190,7 +190,7 @@
         el('p', { class: 'pl-sub', text: 'Команда парақтарын жүргізушіге беріңіз.' }), paperArt(), el('span', { class: 'pl-next-chip', text: 'Келесі: дұрыс жауаптарды талдау' }), ui.hint = el('p', { class: 'pl-kicker', style: 'min-height:1.4em' }))));
     } else if (step.kind === 'answerq') {
       parts.push(subbar(step, { right: el('span', { class: 'pl-tag', text: 'Жауаптарды тексереміз' }) }));
-      parts.push(el('div', { class: 'pl-body' }, questionBody(step, 'review'), ui.hint = el('p', { class: 'pl-ready', text: '«Келесі» басқанда дұрыс жауап ашылады' })));
+      parts.push(el('div', { class: 'pl-body' }, questionBody(step, 'review'), ui.hint = el('p', { class: 'pl-ready' })));
     } else if (step.kind === 'answer') {
       const qq = questionOf(step);
       parts.push(subbar(step, { right: el('span', { class: 'pl-tag ok' }, qq.type === 'match' ? `${qq.left.length} сәйкестік` : 'Дұрыс жауап') }));
@@ -226,7 +226,6 @@
     if (state.paused) { advance = setTimeout(afterVoice, 300); return; }
     if (isTimed(step)) {
       state.phase = 'ready'; state.total = state.left = secondsOf(step); paintClock();
-      setHint(ui.media ? '«Келесі» басқанда таймер мен медиа басталады' : '«Келесі» басқанда таймер басталады');
       if (state.auto) beginTimer(); else ui.nextBtn.classList.add('pulse');
     } else {
       state.phase = 'done';
