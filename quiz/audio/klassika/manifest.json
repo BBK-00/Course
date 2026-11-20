@@ -2,17 +2,15 @@
  "er/welcome": "15aadaba2c06",
  "er/end": "eb99541bfc01",
  "er/r1-intro": "3950e96fb3df",
- "er/r1-outro": "37441eef0fee",
  "er/r1-q1": "8fa2f37caaca",
- "er/r1-q1-a": "3c6ff7421df6",
  "er/r1-q2": "7ba33c5c0305",
- "er/r1-q2-a": "17e22f3ac019",
  "ayel/welcome": "d0f6d4a969c3",
  "ayel/end": "cf8ec08439dc",
  "ayel/r1-intro": "b051e7c923c0",
- "ayel/r1-outro": "c068efdc8631",
  "ayel/r1-q1": "ac1e119f4b62",
- "ayel/r1-q1-a": "84dcfd2e83c1",
  "ayel/r1-q2": "2674f3ae6eb0",
- "ayel/r1-q2-a": "a6725abe3749"
+ "er/r1-collect": "ae22cef9b507",
+ "er/r1-answers": "7554c3dd9992",
+ "ayel/r1-collect": "18e2bddc5cee",
+ "ayel/r1-answers": "7c4cedcff4ab"
 }

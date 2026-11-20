@@ -13,9 +13,16 @@
   };
 
   const root = document.getElementById('player');
-  const state = { quiz: null, steps: [], i: 0, started: false, paused: false, muted: store.get('qz-muted') === '1', voice: store.get('qz-voice') === 'ayel' ? 'ayel' : 'er', left: 0, total: 0 };
+  const state = { auto: store.get('qz-auto') === '1', quiz: null, steps: [], i: 0, started: false, paused: false, muted: store.get('qz-muted') === '1', voice: store.get('qz-voice') === 'ayel' ? 'ayel' : 'er', left: 0, total: 0 };
   const voiceEl = new Audio();
-  let tick = null, advance = null, audioCtx = null, stageEl, barEl, dotsEl, nextBtn, pauseBtn, muteBtn, voiceBtn;
+  const svgEl = (tag, attrs) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+  const ringSvg = () => {
+    const svg = svgEl('svg', { viewBox: '0 0 120 120', 'aria-hidden': 'true' });
+    ring = svgEl('circle', { cx: 60, cy: 60, r: 52, class: 'pl-ring-bar' });
+    svg.append(svgEl('circle', { cx: 60, cy: 60, r: 52, class: 'pl-ring-track' }), ring);
+    return svg;
+  };
+  let ring = null, tick = null, advance = null, audioCtx = null, stageEl, barEl, dotsEl, nextBtn, pauseBtn, muteBtn, voiceBtn, autoBtn;
 
   /* ---------- Қадамдар ---------- */
   function buildSteps(quiz) {
@@ -23,10 +30,10 @@
     for (const r of quiz.rounds) {
       steps.push({ kind: 'round', r, audio: r.id + '-intro' });
       r.questions.forEach((q, k) => {
-        const n = k + 1, base = { r, q, n, count: r.questions.length };
-        steps.push({ ...base, kind: 'question', audio: `${r.id}-q${n}` }, { ...base, kind: 'answer', audio: `${r.id}-q${n}-a` });
+        const n = k + 1;
+        steps.push({ kind: 'question', r, q, n, count: r.questions.length, audio: `${r.id}-q${n}` });
       });
-      steps.push({ kind: 'outro', r, audio: r.id + '-outro' });
+      steps.push({ kind: 'collect', r, audio: r.id + '-collect' }, { kind: 'answers', r, audio: r.id + '-answers' });
     }
     steps.push({ kind: 'end', audio: 'end' });
     return steps;
@@ -66,14 +73,14 @@
         state.started ? null : el('p', { class: 'pl-note', text: 'Дыбысты қосып қойыңыз: жүргізуші ережені және сұрақтарды дауыстап оқиды.' }));
     }
     if (step.kind === 'round') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: (q.rounds.indexOf(step.r) + 1) + '-кезең' }), el('h1', { class: 'pl-title', text: step.r.name }), el('p', { class: 'pl-sub', text: step.r.questions.length + ' сұрақ · әр сұраққа ' + step.r.seconds + ' секунд' }), wave());
-    if (step.kind === 'outro') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: step.r.name }), el('h1', { class: 'pl-title', text: 'Кезең аяқталды' }), el('p', { class: 'pl-sub', text: 'Парақтарды жинап, жауаптарды тексеріңіздер' }), wave());
+    if (step.kind === 'collect') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: step.r.name }), el('h1', { class: 'pl-title', text: 'Парақтарды жинаймыз' }), el('p', { class: 'pl-sub', text: 'Жауаптарды жазып бітіріңіздер, команда атын жазуды ұмытпаңыз' }),
+      el('div', { class: 'pl-ring' }, ringSvg(), el('b', { id: 'sec', text: '…' })));
+    if (step.kind === 'answers') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: step.r.name }), el('h1', { class: 'pl-title sm', text: 'Дұрыс жауаптар' }),
+      el('ol', { class: 'pl-answers' }, step.r.questions.map(qq => el('li', {}, el('span', { class: 'qt', text: qq.q }), el('span', { class: 'ans' }, el('i', { text: LETTERS[qq.correct] }), qq.options[qq.correct])))));
     if (step.kind === 'end') return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: q.title }), el('h1', { class: 'pl-title', text: 'Рақмет!' }), el('p', { class: 'pl-sub', text: 'Ойын аяқталды' }),
       el('div', { style: 'display:flex;gap:12px;justify-content:center;flex-wrap:wrap' }, el('button', { class: 'pl-start', type: 'button', text: 'Қайта ойнау', onclick: () => go(0) }), el('a', { class: 'pl-btn', href: '/quiz/', text: 'Каталогқа' })));
-    const reveal = step.kind === 'answer';
-    const opts = el('div', { class: 'pl-opts' + (reveal ? ' reveal' : '') }, step.q.options.map((o, k) => el('div', { class: 'pl-opt' + (reveal && k === step.q.correct ? ' right' : '') }, el('i', { text: LETTERS[k] }), el('span', { text: o }))));
-    const foot = reveal
-      ? el('p', { class: 'pl-answer-line', text: 'Дұрыс жауап: ' + LETTERS[step.q.correct] + ' — ' + step.q.options[step.q.correct] })
-      : el('div', { class: 'pl-timer' }, el('div', { class: 'pl-track' }, barEl = el('div', { class: 'pl-fill' })), el('div', { class: 'pl-sec', id: 'sec', text: 'Тыңдаңыз…' }));
+    const opts = el('div', { class: 'pl-opts' }, step.q.options.map((o, k) => el('div', { class: 'pl-opt' }, el('i', { text: LETTERS[k] }), el('span', { text: o }))));
+    const foot = el('div', { class: 'pl-timer' }, el('div', { class: 'pl-track' }, barEl = el('div', { class: 'pl-fill' })), el('div', { class: 'pl-sec', id: 'sec', text: 'Тыңдаңыз…' }));
     return el('div', { class: 'pl-slide' }, el('div', { class: 'pl-kicker', text: step.r.name + ' · ' + step.n + ' / ' + step.count }), el('h1', { class: 'pl-q', text: step.q.q }), opts, foot);
   }
 
@@ -82,10 +89,21 @@
   }
 
   /* ---------- Таймер ---------- */
+  /* таймер біткенде: «Келесі» жыпылықтайды; «Авто» қосулы болса, өзі өтеді */
+  function finished() {
+    nextBtn.classList.add('pulse');
+    if (state.auto) advance = setTimeout(() => go(state.i + 1), 1200);
+  }
   function countdown(seconds) {
     state.total = state.left = seconds;
     const sec = document.getElementById('sec');
-    const paint = () => { if (sec) sec.textContent = String(Math.max(0, Math.ceil(state.left))); if (barEl) { barEl.style.transform = `scaleX(${Math.max(0, state.left / state.total)})`; barEl.classList.toggle('low', state.left <= 5); } };
+    const R = 2 * Math.PI * 52;
+    const paint = () => {
+      if (sec) sec.textContent = String(Math.max(0, Math.ceil(state.left)));
+      const f = Math.max(0, state.left / state.total);
+      if (barEl) { barEl.style.transform = `scaleX(${f})`; barEl.classList.toggle('low', state.left <= 5); }
+      if (ring) { ring.style.strokeDasharray = R; ring.style.strokeDashoffset = R * (1 - f); ring.classList.toggle('low', state.left <= 5); }
+    };
     paint();
     let last = performance.now(), lastWhole = Math.ceil(state.left);
     clearInterval(tick);
@@ -95,7 +113,7 @@
       state.left -= dt; paint();
       const whole = Math.ceil(state.left);
       if (whole !== lastWhole) { lastWhole = whole; if (whole > 0 && whole <= 5) beep(660, 120); }
-      if (state.left <= 0) { clearInterval(tick); tick = null; beep(440, 600); advance = setTimeout(() => go(state.i + 1), 700); }
+      if (state.left <= 0) { clearInterval(tick); tick = null; beep(440, 600); finished(); }
     }, 100);
   }
 
@@ -110,8 +128,8 @@
     const afterVoice = () => {
       if (state.paused) { advance = setTimeout(afterVoice, 300); return; }
       if (step.kind === 'question') countdown(step.r.seconds);
-      else if (step.kind === 'answer') nextBtn.classList.add('pulse'); // ұйымдастырушы өзі «Келесі» басады
-      else if (step.kind !== 'end') advance = setTimeout(() => go(state.i + 1), 700);
+      else if (step.kind === 'collect') countdown(state.quiz.collectSeconds || 30);
+      else if (step.kind !== 'end') finished(); // барлығы «Келесі» / «Артқа» арқылы басқарылады
     };
     speak(step, afterVoice);
   }
@@ -130,12 +148,13 @@
     const btn = (label, icon, on, extra = {}) => el('button', { class: 'pl-btn', type: 'button', onclick: on, ...extra }, icon, el('span', { class: 'lbl', text: label }));
     pauseBtn = btn('Кідірту', '❚❚', togglePause, { 'aria-pressed': 'false' });
     muteBtn = btn(state.muted ? 'Дыбысты қосу' : 'Дыбысты өшіру', '🔊', toggleMute, { 'aria-pressed': String(state.muted) });
+    autoBtn = btn(state.auto ? 'Авто: қосулы' : 'Авто: өшірулі', '⏭', () => { state.auto = !state.auto; store.set('qz-auto', state.auto ? '1' : '0'); autoBtn.setAttribute('aria-pressed', String(state.auto)); autoBtn.querySelector('.lbl').textContent = state.auto ? 'Авто: қосулы' : 'Авто: өшірулі'; }, { 'aria-pressed': String(state.auto) });
     voiceBtn = btn('Дауыс: ' + (state.voice === 'er' ? 'ер' : 'әйел'), '🎙', toggleVoice);
     nextBtn = el('button', { class: 'pl-btn next', type: 'button', onclick: () => go(state.i + 1) }, el('span', { class: 'lbl', text: 'Келесі' }), '→');
     const bar = el('div', { class: 'pl-bar' },
       el('a', { class: 'pl-btn', href: '/quiz/', 'aria-label': 'Каталог' }, '⌂', el('span', { class: 'lbl', text: 'Каталог' })),
       btn('Артқа', '←', () => go(state.i - 1)), btn('Қайта оқу', '↻', () => { if (state.started) show(); }), pauseBtn,
-      el('span', { class: 'sp' }), voiceBtn, muteBtn, btn('Толық экран', '⛶', fullscreen), nextBtn);
+      el('span', { class: 'sp' }), autoBtn, voiceBtn, muteBtn, btn('Толық экран', '⛶', fullscreen), nextBtn);
     stageEl = el('main', { class: 'pl-stage', id: 'stage', 'aria-live': 'polite' });
     dotsEl = el('div', { class: 'pl-dots', 'aria-hidden': 'true' });
     root.replaceChildren(bar, stageEl, dotsEl);

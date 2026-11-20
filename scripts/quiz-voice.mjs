@@ -17,12 +17,15 @@ export function segments(quiz) {
   const out = { welcome: quiz.welcome, end: quiz.end };
   for (const r of quiz.rounds) {
     out[r.id + '-intro'] = r.intro;
-    out[r.id + '-outro'] = r.outro;
+    out[r.id + '-collect'] = r.collect;
+    const parts = [];
     r.questions.forEach((q, i) => {
       const n = i + 1, opts = (q.sayOptions || q.options);
+      // сұрақ тек оқылады; дұрыс жауап кезең соңында бәрі бірге айтылады
       out[`${r.id}-q${n}`] = `${ordinal(n)} сұрақ. ${q.sayQ || q.q} ` + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ') + ' Уақыт басталды!';
-      out[`${r.id}-q${n}-a`] = `Уақыт бітті! Дұрыс жауап — ${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}.`;
+      parts.push(`${ordinal(n)} сұрақ. Дұрыс жауап — ${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}.`);
     });
+    out[r.id + '-answers'] = 'Дұрыс жауаптарды тексереміз. ' + parts.join(' ');
   }
   return out;
 }
