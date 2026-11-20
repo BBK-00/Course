@@ -2,31 +2,33 @@
    Мәтін өзгермесе, файл қайта жасалмайды (хэш бойынша). Дауыс: Microsoft Neural (kk-KZ).
    ЕСКЕРТУ: node-edge-tts Edge-тің оқу қызметін қолданады; өндіріске шығарар алдында ресми Azure Speech-ке ауыстыру керек. */
 import { EdgeTTS } from 'node-edge-tts';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 export const LETTERS = ['А', 'Б', 'В', 'Г'];
 export const VOICES = { er: 'kk-KZ-DauletNeural', ayel: 'kk-KZ-AigulNeural' };
-const ORD = ['бірінші', 'екінші', 'үшінші', 'төртінші', 'бесінші', 'алтыншы', 'жетінші', 'сегізінші', 'тоғызыншы', 'оныншы', 'он бірінші', 'он екінші', 'он үшінші', 'он төртінші', 'он бесінші'];
-const ordinal = n => ORD[n - 1] || n + '-сұрақ';
+const ORD = ['бірінші', 'екінші', 'үшінші', 'төртінші', 'бесінші', 'алтыншы', 'жетінші', 'сегізінші', 'тоғызыншы', 'оныншы', 'он бірінші', 'он екінші', 'он үшінші', 'он төртінші', 'он бесінші', 'он алтыншы', 'он жетінші', 'он сегізінші', 'он тоғызыншы', 'жиырмасыншы'];
+const ordinal = n => ORD[n - 1] || n + '-ші';
+const ONES = ['', 'бір', 'екі', 'үш', 'төрт', 'бес', 'алты', 'жеті', 'сегіз', 'тоғыз'], TENS = ['', 'он', 'жиырма', 'отыз', 'қырық', 'елу', 'алпыс', 'жетпіс', 'сексен', 'тоқсан'];
+export const numWords = n => n >= 100 ? String(n) : n === 0 ? 'нөл' : [TENS[Math.floor(n / 10)], ONES[n % 10]].filter(Boolean).join(' ');
 
 /* Дауысталатын сегменттер: кілт → мәтін. Ойнатқыш (quiz/player.js) дәл осы кілттерді қолданады. */
 export function segments(quiz) {
   const out = { welcome: quiz.welcome, end: quiz.end };
-  for (const r of quiz.rounds) {
-    out[r.id + '-intro'] = r.intro;
+  quiz.rounds.forEach((r, ri) => {
+    out[r.id + '-intro'] = `${ordinal(ri + 1)} кезең — «${r.name}». ${r.tagline || ''}`.trim();
+    out[r.id + '-rules'] = `Бұл кезеңде ${numWords(r.questions.length)} сұрақ. Әр сұраққа ${numWords(r.seconds)} секунд беріледі. Дұрыс жауап үшін ${numWords(r.points || 1)} ұпай. Жауаптарыңызды қағазға жазыңыздар.`;
     out[r.id + '-collect'] = r.collect;
-    const parts = [];
     r.questions.forEach((q, i) => {
-      const n = i + 1, opts = (q.sayOptions || q.options);
-      // сұрақ тек оқылады; дұрыс жауап кезең соңында бәрі бірге айтылады
-      out[`${r.id}-q${n}`] = `${ordinal(n)} сұрақ. ${q.sayQ || q.q} ` + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ') + ' Уақыт басталды!';
-      parts.push(`${ordinal(n)} сұрақ. Дұрыс жауап — ${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}.`);
+      const n = i + 1, opts = q.sayOptions || q.options;
+      // сұрақ тек оқылады; дұрыс жауап кезең соңында әр сұрақ бойынша бөлек айтылады
+      out[`${r.id}-q${n}`] = `${ordinal(n)} сұрақ. ${q.sayQ || q.q}` + (q.type === 'open' ? '' : ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' '));
+      const right = q.type === 'open' ? (q.sayAnswer || q.answer) : `${LETTERS[q.correct]} нұсқасы: ${opts[q.correct]}`;
+      out[`${r.id}-a${n}`] = `${ordinal(n)} сұрақтың дұрыс жауабы — ${right}. ${q.sayNote || q.note || ''}`.trim();
     });
-    out[r.id + '-answers'] = 'Дұрыс жауаптарды тексереміз. ' + parts.join(' ');
-  }
+  });
   return out;
 }
 
@@ -56,6 +58,12 @@ async function main() {
       manifest[tag] = h; made++;
       writeFileSync(manifestFile, JSON.stringify(manifest, null, 1));
       console.log('жасалды', tag);
+    }
+  }
+  for (const [who] of Object.entries(VOICES)) {
+    for (const file of existsSync(join(dir, who)) ? readdirSync(join(dir, who)) : []) {
+      const key = file.replace(/.mp3$/, '');
+      if (!(key in segs)) { unlinkSync(join(dir, who, file)); delete manifest[who + '/' + key]; console.log('өшірілді', who + '/' + file); }
     }
   }
   writeFileSync(manifestFile, JSON.stringify(manifest, null, 1));
