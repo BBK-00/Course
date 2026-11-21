@@ -21,11 +21,13 @@ export function segments(quiz) {
     out[r.id + '-intro'] = `${ordinal(ri + 1)} кезең — «${r.name}». ${r.tagline || ''}`.trim();
     out[r.id + '-rules'] = `Бұл кезеңде ${numWords(r.questions.length)} сұрақ. Әр сұраққа ${numWords(r.seconds)} секунд беріледі. Дұрыс жауап үшін ${numWords(r.points || 1)} ұпай. Жауаптарыңызды қағазға жазыңыздар.`;
     out[r.id + '-collect'] = r.collect;
+    if (r.risk) out[r.id + '-bet'] = r.betText || 'Тәуекел! Сұрақ ашылмай тұрып әр команда бір, үш немесе бес ұпай тігеді. Дұрыс жауапта ұпай қосылады, қате жауапта шегеріледі. Қатыспауға да болады.';
     r.questions.forEach((q, i) => {
       const n = i + 1, opts = q.sayOptions || q.options, lead = { photo: 'Суретке қараңыз. ', audio: 'Дыбысты тыңдаңыз. ', video: q.blind ? 'Экран қара болады, тек дыбысты мұқият тыңдаңыз. ' : 'Видеоға назар аударыңыз. ' }[q.type] || '';
+      const sayLead = q.sayLead ? q.sayLead + ' ' : '';
       // сұрақ тек оқылады (нұсқалар / сәйкестік тізімі де); дұрыс жауап кезең соңында әр сұрақ бойынша бөлек айтылады
       const qt = String(q.sayQ || q.q).trim(); // дауыс үзілісі үшін сұрақ соңында тыныс белгісі болсын
-      let read = `${ordinal(n)} сұрақ. ${lead}${qt}${/[.?!]$/.test(qt) ? '' : '.'}`;
+      let read = `${ordinal(n)} сұрақ. ${lead}${sayLead}${qt}${/[.?!]$/.test(qt) ? '' : '.'}`;
       if (q.options) read += ' ' + opts.map((o, k) => `${LETTERS[k]} нұсқасы — ${o}.`).join(' ');
       if (q.type === 'match') read += ' Сол жақта: ' + q.left.map((o, k) => `${k + 1} — ${o}`).join('; ') + '. Оң жақта: ' + q.right.map((o, k) => `${LETTERS[k]} — ${o}`).join('; ') + '.';
       out[`${r.id}-q${n}`] = read;

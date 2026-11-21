@@ -247,3 +247,7 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 .qz-cover.music::after { width: 4%; aspect-ratio: .12; border-radius: 3px; background: #fff; right: 32%; top: 8%; height: 34%; }
 
 .pl-q.long { font-size: clamp(24px, min(3.6vw, 6vh), 50px); line-height: 1.2; max-width: 1000px; }
+
+/* экрандағы белгілер (медиа-логика) */
+.pl-visual { font-size: clamp(30px, min(5vw, 9vh), 80px); font-weight: 800; line-height: 1.1; text-align: center; color: var(--blue); letter-spacing: .02em; }
+.pl-stats.bets b { color: var(--blue); }

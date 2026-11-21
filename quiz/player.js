@@ -30,7 +30,7 @@
     const steps = [{ kind: 'welcome' }];
     quiz.rounds.forEach((r, ri) => {
       steps.push({ kind: 'round', ri }, { kind: 'rules', ri });
-      r.questions.forEach((_, qi) => steps.push({ kind: 'question', ri, qi }));
+      r.questions.forEach((_, qi) => { if (r.risk) steps.push({ kind: 'bet', ri, qi }); steps.push({ kind: 'question', ri, qi }); });
       steps.push({ kind: 'collect', ri });
       // жауаптар: алдымен сұрақ шығады, «Келесі» басқанда жауабы ашылады
       r.questions.forEach((_, qi) => steps.push({ kind: 'answerq', ri, qi }, { kind: 'answer', ri, qi }));
@@ -42,7 +42,7 @@
   const questionOf = s => roundOf(s).questions[s.qi];
   const audioKey = s => {
     const r = s.ri !== undefined ? roundOf(s) : null;
-    return { welcome: 'welcome', end: 'end', round: r && r.id + '-intro', rules: r && r.id + '-rules', collect: r && r.id + '-collect',
+    return { welcome: 'welcome', end: 'end', round: r && r.id + '-intro', rules: r && r.id + '-rules', bet: r && r.id + '-bet', collect: r && r.id + '-collect',
       question: r && `${r.id}-q${s.qi + 1}`, answerq: r && `${r.id}-q${s.qi + 1}`, answer: r && `${r.id}-a${s.qi + 1}` }[s.kind];
   };
   const isTimed = s => s.kind === 'question' || s.kind === 'collect';
@@ -106,6 +106,7 @@
   const matchGrid = qq => el('div', { class: 'pl-match' }, qq.left.map((l, k) => el('div', { class: 'pl-mrow' }, el('div', { class: 'pl-mcell l' }, el('b', { text: k + 1 + ' ·' }), l), el('div', { class: 'pl-mdots' }), el('div', { class: 'pl-mcell r' }, el('b', { text: LETTERS[k] + ' ·' }), qq.right[k]))));
   const matchAnswers = qq => el('div', { class: 'pl-match' }, qq.left.map((l, k) => el('div', { class: 'pl-mrow ok', style: `--i:${k}` }, el('div', { class: 'pl-mcell l' }, l), el('div', { class: 'arrow', text: '→' }), el('div', { class: 'pl-mcell r' }, qq.right[qq.map[k]], tick2()))));
   const answerCard = (qq, small) => el('div', { class: 'pl-answer-card' + (small ? ' sm' : '') }, el('span', { text: qq.answer }), tick2());
+  const visualEl = qq => qq.visual ? el('div', { class: 'pl-visual', text: qq.visual }) : null;
   const info = text => text ? el('div', { class: 'pl-info', text }) : null;
 
   function audioPlayer(src) {
@@ -122,7 +123,9 @@
     ['timeupdate', 'loadedmetadata', 'play', 'pause', 'ended'].forEach(ev => a.addEventListener(ev, paint));
     btn.onclick = () => { if (a.paused) { a.muted = state.muted; a.play().catch(() => {}); } else a.pause(); };
     ui.media = a;
-    return el('div', { class: 'pl-audio' }, a, btn, el('div', { class: 'wavef' }, bars), time, el('span', { class: 'vol', text: '♪' }));
+    const box = el('div', { class: 'pl-audio' }, a, btn, el('div', { class: 'wavef' }, bars), time, el('span', { class: 'vol', text: '♪' }));
+    a.addEventListener('error', () => { ui.media = null; box.replaceWith(missingClip(src)); });
+    return box;
   }
   const missingClip = src => el('div', { class: 'pl-missing' }, el('b', { text: '🎬 Клип қосылмаған' }), el('span', { text: src }));
   /* qq.blind: экран қара, тек дыбыс шығады (жауап ашылғанда видео көрінеді) */
@@ -151,7 +154,7 @@
     const q = el('h1', { class: 'pl-q' + (qq.long ? ' long' : ''), text: qq.q });
     if (t === 'open') return reveal
       ? el('div', { class: 'pl-slide' }, q, answerCard(qq), info(qq.note))
-      : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: qq.tag || 'Қысқа жауап' }), qq.big ? el('h1', { class: 'pl-q big', text: qq.q }) : q);
+      : el('div', { class: 'pl-slide center' }, el('span', { class: 'pl-tag', text: qq.tag || 'Қысқа жауап' }), visualEl(qq), qq.big ? el('h1', { class: 'pl-q big', text: qq.q }) : q);
     if (t === 'choice') return el('div', { class: 'pl-slide' }, q, optionsGrid(qq, reveal), reveal ? info(qq.note) : null);
     if (t === 'match') return reveal
       ? el('div', { class: 'pl-slide' }, q, matchAnswers(qq))
@@ -160,7 +163,7 @@
       el('div', { class: 'txt' }, el('span', { class: reveal ? 'pl-tag ok' : 'pl-tag', text: reveal ? 'Дұрыс жауап' : 'Фото сұрақ' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(24px,min(3.6vw,6vh),48px)', text: qq.q }), reveal ? [answerCard(qq, true), info(qq.note)] : [el('div', { class: 'rule' }), el('p', { class: 'pl-hint', text: qq.hint || '' })])));
     if (t === 'audio') return reveal
       ? el('div', { class: 'pl-slide' }, q, qq.options ? optionsGrid(qq, true) : answerCard(qq), info(qq.note))
-      : el('div', { class: 'pl-slide' }, q, media ? audioPlayer(qq.src) : null, qq.options ? optionsGrid(qq, false) : null, qq.hint ? el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint }) : null);
+      : el('div', { class: 'pl-slide' }, visualEl(qq), q, media ? audioPlayer(qq.src) : null, qq.options ? optionsGrid(qq, false) : null, qq.hint ? el('p', { class: 'pl-hint', style: 'text-align:center', text: qq.hint }) : null);
     if (t === 'video') return reveal
       ? el('div', { class: 'pl-slide' }, el('div', { class: 'pl-photo' }, revealVideo(qq),
         el('div', { class: 'txt' }, el('span', { class: 'pl-tag ok', text: 'Дұрыс жауап' }), el('h1', { class: 'pl-q', style: 'font-size:clamp(22px,min(3vw,5vh),40px)', text: qq.q }), answerCard(qq, true), info(qq.note))))
@@ -180,7 +183,7 @@
       parts.push(el('div', { class: 'pl-body' }, arches(), el('div', { class: 'pl-dark-slide' },
         el('p', { class: 'pl-kicker', text: end ? 'Рақмет' : q.tagline || 'Командалық ойын' }),
         el('h1', { class: 'pl-title', text: end ? 'Ойын аяқталды' : q.title }),
-        end ? null : el('p', { class: 'pl-meta', text: `${q.rounds.length} кезең  •  ${count} сұрақ  •  ≈ ${Math.max(1, Math.round(secs / 60))} минут` }),
+        end ? null : el('p', { class: 'pl-meta', text: `${q.rounds.length} кезең  •  ${count} сұрақ  •  ≈ ${Math.max(1, Math.round(secs / 60))} минут` + (q.maxScore ? `  •  ең жоғары — ${q.maxScore} ұпай` : '') }),
         end ? el('div', { class: 'pl-actions' }, el('button', { class: 'pl-cta', type: 'button', text: 'Қайта ойнау', onclick: () => go(0) }), el('a', { class: 'pl-cta ghost', href: '/quiz/', text: 'Каталогқа' }))
           : state.started ? el('div', { class: 'pl-actions' }, wave(), el('span', { class: 'pl-meta', text: 'Жүргізуші сәлемдесуде…' }))
             : el('div', { class: 'pl-actions' }, el('button', { class: 'pl-cta', type: 'button', text: 'Ойынды бастау →', onclick: () => { state.started = true; show(); } })),
@@ -194,8 +197,13 @@
     } else if (step.kind === 'rules') {
       parts.push(subbar(step, { count: false }));
       parts.push(el('div', { class: 'pl-body' }, el('div', { class: 'pl-slide center' }, el('h1', { class: 'pl-q', text: 'Бұл кезең қалай өтеді?' }),
-        el('div', { class: 'pl-stats' }, [[r.questions.length, 'сұрақ'], [r.seconds, 'секунд'], [r.points || 1, 'ұпай']].map(([n, t]) => el('div', {}, el('b', { text: String(n) }), el('span', { text: t })))),
+        el('div', { class: 'pl-stats' }, [[r.questions.length, 'сұрақ'], [r.seconds, 'секунд'], [r.pointsLabel || r.points || 1, 'ұпай']].map(([n, t]) => el('div', {}, el('b', { text: String(n) }), el('span', { text: t })))),
         el('p', { class: 'pl-hint', text: r.rulesNote || 'Жауапты қағазға жазыңыз.' }))));
+    } else if (step.kind === 'bet') {
+      parts.push(subbar(step, { right: el('span', { class: 'pl-tag', text: 'Тәуекел' }) }));
+      parts.push(el('div', { class: 'pl-body' }, el('div', { class: 'pl-slide center' }, el('h1', { class: 'pl-q', text: 'Қанша ұпай тігесіз?' }),
+        el('div', { class: 'pl-stats bets' }, [1, 3, 5].map(n => el('div', {}, el('b', { text: String(n) }), el('span', { text: 'ұпай' })))),
+        el('p', { class: 'pl-hint', text: 'Дұрыс жауапта ұпай қосылады, қате жауапта шегеріледі. Қатыспасаңыз — 0 ұпай.' }))));
     } else if (step.kind === 'question') {
       parts.push(subbar(step, { right: timerChip(secondsOf(step)) }));
       parts.push(el('div', { class: 'pl-body' }, questionBody(step, 'ask'), ui.hint = el('p', { class: 'pl-ready' })));
