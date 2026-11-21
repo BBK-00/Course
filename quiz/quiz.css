@@ -251,3 +251,7 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 /* экрандағы белгілер (медиа-логика) */
 .pl-visual { font-size: clamp(30px, min(5vw, 9vh), 80px); font-weight: 800; line-height: 1.1; text-align: center; color: var(--blue); letter-spacing: .02em; }
 .pl-stats.bets b { color: var(--blue); }
+
+/* кадр/постер үлкенірек көрінеді */
+.pl-photo { grid-template-columns: 1.6fr 1fr; }
+.pl-photo img { max-height: 66vh; object-fit: contain; background: #fff; }
