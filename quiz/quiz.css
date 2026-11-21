@@ -255,3 +255,4 @@ body.player { height: 100vh; overflow: hidden; background: var(--bg); }
 /* кадр/постер үлкенірек көрінеді */
 .pl-photo { grid-template-columns: 1.6fr 1fr; }
 .pl-photo img { max-height: 66vh; object-fit: contain; background: #fff; }
+.pl-photo img { width: auto; max-width: 100%; height: auto; max-height: 66vh; justify-self: center; background: transparent; }
